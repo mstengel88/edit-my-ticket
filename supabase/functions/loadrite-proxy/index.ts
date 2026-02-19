@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// Loadrite InsightHQ API Proxy
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
