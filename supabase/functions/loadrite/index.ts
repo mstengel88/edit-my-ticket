@@ -20,17 +20,36 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const url = new URL(req.url);
-    const endpoint = url.searchParams.get("endpoint");
+    let endpoint: string | null = null;
+    const extraParams: Record<string, string> = {};
+
+    if (req.method === "POST") {
+      // Read endpoint and params from JSON body
+      const body = await req.json();
+      endpoint = body.endpoint || null;
+      for (const [k, v] of Object.entries(body)) {
+        if (k !== "endpoint" && typeof v === "string") {
+          extraParams[k] = v;
+        }
+      }
+    } else {
+      // Read from query params
+      const url = new URL(req.url);
+      endpoint = url.searchParams.get("endpoint");
+      for (const [key, value] of url.searchParams.entries()) {
+        if (key !== "endpoint") extraParams[key] = value;
+      }
+    }
+
     if (!endpoint) {
-      return new Response(JSON.stringify({ error: "Missing 'endpoint' query param" }), {
+      return new Response(JSON.stringify({ error: "Missing 'endpoint' param" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const allowedPrefixes = ["context/", "scale-data/", "auth/"];
-    const isAllowed = allowedPrefixes.some((p) => endpoint.startsWith(p));
+    const isAllowed = allowedPrefixes.some((p) => endpoint!.startsWith(p));
     if (!isAllowed) {
       return new Response(JSON.stringify({ error: "Invalid endpoint" }), {
         status: 400,
@@ -38,25 +57,15 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const forwardParams = new URLSearchParams();
-    for (const [key, value] of url.searchParams.entries()) {
-      if (key !== "endpoint") forwardParams.set(key, value);
-    }
-    const qs = forwardParams.toString();
+    const qs = new URLSearchParams(extraParams).toString();
     const targetUrl = `${LOADRITE_BASE}/${endpoint}${qs ? `?${qs}` : ""}`;
 
-    let body: string | undefined;
-    if (req.method === "PUT" || req.method === "POST") {
-      body = await req.text();
-    }
-
     const response = await fetch(targetUrl, {
-      method: req.method === "PUT" || req.method === "POST" ? req.method : "GET",
+      method: "GET",
       headers: {
         "Authorization": `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      ...(body ? { body } : {}),
     });
 
     const data = await response.text();
