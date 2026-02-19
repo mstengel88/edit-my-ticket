@@ -1,17 +1,41 @@
-import { useState } from "react";
-import { TicketData, sampleTickets, createEmptyTicket } from "@/types/ticket";
+import { useState, useEffect } from "react";
+import { TicketData, createEmptyTicket } from "@/types/ticket";
 import { TicketList } from "@/components/TicketList";
 import { TicketEditor } from "@/components/TicketEditor";
 import { TicketPreview } from "@/components/TicketPreview";
-import { ArrowLeft, Plus } from "lucide-react";
+import { useLoadriteData } from "@/hooks/useLoadriteData";
+import { ArrowLeft, Plus, RefreshCw, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 type View = "list" | "editor" | "preview";
 
 const Index = () => {
-  const [tickets, setTickets] = useState<TicketData[]>(sampleTickets);
+  const { tickets: apiTickets, loading, error, fetchData } = useLoadriteData();
+  const [localTickets, setLocalTickets] = useState<TicketData[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [view, setView] = useState<View>("list");
+
+  // Fetch data on mount
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Show errors
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
+
+  // Merge API tickets with local edits
+  const allTickets = [
+    ...apiTickets.map((at) => {
+      const local = localTickets.find((lt) => lt.id === at.id);
+      return local ?? at;
+    }),
+    ...localTickets.filter((lt) => !apiTickets.some((at) => at.id === lt.id)),
+  ];
 
   const handleSelectTicket = (ticket: TicketData) => {
     setSelectedTicket({ ...ticket });
@@ -25,7 +49,7 @@ const Index = () => {
   };
 
   const handleSaveTicket = (updated: TicketData) => {
-    setTickets((prev) => {
+    setLocalTickets((prev) => {
       const idx = prev.findIndex((t) => t.id === updated.id);
       if (idx >= 0) {
         const next = [...prev];
@@ -35,10 +59,11 @@ const Index = () => {
       return [...prev, updated];
     });
     setSelectedTicket(updated);
+    toast.success("Ticket saved!");
   };
 
   const handleDeleteTicket = (id: string) => {
-    setTickets((prev) => prev.filter((t) => t.id !== id));
+    setLocalTickets((prev) => prev.filter((t) => t.id !== id));
     if (selectedTicket?.id === id) {
       setSelectedTicket(null);
       setView("list");
@@ -53,6 +78,11 @@ const Index = () => {
   const handleBack = () => {
     if (view === "preview") setView("editor");
     else { setView("list"); setSelectedTicket(null); }
+  };
+
+  const handleRefresh = () => {
+    fetchData();
+    toast.info("Refreshing from Loadrite...");
   };
 
   return (
@@ -71,23 +101,40 @@ const Index = () => {
               </h1>
               {view === "list" && (
                 <p className="text-xs text-muted-foreground">
-                  {tickets.length} ticket{tickets.length !== 1 ? "s" : ""}
+                  {allTickets.length} ticket{allTickets.length !== 1 ? "s" : ""}
+                  {loading && " · syncing..."}
                 </p>
               )}
             </div>
           </div>
           {view === "list" && (
-            <Button onClick={handleNewTicket} size="sm" className="gap-1.5">
-              <Plus className="h-4 w-4" />
-              New Ticket
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={loading}
+                className="gap-1.5"
+              >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                Sync
+              </Button>
+              <Button onClick={handleNewTicket} size="sm" className="gap-1.5">
+                <Plus className="h-4 w-4" />
+                New Ticket
+              </Button>
+            </div>
           )}
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-6 sm:px-6">
         {view === "list" && (
-          <TicketList tickets={tickets} onSelect={handleSelectTicket} onDelete={handleDeleteTicket} onPreview={handlePreview} />
+          <TicketList tickets={allTickets} onSelect={handleSelectTicket} onDelete={handleDeleteTicket} onPreview={handlePreview} />
         )}
         {view === "editor" && selectedTicket && (
           <TicketEditor ticket={selectedTicket} onSave={handleSaveTicket} onPreview={handlePreview} />
