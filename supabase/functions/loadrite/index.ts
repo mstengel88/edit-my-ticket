@@ -59,6 +59,7 @@ Deno.serve(async (req: Request) => {
 
     const qs = new URLSearchParams(extraParams).toString();
     const targetUrl = `${LOADRITE_BASE}/${endpoint}${qs ? `?${qs}` : ""}`;
+    console.log("Proxying to:", targetUrl);
 
     const response = await fetch(targetUrl, {
       method: "GET",
