@@ -3,18 +3,13 @@ const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const BASE_URL = `https://${PROJECT_ID}.supabase.co/functions/v1/loadrite`;
 
 async function callLoadrite(endpoint: string, params?: Record<string, string>) {
-  const url = new URL(BASE_URL);
-  url.searchParams.set("endpoint", endpoint);
-  if (params) {
-    for (const [k, v] of Object.entries(params)) {
-      url.searchParams.set(k, v);
-    }
-  }
-
-  const res = await fetch(url.toString(), {
+  const res = await fetch(BASE_URL, {
+    method: "POST",
     headers: {
       apikey: ANON_KEY,
+      "Content-Type": "application/json",
     },
+    body: JSON.stringify({ endpoint, ...params }),
   });
 
   if (!res.ok) {
@@ -79,7 +74,6 @@ export interface LoadritePagedResponse {
     TotalRecords?: number;
     IsCached?: boolean;
   };
-  // Some endpoints return arrays directly
 }
 
 export async function getScaleDataLoading(
