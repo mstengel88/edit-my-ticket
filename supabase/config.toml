@@ -1,4 +1,4 @@
 project_id = "dlayrpnmfnbjlxgnkczv"
 
-[functions.loadrite]
+[functions.loadrite-proxy]
 verify_jwt = false
