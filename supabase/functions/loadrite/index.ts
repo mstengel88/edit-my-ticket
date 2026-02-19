@@ -70,6 +70,15 @@ Deno.serve(async (req: Request) => {
     });
 
     const data = await response.text();
+    console.log("Loadrite response status:", response.status, "body:", data.substring(0, 500));
+
+    // If Loadrite returns 404, return empty array instead of forwarding 404
+    if (response.status === 404) {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     return new Response(data, {
       status: response.status,
