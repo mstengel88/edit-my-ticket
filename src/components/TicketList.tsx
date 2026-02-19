@@ -13,8 +13,7 @@ interface TicketListProps {
 const statusColors: Record<TicketData["status"], string> = {
   draft: "bg-muted text-muted-foreground",
   sent: "bg-accent text-accent-foreground",
-  paid: "bg-success text-success-foreground",
-  overdue: "bg-destructive text-destructive-foreground",
+  completed: "bg-success text-success-foreground",
 };
 
 export function TicketList({ tickets, onSelect, onDelete, onPreview }: TicketListProps) {
@@ -40,18 +39,19 @@ export function TicketList({ tickets, onSelect, onDelete, onPreview }: TicketLis
         >
           <div className="flex flex-col gap-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-foreground">{ticket.ticketNumber}</span>
+              <span className="font-semibold text-foreground">Job #{ticket.jobNumber}</span>
               <Badge className={statusColors[ticket.status]} variant="secondary">
                 {ticket.status}
               </Badge>
             </div>
-            <span className="text-sm text-foreground truncate">{ticket.customerName}</span>
-            <span className="text-xs text-muted-foreground">{ticket.date}</span>
+            <span className="text-sm text-foreground truncate">{ticket.customer || "No customer"}</span>
+            <span className="text-xs text-muted-foreground">{ticket.product} · {ticket.dateTime}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-lg font-bold text-foreground mr-3 tabular-nums">
-              ${ticket.total.toFixed(2)}
-            </span>
+            <div className="text-right mr-3">
+              <span className="text-lg font-bold text-foreground tabular-nums">{ticket.totalAmount}</span>
+              <span className="text-sm text-muted-foreground ml-1">{ticket.totalUnit}</span>
+            </div>
             <Button
               variant="ghost"
               size="icon"
