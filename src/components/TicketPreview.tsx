@@ -7,17 +7,24 @@ interface TicketPreviewProps {
   ticket: TicketData;
 }
 
+function DottedLine() {
+  return (
+    <div className="border-b border-dashed border-foreground/30 my-2" />
+  );
+}
+
 export function TicketPreview({ ticket }: TicketPreviewProps) {
   const handlePrint = () => {
     window.print();
   };
 
   const handleEmail = () => {
-    const subject = encodeURIComponent(`Ticket ${ticket.ticketNumber} from ${ticket.companyName}`);
+    const subject = encodeURIComponent(`Ticket - Job #${ticket.jobNumber} from ${ticket.companyName}`);
     const body = encodeURIComponent(
-      `Hi ${ticket.customerName},\n\nPlease find your ticket ${ticket.ticketNumber} for $${ticket.total.toFixed(2)}.\n\nThank you,\n${ticket.companyName}`
+      `Job #${ticket.jobNumber}\nCustomer: ${ticket.customer}\nProduct: ${ticket.product}\nTotal: ${ticket.totalAmount} ${ticket.totalUnit}\n\nThank you,\n${ticket.companyName}`
     );
-    window.open(`mailto:${ticket.customerEmail}?subject=${subject}&body=${body}`);
+    const to = ticket.companyEmail;
+    window.open(`mailto:?subject=${subject}&body=${body}`);
     toast.success("Email client opened!");
   };
 
@@ -33,120 +40,101 @@ export function TicketPreview({ ticket }: TicketPreviewProps) {
         </Button>
       </div>
 
-      {/* Ticket */}
-      <div className="max-w-2xl mx-auto bg-ticket rounded-lg border border-ticket-border ticket-shadow overflow-hidden">
-        {/* Header */}
-        <div className="bg-ticket-header px-6 py-5 text-ticket-header-foreground">
-          <div className="flex justify-between items-start">
-            <div>
-              <h2 className="text-xl font-bold">{ticket.companyName}</h2>
-              <p className="text-sm opacity-90 whitespace-pre-line mt-1">{ticket.companyAddress}</p>
-              <p className="text-sm opacity-90">{ticket.companyPhone}</p>
-              <p className="text-sm opacity-90">{ticket.companyEmail}</p>
-            </div>
-            <div className="text-right">
-              <span className="text-2xl font-bold tracking-tight">TICKET</span>
-              <p className="text-sm font-medium mt-1">{ticket.ticketNumber}</p>
-            </div>
-          </div>
-        </div>
+      {/* Receipt-style ticket */}
+      <div className="max-w-md mx-auto bg-card border border-ticket-border ticket-shadow rounded-sm font-mono text-sm">
+        <div className="p-6 space-y-0">
+          {/* Dotted top border */}
+          <DottedLine />
 
-        {/* Meta & Customer */}
-        <div className="px-6 py-4 grid grid-cols-2 gap-4 border-b border-ticket-border">
-          <div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Bill To</span>
-            <p className="font-semibold text-foreground mt-1">{ticket.customerName}</p>
-            <p className="text-sm text-muted-foreground whitespace-pre-line">{ticket.customerAddress}</p>
-            <p className="text-sm text-muted-foreground">{ticket.customerPhone}</p>
-            <p className="text-sm text-muted-foreground">{ticket.customerEmail}</p>
+          {/* Company Header */}
+          <div className="text-center space-y-0.5 py-1">
+            <h2 className="text-lg font-bold text-foreground">{ticket.companyName}</h2>
+            <p className="text-xs text-muted-foreground">{ticket.companyEmail}</p>
+            <p className="text-xs text-muted-foreground">{ticket.companyWebsite}</p>
+            <p className="text-xs text-muted-foreground">{ticket.companyPhone}</p>
           </div>
-          <div className="text-right space-y-1">
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Date</span>
-              <p className="text-sm text-foreground">{ticket.date}</p>
-            </div>
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Due Date</span>
-              <p className="text-sm text-foreground">{ticket.dueDate}</p>
-            </div>
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</span>
-              <p className="text-sm font-medium text-foreground capitalize">{ticket.status}</p>
-            </div>
-          </div>
-        </div>
 
-        {/* Line Items Table */}
-        <div className="px-6 py-4">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b-2 border-ticket-border text-left">
-                <th className="py-2 font-semibold text-foreground">Description</th>
-                <th className="py-2 font-semibold text-foreground text-center w-16">Qty</th>
-                <th className="py-2 font-semibold text-foreground text-right w-24">Price</th>
-                <th className="py-2 font-semibold text-foreground text-right w-24">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ticket.lineItems.map((item, i) => (
-                <tr
-                  key={item.id}
-                  className={i % 2 === 0 ? "bg-ticket-stripe" : ""}
-                >
-                  <td className="py-2 px-1 text-foreground">{item.description}</td>
-                  <td className="py-2 text-center text-foreground tabular-nums">{item.quantity}</td>
-                  <td className="py-2 text-right text-foreground tabular-nums">${item.unitPrice.toFixed(2)}</td>
-                  <td className="py-2 text-right font-medium text-foreground tabular-nums">${item.total.toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+          <DottedLine />
 
-        {/* Totals */}
-        <div className="px-6 py-4 flex justify-end border-t border-ticket-border">
-          <div className="w-56 space-y-1.5 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Subtotal</span>
-              <span className="text-foreground tabular-nums">${ticket.subtotal.toFixed(2)}</span>
+          {/* Job Info */}
+          <div className="py-1 space-y-0.5">
+            <p className="text-foreground">Job Number {ticket.jobNumber}</p>
+          </div>
+
+          <DottedLine />
+
+          <div className="py-1 space-y-0.5">
+            <p className="text-foreground">Job: {ticket.jobName}</p>
+            <p className="text-muted-foreground text-xs">{ticket.dateTime}</p>
+          </div>
+
+          {/* Total - emphasized */}
+          <div className="py-3 text-center">
+            <p className="text-2xl font-bold text-foreground">
+              Total {ticket.totalAmount} {ticket.totalUnit}
+            </p>
+          </div>
+
+          <DottedLine />
+
+          {/* Details */}
+          <div className="py-2 space-y-1">
+            <ReceiptRow label="Customer" value={ticket.customer} />
+            <ReceiptRow label="Product" value={ticket.product} />
+            <ReceiptRow label="Truck" value={ticket.truck} />
+            <ReceiptRow label="Note" value={ticket.note || "—"} />
+          </div>
+
+          <DottedLine />
+
+          <div className="py-1">
+            <p className="text-foreground text-center">{ticket.bucket}</p>
+          </div>
+
+          <DottedLine />
+
+          {/* Sign-off area */}
+          <div className="py-3 space-y-4">
+            <div>
+              <p className="text-muted-foreground text-xs mb-1">Name:</p>
+              <div className="border-b border-foreground/20 min-h-[24px]">
+                <span className="text-foreground">{ticket.customerName}</span>
+              </div>
             </div>
-            {ticket.taxRate > 0 && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Tax ({ticket.taxRate}%)</span>
-                <span className="text-foreground tabular-nums">${ticket.taxAmount.toFixed(2)}</span>
+            <div>
+              <p className="text-muted-foreground text-xs mb-1">Address:</p>
+              <div className="border-b border-foreground/20 min-h-[24px]">
+                <span className="text-foreground">{ticket.customerAddress}</span>
               </div>
-            )}
-            {ticket.discount > 0 && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Discount</span>
-                <span className="text-foreground tabular-nums">-${ticket.discount.toFixed(2)}</span>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs mb-1">Signature:</p>
+              <div className="border-b border-foreground/20 min-h-[32px]">
+                {ticket.signature && <span className="text-foreground italic">{ticket.signature}</span>}
               </div>
-            )}
-            <div className="flex justify-between border-t border-ticket-border pt-2 text-base font-bold">
-              <span className="text-foreground">Total</span>
-              <span className="text-primary tabular-nums">${ticket.total.toFixed(2)}</span>
             </div>
           </div>
-        </div>
 
-        {/* Footer */}
-        {(ticket.notes || ticket.terms) && (
-          <div className="px-6 py-4 border-t border-ticket-border bg-ticket-stripe">
-            {ticket.notes && (
-              <div className="mb-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Notes</span>
-                <p className="text-sm text-foreground mt-0.5">{ticket.notes}</p>
-              </div>
-            )}
-            {ticket.terms && (
-              <div>
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Terms</span>
-                <p className="text-sm text-muted-foreground mt-0.5">{ticket.terms}</p>
-              </div>
-            )}
+          <DottedLine />
+
+          {/* Footer timestamp */}
+          <div className="py-1 text-center">
+            <p className="text-xs text-muted-foreground">{ticket.dateTime}</p>
           </div>
-        )}
+
+          <DottedLine />
+        </div>
       </div>
+    </div>
+  );
+}
+
+function ReceiptRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <span className="text-muted-foreground">{label}:</span>
+      <br />
+      <span className="text-foreground ml-2">{value}</span>
     </div>
   );
 }

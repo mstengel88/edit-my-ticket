@@ -51,17 +51,12 @@ const Index = () => {
   };
 
   const handleBack = () => {
-    if (view === "preview") {
-      setView("editor");
-    } else {
-      setView("list");
-      setSelectedTicket(null);
-    }
+    if (view === "preview") setView("editor");
+    else { setView("list"); setSelectedTicket(null); }
   };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="sticky top-0 z-10 border-b bg-card/80 backdrop-blur-sm no-print">
         <div className="container mx-auto flex items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
@@ -90,22 +85,12 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Content */}
       <main className="container mx-auto px-4 py-6 sm:px-6">
         {view === "list" && (
-          <TicketList
-            tickets={tickets}
-            onSelect={handleSelectTicket}
-            onDelete={handleDeleteTicket}
-            onPreview={handlePreview}
-          />
+          <TicketList tickets={tickets} onSelect={handleSelectTicket} onDelete={handleDeleteTicket} onPreview={handlePreview} />
         )}
         {view === "editor" && selectedTicket && (
-          <TicketEditor
-            ticket={selectedTicket}
-            onSave={handleSaveTicket}
-            onPreview={handlePreview}
-          />
+          <TicketEditor ticket={selectedTicket} onSave={handleSaveTicket} onPreview={handlePreview} />
         )}
         {view === "preview" && selectedTicket && (
           <TicketPreview ticket={selectedTicket} />
