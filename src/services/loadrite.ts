@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-const BASE_URL = `https://${PROJECT_ID}.supabase.co/functions/v1/loadrite-proxy`;
+const BASE_URL = `https://${PROJECT_ID}.supabase.co/functions/v1/loadrite`;
 
 async function callProxy(endpoint: string, params?: Record<string, string>) {
   const url = new URL(BASE_URL);
