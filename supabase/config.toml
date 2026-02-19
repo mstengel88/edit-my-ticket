@@ -1,1 +1,4 @@
 project_id = "dlayrpnmfnbjlxgnkczv"
+
+[functions.loadrite]
+verify_jwt = false
