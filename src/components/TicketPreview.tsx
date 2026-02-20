@@ -96,10 +96,10 @@ export function TicketPreview({ ticket }: TicketPreviewProps) {
         <div className="mx-4 border-t border-foreground/30" />
 
         {/* Sign-off */}
-        <div className="p-6 py-4 space-y-3">
+        <div className="px-4 py-2 pb-3">
           <div className="flex gap-2 items-end">
             <span className="text-xs font-medium text-foreground/70 whitespace-nowrap">Received&nbsp;:</span>
-            <div className="flex-1 border-b border-foreground/40 min-h-[24px] pb-0.5">
+            <div className="flex-1 border-b border-foreground/40 min-h-[20px] pb-0.5">
               <span className="text-sm">{ticket.customerName}</span>
             </div>
           </div>
