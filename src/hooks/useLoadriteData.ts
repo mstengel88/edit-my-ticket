@@ -1,10 +1,58 @@
-import { useState, useEffect, useCallback } from "react";
-import { getScaleDataLoading, LoadriteLoadingRecord, LoadritePagedResponse } from "@/services/loadrite";
+import { useState, useCallback } from "react";
+import { getScaleDataLoading, LoadriteLoadingRecord, LoadriteLoadingResponse } from "@/services/loadrite";
 import { TicketData } from "@/types/ticket";
 
-function mapLoadriteToTicket(record: LoadriteLoadingRecord, index: number): TicketData {
-  const dateStr = record.Date
-    ? new Date(record.Date).toLocaleString("en-US", {
+interface LoadGroup {
+  ticketNumber: string;
+  product: string;
+  customer: string;
+  truck: string;
+  totalWeight: number;
+  time: string;
+  bucketWeights: number[];
+  note: string;
+}
+
+function groupRecordsIntoTickets(records: LoadriteLoadingRecord[]): LoadGroup[] {
+  const groups: LoadGroup[] = [];
+  let currentBuckets: number[] = [];
+  let currentProduct = "";
+  let currentCustomer = "";
+  let currentTruck = "";
+  let currentNote = "";
+
+  for (const rec of records) {
+    if (rec.Event === "Add") {
+      currentBuckets.push(parseFloat(rec.Weight ?? "0"));
+      currentProduct = rec.Product ?? currentProduct;
+      currentCustomer = rec.UserData1 ?? currentCustomer;
+      currentTruck = rec.UserData2 ?? currentTruck;
+      currentNote = rec.UserData3 ?? currentNote;
+    } else if (rec.Event === "Short Total") {
+      groups.push({
+        ticketNumber: rec.Sequence ?? `LR-${rec.Id}`,
+        product: rec.Product ?? currentProduct,
+        customer: rec.UserData1 ?? currentCustomer,
+        truck: rec.UserData2 ?? currentTruck,
+        totalWeight: parseFloat(rec.Weight ?? "0"),
+        time: rec.Time ?? "",
+        bucketWeights: [...currentBuckets],
+        note: currentNote,
+      });
+      currentBuckets = [];
+      currentProduct = "";
+      currentCustomer = "";
+      currentTruck = "";
+      currentNote = "";
+    }
+  }
+
+  return groups;
+}
+
+function mapGroupToTicket(group: LoadGroup, index: number): TicketData {
+  const dateStr = group.time
+    ? new Date(group.time).toLocaleString("en-US", {
         month: "2-digit",
         day: "2-digit",
         year: "numeric",
@@ -21,27 +69,22 @@ function mapLoadriteToTicket(record: LoadriteLoadingRecord, index: number): Tick
         hour12: true,
       });
 
-  const totalWeight = record.TotalWeight ?? 0;
-  const unit = record.WeightUnit === "ShortTon" ? "Ton" : record.WeightUnit ?? "Ton";
-
   return {
-    id: record.TicketNumber ?? `loadrite-${index}-${Date.now()}`,
-    jobNumber: record.TicketNumber ?? record.JobNumber ?? String(index + 1),
-    jobName: record.JobName ?? "Job",
+    id: group.ticketNumber,
+    jobNumber: group.ticketNumber,
+    jobName: "Job",
     dateTime: dateStr,
     companyName: "Green Hills Supply",
     companyEmail: "order@greenhillsupply.com",
     companyWebsite: "www.GreenHillsSupply.com",
     companyPhone: "262-345-4001",
-    totalAmount: totalWeight.toFixed(2),
-    totalUnit: unit,
-    customer: record.Customer ?? "",
-    product: record.Product ?? "",
-    truck: record.Truck ?? "NOT SPECIFIED",
-    note: record.Note ?? "",
-    bucket: record.BucketWeights
-      ? record.BucketWeights.map((w, i) => `B${i + 1}: ${w}`).join(", ")
-      : "",
+    totalAmount: group.totalWeight.toFixed(2),
+    totalUnit: "Ton",
+    customer: group.customer,
+    product: group.product,
+    truck: group.truck || "NOT SPECIFIED",
+    note: group.note,
+    bucket: group.bucketWeights.map((w, i) => `B${i + 1}: ${w}`).join(", "),
     customerName: "",
     customerAddress: "",
     signature: "",
@@ -64,18 +107,19 @@ export function useLoadriteData() {
         startDate ??
         new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
-      const response = await getScaleDataLoading("1", start, end);
+      const response = await getScaleDataLoading("Green Hills Landscape - Menomonee Falls", start, end);
 
       let records: LoadriteLoadingRecord[];
       if (Array.isArray(response)) {
         records = response;
-      } else if (response.Data && Array.isArray(response.Data)) {
-        records = response.Data;
+      } else if (response && typeof response === "object" && "data" in response && Array.isArray((response as LoadriteLoadingResponse).data)) {
+        records = (response as LoadriteLoadingResponse).data!;
       } else {
         records = [];
       }
 
-      const mapped = records.map((r, i) => mapLoadriteToTicket(r, i));
+      const groups = groupRecordsIntoTickets(records);
+      const mapped = groups.map((g, i) => mapGroupToTicket(g, i));
       setTickets(mapped);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to fetch data";

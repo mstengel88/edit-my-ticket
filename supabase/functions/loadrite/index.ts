@@ -48,7 +48,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const allowedPrefixes = ["context/", "scale-data/", "auth/", "data/", "diy/", "loadout/"];
+    const allowedPrefixes = ["context/", "scale-data/", "auth/", "data/", "diy/", "loadout/", "Loading"];
     const isAllowed = allowedPrefixes.some((p) => endpoint!.startsWith(p));
     if (!isAllowed) {
       return new Response(JSON.stringify({ error: "Invalid endpoint" }), {
@@ -72,8 +72,8 @@ Deno.serve(async (req: Request) => {
     const data = await response.text();
     console.log("Loadrite response status:", response.status, "body:", data.substring(0, 500));
 
-    // If Loadrite returns 404, return empty array instead of forwarding 404
-    if (response.status === 404) {
+    // If Loadrite returns 404 or 204 (no content), return empty array
+    if (response.status === 404 || response.status === 204) {
       return new Response(JSON.stringify([]), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
