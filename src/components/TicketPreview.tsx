@@ -128,8 +128,8 @@ export function TicketPreview({ ticket, templateFields }: TicketPreviewProps) {
                 <span className="text-xs font-medium text-foreground/70 whitespace-nowrap">Received&nbsp;:</span>
                 <div className="flex-1 border-b border-foreground/40 min-h-[20px] pb-0.5">
                   <span className="text-sm">{ticket.customerName}</span>
-                </div>
-              </div>
+      </div>
+      ))}
             </div>
           </>
         )}
