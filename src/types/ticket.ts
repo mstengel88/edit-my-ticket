@@ -78,6 +78,7 @@ export const sampleTickets: TicketData[] = [
     note: "Undefined",
     bucket: "Bucket 04",
     customerName: "",
+    customerEmail: "",
     customerAddress: "",
     signature: "",
     status: "sent",
