@@ -135,27 +135,54 @@ export function TicketEditor({ ticket, onSave, onPreview, templateFields }: Tick
       <div className="rounded-lg border bg-card p-4 mb-4 space-y-3">
         <h3 className="text-sm font-semibold text-foreground">Ticket Details</h3>
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label className="text-xs text-muted-foreground">Customer</Label>
-            <ComboInput value={data.customer} onChange={(v) => updateField("customer", v)} options={customers} placeholder="Select or type customer" />
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground">Product</Label>
-            <ComboInput value={data.product} onChange={(v) => updateField("product", v)} options={products} placeholder="Select or type product" />
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground">Truck</Label>
-            <ComboInput value={data.truck} onChange={(v) => updateField("truck", v)} options={trucks} placeholder="Select or type truck" />
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground">Bucket</Label>
-            <Input value={data.bucket} onChange={(e) => updateField("bucket", e.target.value)} />
-          </div>
+          {visible("customer") && (
+            <div>
+              <Label className="text-xs text-muted-foreground">Customer</Label>
+              <ComboInput value={data.customer} onChange={(v) => updateField("customer", v)} options={customers} placeholder="Select or type customer" />
+            </div>
+          )}
+          {visible("customerEmail") && (
+            <div>
+              <Label className="text-xs text-muted-foreground">Customer Email</Label>
+              <Input type="email" value={data.customerEmail} onChange={(e) => updateField("customerEmail", e.target.value)} placeholder="customer@example.com" />
+            </div>
+          )}
+          {visible("product") && (
+            <div>
+              <Label className="text-xs text-muted-foreground">Product</Label>
+              <ComboInput value={data.product} onChange={(v) => updateField("product", v)} options={products} placeholder="Select or type product" />
+            </div>
+          )}
+          {visible("truck") && (
+            <div>
+              <Label className="text-xs text-muted-foreground">Truck</Label>
+              <select
+                value={data.truck}
+                onChange={(e) => updateField("truck", e.target.value)}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <option value="">Select truck</option>
+                <option value="-">-</option>
+                <option value="NOT SPECIFIED">NOT SPECIFIED</option>
+                {trucks.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          {visible("bucket") && (
+            <div>
+              <Label className="text-xs text-muted-foreground">Bucket</Label>
+              <Input value={data.bucket} onChange={(e) => updateField("bucket", e.target.value)} />
+            </div>
+          )}
         </div>
-        <div>
-          <Label className="text-xs text-muted-foreground">Note</Label>
-          <Textarea rows={2} value={data.note} onChange={(e) => updateField("note", e.target.value)} />
-        </div>
+        {visible("note") && (
+          <div>
+            <Label className="text-xs text-muted-foreground">Note</Label>
+            <Textarea rows={2} value={data.note} onChange={(e) => updateField("note", e.target.value)} />
+          </div>
+        )}
       </div>
 
       {/* Customer Sign-off */}
