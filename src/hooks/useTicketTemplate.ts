@@ -6,6 +6,7 @@ import { TemplateField, DEFAULT_TEMPLATE_FIELDS } from "@/types/template";
 export function useTicketTemplate() {
   const { session } = useAuth();
   const [fields, setFields] = useState<TemplateField[]>(DEFAULT_TEMPLATE_FIELDS);
+  const [copiesPerPage, setCopiesPerPage] = useState(2);
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -21,15 +22,25 @@ export function useTicketTemplate() {
 
     if (data && !error) {
       setTemplateId(data.id);
-      const layout = data.layout as unknown as TemplateField[];
-      if (Array.isArray(layout) && layout.length > 0) {
-        // Merge with defaults to pick up any new fields added later
+      const layout = data.layout as unknown as { fields?: TemplateField[]; copiesPerPage?: number } | TemplateField[];
+      if (Array.isArray(layout)) {
+        // Legacy format: just fields array
         const savedKeys = new Set(layout.map((f) => f.id));
         const merged = [
           ...layout,
           ...DEFAULT_TEMPLATE_FIELDS.filter((f) => !savedKeys.has(f.id)),
         ];
         setFields(merged);
+      } else if (layout && typeof layout === "object") {
+        if (Array.isArray(layout.fields) && layout.fields.length > 0) {
+          const savedKeys = new Set(layout.fields.map((f) => f.id));
+          const merged = [
+            ...layout.fields,
+            ...DEFAULT_TEMPLATE_FIELDS.filter((f) => !savedKeys.has(f.id)),
+          ];
+          setFields(merged);
+        }
+        if (layout.copiesPerPage) setCopiesPerPage(layout.copiesPerPage);
       }
     }
     setLoading(false);
@@ -40,29 +51,32 @@ export function useTicketTemplate() {
   }, [loadTemplate]);
 
   const saveTemplate = useCallback(
-    async (updatedFields: TemplateField[]) => {
+    async (updatedFields: TemplateField[], updatedCopies?: number) => {
       if (!session?.user) return;
       setFields(updatedFields);
+      if (updatedCopies !== undefined) setCopiesPerPage(updatedCopies);
+
+      const layoutData = { fields: updatedFields, copiesPerPage: updatedCopies ?? copiesPerPage };
 
       if (templateId) {
         await supabase
           .from("ticket_templates")
-          .update({ layout: updatedFields as any })
+          .update({ layout: layoutData as any })
           .eq("id", templateId);
       } else {
         const { data } = await supabase
           .from("ticket_templates")
           .insert({
             user_id: session.user.id,
-            layout: updatedFields as any,
+            layout: layoutData as any,
           })
           .select("id")
           .single();
         if (data) setTemplateId(data.id);
       }
     },
-    [session?.user, templateId]
+    [session?.user, templateId, copiesPerPage]
   );
 
-  return { fields, loading, saveTemplate };
+  return { fields, copiesPerPage, loading, saveTemplate };
 }

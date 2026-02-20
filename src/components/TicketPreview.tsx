@@ -8,9 +8,10 @@ import companyLogo from "@/assets/Greenhillssupply_logo.png";
 interface TicketPreviewProps {
   ticket: TicketData;
   templateFields?: TemplateField[];
+  copiesPerPage?: number;
 }
 
-export function TicketPreview({ ticket, templateFields }: TicketPreviewProps) {
+export function TicketPreview({ ticket, templateFields, copiesPerPage = 2 }: TicketPreviewProps) {
   const fields = templateFields || DEFAULT_TEMPLATE_FIELDS;
   const visible = (key: string) => fields.find((f) => f.id === key)?.visible ?? true;
 
@@ -49,9 +50,9 @@ export function TicketPreview({ ticket, templateFields }: TicketPreviewProps) {
         </Button>
       </div>
 
-      {/* Two copies of the ticket */}
-      {[0, 1].map((copy) => (
-        <div key={copy} className={`max-w-4xl mx-auto bg-white border-2 border-foreground/80 text-foreground font-sans text-sm print:border print:shadow-none ${copy === 0 ? "mb-6" : ""}`}>
+      {/* Ticket copies */}
+      {Array.from({ length: copiesPerPage }, (_, i) => i).map((copy) => (
+        <div key={copy} className={`max-w-4xl mx-auto bg-white border-2 border-foreground/80 text-foreground font-sans text-sm print:border print:shadow-none ${copy < copiesPerPage - 1 ? "mb-6" : ""}`}>
         {/* Top section: Company info left, Ticket No right */}
         <div className="flex justify-between items-start p-4 pb-2">
           <div className="flex items-start gap-3">

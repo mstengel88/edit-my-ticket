@@ -4,6 +4,8 @@ import { TemplateField } from "@/types/template";
 import { TicketData, sampleTickets } from "@/types/ticket";
 import { TicketPreview } from "@/components/TicketPreview";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Save, GripVertical, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -67,13 +69,15 @@ function SortableFieldItem({
 
 const Settings = () => {
   const navigate = useNavigate();
-  const { fields, loading, saveTemplate } = useTicketTemplate();
+  const { fields, copiesPerPage, loading, saveTemplate } = useTicketTemplate();
   const [localFields, setLocalFields] = useState<TemplateField[]>([]);
+  const [localCopies, setLocalCopies] = useState(2);
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
     setLocalFields(fields);
-  }, [fields]);
+    setLocalCopies(copiesPerPage);
+  }, [fields, copiesPerPage]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -100,9 +104,14 @@ const Settings = () => {
   };
 
   const handleSave = async () => {
-    await saveTemplate(localFields);
+    await saveTemplate(localFields, localCopies);
     setDirty(false);
     toast.success("Template saved!");
+  };
+
+  const handleCopiesChange = (value: string) => {
+    setLocalCopies(Number(value));
+    setDirty(true);
   };
 
   const sampleTicket: TicketData = sampleTickets[0];
@@ -160,13 +169,28 @@ const Settings = () => {
                 </div>
               </SortableContext>
             </DndContext>
+
+            {/* Copies per page */}
+            <div className="mt-4 flex items-center gap-3">
+              <Label className="text-sm font-medium text-foreground whitespace-nowrap">Tickets per page</Label>
+              <Select value={String(localCopies)} onValueChange={handleCopiesChange}>
+                <SelectTrigger className="w-20 bg-card">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-popover z-50">
+                  <SelectItem value="1">1</SelectItem>
+                  <SelectItem value="2">2</SelectItem>
+                  <SelectItem value="3">3</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Live preview */}
           <div>
             <h2 className="text-sm font-semibold text-foreground mb-3">Live Preview</h2>
             <div className="pointer-events-none">
-              <TicketPreview ticket={sampleTicket} templateFields={localFields} />
+              <TicketPreview ticket={sampleTicket} templateFields={localFields} copiesPerPage={localCopies} />
             </div>
           </div>
         </div>
