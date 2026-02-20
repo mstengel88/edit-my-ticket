@@ -4,14 +4,16 @@ import { TicketList } from "@/components/TicketList";
 import { TicketEditor } from "@/components/TicketEditor";
 import { TicketPreview } from "@/components/TicketPreview";
 import { useLoadriteData } from "@/hooks/useLoadriteData";
-import { ArrowLeft, Plus, RefreshCw, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw, Loader2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 type View = "list" | "editor" | "preview";
 
 const Index = () => {
   const { tickets: apiTickets, loading, error, fetchData } = useLoadriteData();
+  const { signOut } = useAuth();
   const [localTickets, setLocalTickets] = useState<TicketData[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [view, setView] = useState<View>("list");
@@ -126,6 +128,9 @@ const Index = () => {
               <Button onClick={handleNewTicket} size="sm" className="gap-1.5">
                 <Plus className="h-4 w-4" />
                 New Ticket
+              </Button>
+              <Button variant="ghost" size="icon" onClick={signOut} title="Sign out">
+                <LogOut className="h-4 w-4" />
               </Button>
             </div>
           )}
