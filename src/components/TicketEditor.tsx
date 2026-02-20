@@ -18,9 +18,11 @@ interface TicketEditorProps {
   templateFields?: TemplateField[];
 }
 
-export function TicketEditor({ ticket, onSave, onPreview }: TicketEditorProps) {
+export function TicketEditor({ ticket, onSave, onPreview, templateFields }: TicketEditorProps) {
   const [data, setData] = useState<TicketData>(ticket);
   const { products, customers, trucks } = useTicketLookups();
+  const fields = templateFields || DEFAULT_TEMPLATE_FIELDS;
+  const visible = (key: string) => fields.find((f) => f.id === key)?.visible ?? true;
 
   useEffect(() => {
     setData(ticket);
