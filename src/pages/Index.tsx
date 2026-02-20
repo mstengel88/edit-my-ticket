@@ -189,7 +189,7 @@ const Index = () => {
           <TicketEditor ticket={selectedTicket} onSave={handleSaveTicket} onPreview={handlePreview} />
         )}
         {view === "preview" && selectedTicket && (
-          <TicketPreview ticket={selectedTicket} />
+          <TicketPreview ticket={selectedTicket} templateFields={templateFields} />
         )}
       </main>
     </div>
