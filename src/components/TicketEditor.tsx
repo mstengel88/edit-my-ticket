@@ -100,30 +100,36 @@ export function TicketEditor({ ticket, onSave, onPreview, templateFields }: Tick
       <Separator className="mb-4" />
 
       {/* Total */}
-      <div className="rounded-lg border bg-card p-4 mb-4">
-        <h3 className="text-sm font-semibold text-foreground mb-3">Total</h3>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label className="text-xs text-muted-foreground">Amount</Label>
-            <Input
-              value={data.totalAmount}
-              onChange={(e) => updateField("totalAmount", e.target.value)}
-              className="text-2xl font-bold h-12"
-            />
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground">Unit</Label>
-            <select
-              value={data.totalUnit}
-              onChange={(e) => updateField("totalUnit", e.target.value)}
-              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option value="Ton">Ton</option>
-              <option value="Yardage">Yardage</option>
-            </select>
+      {(visible("totalAmount") || visible("totalUnit")) && (
+        <div className="rounded-lg border bg-card p-4 mb-4">
+          <h3 className="text-sm font-semibold text-foreground mb-3">Total</h3>
+          <div className="grid grid-cols-2 gap-3">
+            {visible("totalAmount") && (
+              <div>
+                <Label className="text-xs text-muted-foreground">Amount</Label>
+                <Input
+                  value={data.totalAmount}
+                  onChange={(e) => updateField("totalAmount", e.target.value)}
+                  className="text-2xl font-bold h-12"
+                />
+              </div>
+            )}
+            {visible("totalUnit") && (
+              <div>
+                <Label className="text-xs text-muted-foreground">Unit</Label>
+                <select
+                  value={data.totalUnit}
+                  onChange={(e) => updateField("totalUnit", e.target.value)}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="Ton">Ton</option>
+                  <option value="Yardage">Yardage</option>
+                </select>
+              </div>
+            )}
           </div>
         </div>
-      </div>
+      )}
 
       {/* Ticket Details */}
       <div className="rounded-lg border bg-card p-4 mb-4 space-y-3">
