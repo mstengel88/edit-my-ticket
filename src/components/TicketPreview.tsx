@@ -49,8 +49,9 @@ export function TicketPreview({ ticket, templateFields }: TicketPreviewProps) {
         </Button>
       </div>
 
-      {/* Professional ticket layout */}
-      <div className="max-w-4xl mx-auto bg-white border-2 border-foreground/80 text-foreground font-sans text-sm print:border print:shadow-none">
+      {/* Two copies of the ticket */}
+      {[0, 1].map((copy) => (
+        <div key={copy} className={`max-w-4xl mx-auto bg-white border-2 border-foreground/80 text-foreground font-sans text-sm print:border print:shadow-none ${copy === 0 ? "mb-6" : ""}`}>
         {/* Top section: Company info left, Ticket No right */}
         <div className="flex justify-between items-start p-4 pb-2">
           <div className="flex items-start gap-3">
@@ -132,7 +133,8 @@ export function TicketPreview({ ticket, templateFields }: TicketPreviewProps) {
             </div>
           </>
         )}
-      </div>
+        </div>
+      ))}
     </div>
   );
 }
