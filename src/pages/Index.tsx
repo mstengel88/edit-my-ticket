@@ -112,7 +112,9 @@ const Index = () => {
   };
 
   const handleDeleteTicket = async (id: string) => {
+    const ticket = tickets.find(t => t.id === id);
     await supabase.from("tickets").delete().eq("id", id);
+    logAudit("delete", "ticket", id, { jobNumber: ticket?.jobNumber });
     if (selectedTicket?.id === id) {
       setSelectedTicket(null);
       setView("list");
