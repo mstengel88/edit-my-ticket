@@ -36,7 +36,7 @@ export function TicketPreview({ ticket }: TicketPreviewProps) {
       </div>
 
       {/* Professional ticket layout */}
-      <div className="max-w-3xl mx-auto bg-white border-2 border-foreground/80 text-foreground font-sans text-sm print:border print:shadow-none">
+      <div className="max-w-4xl mx-auto bg-white border-2 border-foreground/80 text-foreground font-sans text-sm print:border print:shadow-none">
         {/* Top section: Company info left, Ticket No right */}
         <div className="flex justify-between items-start p-6 pb-4">
           <div className="flex items-start gap-4">
