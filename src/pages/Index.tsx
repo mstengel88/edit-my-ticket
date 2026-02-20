@@ -3,14 +3,16 @@ import { TicketData, createEmptyTicket } from "@/types/ticket";
 import { TicketList } from "@/components/TicketList";
 import { TicketEditor } from "@/components/TicketEditor";
 import { TicketPreview } from "@/components/TicketPreview";
+import { Reports } from "@/components/Reports";
 import { useLoadriteData } from "@/hooks/useLoadriteData";
-import { ArrowLeft, Plus, RefreshCw, Loader2, LogOut, Settings } from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw, Loader2, LogOut, Settings, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useTicketTemplate } from "@/hooks/useTicketTemplate";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 type View = "list" | "editor" | "preview";
 
