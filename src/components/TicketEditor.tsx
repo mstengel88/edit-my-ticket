@@ -82,14 +82,18 @@ export function TicketEditor({ ticket, onSave, onPreview, templateFields }: Tick
             <Label className="text-xs text-muted-foreground">Job Number</Label>
             <Input value={data.jobNumber} onChange={(e) => updateField("jobNumber", e.target.value)} />
           </div>
-          <div>
-            <Label className="text-xs text-muted-foreground">Job Name</Label>
-            <Input value={data.jobName} onChange={(e) => updateField("jobName", e.target.value)} />
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground">Date/Time</Label>
-            <Input value={data.dateTime} onChange={(e) => updateField("dateTime", e.target.value)} />
-          </div>
+          {visible("jobName") && (
+            <div>
+              <Label className="text-xs text-muted-foreground">Job Name</Label>
+              <Input value={data.jobName} onChange={(e) => updateField("jobName", e.target.value)} />
+            </div>
+          )}
+          {visible("dateTime") && (
+            <div>
+              <Label className="text-xs text-muted-foreground">Date/Time</Label>
+              <Input value={data.dateTime} onChange={(e) => updateField("dateTime", e.target.value)} />
+            </div>
+          )}
         </div>
       </div>
 
