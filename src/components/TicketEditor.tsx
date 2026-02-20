@@ -138,7 +138,11 @@ export function TicketEditor({ ticket, onSave, onPreview, templateFields }: Tick
           {visible("customer") && (
             <div>
               <Label className="text-xs text-muted-foreground">Customer</Label>
-              <ComboInput value={data.customer} onChange={(v) => updateField("customer", v)} options={customers} placeholder="Select or type customer" />
+              <ComboInput value={data.customer} onChange={(v) => {
+                updateField("customer", v);
+                const email = customerEmails[v];
+                if (email) updateField("customerEmail", email);
+              }} options={customers} placeholder="Select or type customer" />
             </div>
           )}
           {visible("customerEmail") && (
