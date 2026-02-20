@@ -97,7 +97,7 @@ export function TicketList({ tickets, onSelect, onDelete, onPreview }: TicketLis
                 variant="ghost"
                 size="icon"
                 className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
-                onClick={(e) => { e.stopPropagation(); onDelete(ticket.id); }}
+                onClick={(e) => { e.stopPropagation(); setDeleteId(ticket.id); }}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
