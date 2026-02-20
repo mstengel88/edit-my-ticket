@@ -102,7 +102,14 @@ export function TicketEditor({ ticket, onSave, onPreview }: TicketEditorProps) {
           </div>
           <div>
             <Label className="text-xs text-muted-foreground">Unit</Label>
-            <Input value={data.totalUnit} onChange={(e) => updateField("totalUnit", e.target.value)} />
+            <select
+              value={data.totalUnit}
+              onChange={(e) => updateField("totalUnit", e.target.value)}
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="Ton">Ton</option>
+              <option value="Yardage">Yardage</option>
+            </select>
           </div>
         </div>
       </div>
