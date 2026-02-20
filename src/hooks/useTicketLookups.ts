@@ -103,7 +103,7 @@ export function useTicketLookups(): LookupData {
         { data: truckRows },
       ] = await Promise.all([
         supabase.from("products").select("name").order("name"),
-        supabase.from("customers").select("name").order("name"),
+        supabase.from("customers").select("name, email").order("name"),
         supabase.from("trucks").select("name").order("name"),
       ]);
 
