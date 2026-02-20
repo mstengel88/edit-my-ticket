@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTicketTemplate } from "@/hooks/useTicketTemplate";
-import { TemplateField } from "@/types/template";
+import { TemplateField, ReportField } from "@/types/template";
 import { TicketData, sampleTickets } from "@/types/ticket";
 import { TicketPreview } from "@/components/TicketPreview";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Save, GripVertical, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   DndContext,
   closestCenter,
@@ -67,17 +68,37 @@ function SortableFieldItem({
   );
 }
 
+function ReportFieldItem({
+  field,
+  onToggle,
+}: {
+  field: ReportField;
+  onToggle: (id: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-md border bg-card px-3 py-2.5">
+      <span className="flex-1 text-sm font-medium text-foreground">{field.label}</span>
+      <Switch
+        checked={field.visible}
+        onCheckedChange={() => onToggle(field.id)}
+      />
+    </div>
+  );
+}
+
 const Settings = () => {
   const navigate = useNavigate();
-  const { fields, copiesPerPage, loading, saveTemplate } = useTicketTemplate();
+  const { fields, reportFields, copiesPerPage, loading, saveTemplate } = useTicketTemplate();
   const [localFields, setLocalFields] = useState<TemplateField[]>([]);
+  const [localReportFields, setLocalReportFields] = useState<ReportField[]>([]);
   const [localCopies, setLocalCopies] = useState(2);
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
     setLocalFields(fields);
+    setLocalReportFields(reportFields);
     setLocalCopies(copiesPerPage);
-  }, [fields, copiesPerPage]);
+  }, [fields, reportFields, copiesPerPage]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -103,8 +124,15 @@ const Settings = () => {
     setDirty(true);
   };
 
+  const handleReportToggle = (id: string) => {
+    setLocalReportFields((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, visible: !f.visible } : f))
+    );
+    setDirty(true);
+  };
+
   const handleSave = async () => {
-    await saveTemplate(localFields, localCopies);
+    await saveTemplate(localFields, localCopies, localReportFields);
     setDirty(false);
     toast.success("Template saved!");
   };
@@ -143,57 +171,83 @@ const Settings = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6 sm:px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Field list */}
-          <div>
-            <h2 className="text-sm font-semibold text-foreground mb-3">
-              Drag to reorder · Toggle to show/hide
-            </h2>
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={localFields.map((f) => f.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                <div className="space-y-1.5">
-                  {localFields.map((field) => (
-                    <SortableFieldItem
-                      key={field.id}
-                      field={field}
-                      onToggle={handleToggle}
-                    />
-                  ))}
+        <Tabs defaultValue="preview">
+          <TabsList className="mb-4">
+            <TabsTrigger value="preview">Ticket Preview</TabsTrigger>
+            <TabsTrigger value="reports">Reports</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="preview">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Field list */}
+              <div>
+                <h2 className="text-sm font-semibold text-foreground mb-3">
+                  Drag to reorder · Toggle to show/hide
+                </h2>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={localFields.map((f) => f.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="space-y-1.5">
+                      {localFields.map((field) => (
+                        <SortableFieldItem
+                          key={field.id}
+                          field={field}
+                          onToggle={handleToggle}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+
+                {/* Copies per page */}
+                <div className="mt-4 flex items-center gap-3">
+                  <Label className="text-sm font-medium text-foreground whitespace-nowrap">Tickets per page</Label>
+                  <Select value={String(localCopies)} onValueChange={handleCopiesChange}>
+                    <SelectTrigger className="w-20 bg-card">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover z-50">
+                      <SelectItem value="1">1</SelectItem>
+                      <SelectItem value="2">2</SelectItem>
+                      <SelectItem value="3">3</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              </SortableContext>
-            </DndContext>
+              </div>
 
-            {/* Copies per page */}
-            <div className="mt-4 flex items-center gap-3">
-              <Label className="text-sm font-medium text-foreground whitespace-nowrap">Tickets per page</Label>
-              <Select value={String(localCopies)} onValueChange={handleCopiesChange}>
-                <SelectTrigger className="w-20 bg-card">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-popover z-50">
-                  <SelectItem value="1">1</SelectItem>
-                  <SelectItem value="2">2</SelectItem>
-                  <SelectItem value="3">3</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* Live preview */}
+              <div>
+                <h2 className="text-sm font-semibold text-foreground mb-3">Live Preview</h2>
+                <div className="pointer-events-none">
+                  <TicketPreview ticket={sampleTicket} templateFields={localFields} copiesPerPage={localCopies} />
+                </div>
+              </div>
             </div>
-          </div>
+          </TabsContent>
 
-          {/* Live preview */}
-          <div>
-            <h2 className="text-sm font-semibold text-foreground mb-3">Live Preview</h2>
-            <div className="pointer-events-none">
-              <TicketPreview ticket={sampleTicket} templateFields={localFields} copiesPerPage={localCopies} />
+          <TabsContent value="reports">
+            <div className="max-w-md">
+              <h2 className="text-sm font-semibold text-foreground mb-3">
+                Toggle columns to show/hide in reports
+              </h2>
+              <div className="space-y-1.5">
+                {localReportFields.map((field) => (
+                  <ReportFieldItem
+                    key={field.id}
+                    field={field}
+                    onToggle={handleReportToggle}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

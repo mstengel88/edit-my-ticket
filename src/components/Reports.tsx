@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { TicketData } from "@/types/ticket";
+import { ReportField, DEFAULT_REPORT_FIELDS } from "@/types/template";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -14,6 +15,7 @@ type TimePeriod = "today" | "yesterday" | "weekly" | "monthly" | "yearly" | "cus
 
 interface ReportsProps {
   tickets: TicketData[];
+  reportFields?: ReportField[];
 }
 
 function parseTicketDate(dateTime: string): Date | null {
@@ -22,11 +24,13 @@ function parseTicketDate(dateTime: string): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
-export function Reports({ tickets }: ReportsProps) {
+export function Reports({ tickets, reportFields }: ReportsProps) {
   const [period, setPeriod] = useState<TimePeriod>("today");
   const [customFrom, setCustomFrom] = useState<Date | undefined>();
   const [customTo, setCustomTo] = useState<Date | undefined>();
   const [customerFilter, setCustomerFilter] = useState<string>("all");
+  const rFields = reportFields || DEFAULT_REPORT_FIELDS;
+  const rVisible = (id: string) => rFields.find((f) => f.id === id)?.visible ?? true;
 
   const now = new Date();
 
@@ -307,19 +311,19 @@ export function Reports({ tickets }: ReportsProps) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Job #</TableHead>
-                <TableHead>Job Name</TableHead>
-                <TableHead>Date/Time</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Customer Email</TableHead>
-                <TableHead>Customer Address</TableHead>
-                <TableHead>Product</TableHead>
-                <TableHead>Truck</TableHead>
-                <TableHead>Bucket</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead>Unit</TableHead>
-                <TableHead>Note</TableHead>
-                <TableHead>Status</TableHead>
+                {rVisible("jobNumber") && <TableHead>Job #</TableHead>}
+                {rVisible("jobName") && <TableHead>Job Name</TableHead>}
+                {rVisible("dateTime") && <TableHead>Date/Time</TableHead>}
+                {rVisible("customer") && <TableHead>Customer</TableHead>}
+                {rVisible("customerEmail") && <TableHead>Customer Email</TableHead>}
+                {rVisible("customerAddress") && <TableHead>Customer Address</TableHead>}
+                {rVisible("product") && <TableHead>Product</TableHead>}
+                {rVisible("truck") && <TableHead>Truck</TableHead>}
+                {rVisible("bucket") && <TableHead>Bucket</TableHead>}
+                {rVisible("totalAmount") && <TableHead className="text-right">Amount</TableHead>}
+                {rVisible("totalUnit") && <TableHead>Unit</TableHead>}
+                {rVisible("note") && <TableHead>Note</TableHead>}
+                {rVisible("status") && <TableHead>Status</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -327,24 +331,24 @@ export function Reports({ tickets }: ReportsProps) {
                 .sort((a, b) => a.jobNumber.localeCompare(b.jobNumber))
                 .map((t) => (
                   <TableRow key={t.id}>
-                    <TableCell className="font-medium">{t.jobNumber}</TableCell>
-                    <TableCell>{t.jobName}</TableCell>
-                    <TableCell className="whitespace-nowrap">{t.dateTime}</TableCell>
-                    <TableCell>{t.customer}</TableCell>
-                    <TableCell>{t.customerEmail}</TableCell>
-                    <TableCell>{t.customerAddress}</TableCell>
-                    <TableCell>{t.product}</TableCell>
-                    <TableCell>{t.truck}</TableCell>
-                    <TableCell>{t.bucket}</TableCell>
-                    <TableCell className="text-right">{t.totalAmount}</TableCell>
-                    <TableCell>{t.totalUnit}</TableCell>
-                    <TableCell>{t.note}</TableCell>
-                    <TableCell className="capitalize">{t.status}</TableCell>
+                    {rVisible("jobNumber") && <TableCell className="font-medium">{t.jobNumber}</TableCell>}
+                    {rVisible("jobName") && <TableCell>{t.jobName}</TableCell>}
+                    {rVisible("dateTime") && <TableCell className="whitespace-nowrap">{t.dateTime}</TableCell>}
+                    {rVisible("customer") && <TableCell>{t.customer}</TableCell>}
+                    {rVisible("customerEmail") && <TableCell>{t.customerEmail}</TableCell>}
+                    {rVisible("customerAddress") && <TableCell>{t.customerAddress}</TableCell>}
+                    {rVisible("product") && <TableCell>{t.product}</TableCell>}
+                    {rVisible("truck") && <TableCell>{t.truck}</TableCell>}
+                    {rVisible("bucket") && <TableCell>{t.bucket}</TableCell>}
+                    {rVisible("totalAmount") && <TableCell className="text-right">{t.totalAmount}</TableCell>}
+                    {rVisible("totalUnit") && <TableCell>{t.totalUnit}</TableCell>}
+                    {rVisible("note") && <TableCell>{t.note}</TableCell>}
+                    {rVisible("status") && <TableCell className="capitalize">{t.status}</TableCell>}
                   </TableRow>
                 ))}
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={13} className="text-center text-muted-foreground py-8">No tickets for this period</TableCell>
+                  <TableCell colSpan={rFields.filter(f => f.visible).length || 1} className="text-center text-muted-foreground py-8">No tickets for this period</TableCell>
                 </TableRow>
               )}
             </TableBody>

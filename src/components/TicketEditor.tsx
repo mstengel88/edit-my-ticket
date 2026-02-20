@@ -22,7 +22,10 @@ export function TicketEditor({ ticket, onSave, onPreview, templateFields }: Tick
   const [data, setData] = useState<TicketData>(ticket);
   const { products, customers, customerEmails, trucks } = useTicketLookups();
   const fields = templateFields || DEFAULT_TEMPLATE_FIELDS;
-  const visible = (key: string) => fields.find((f) => f.id === key)?.visible ?? true;
+  // customerEmail is always editable in the editor even if hidden from preview
+  const ALWAYS_VISIBLE_IN_EDITOR = ["customerEmail"];
+  const visible = (key: string) =>
+    ALWAYS_VISIBLE_IN_EDITOR.includes(key) || (fields.find((f) => f.id === key)?.visible ?? true);
 
   useEffect(() => {
     setData(ticket);
