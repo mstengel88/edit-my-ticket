@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { TicketData } from "@/types/ticket";
+import { TemplateField, DEFAULT_TEMPLATE_FIELDS } from "@/types/template";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +15,7 @@ interface TicketEditorProps {
   ticket: TicketData;
   onSave: (ticket: TicketData) => void;
   onPreview: (ticket: TicketData) => void;
+  templateFields?: TemplateField[];
 }
 
 export function TicketEditor({ ticket, onSave, onPreview }: TicketEditorProps) {
