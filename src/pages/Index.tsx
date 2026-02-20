@@ -4,17 +4,21 @@ import { TicketList } from "@/components/TicketList";
 import { TicketEditor } from "@/components/TicketEditor";
 import { TicketPreview } from "@/components/TicketPreview";
 import { useLoadriteData } from "@/hooks/useLoadriteData";
-import { ArrowLeft, Plus, RefreshCw, Loader2, LogOut } from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw, Loader2, LogOut, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { useTicketTemplate } from "@/hooks/useTicketTemplate";
 
 type View = "list" | "editor" | "preview";
 
 const Index = () => {
   const { tickets, loading, error, fetchData, loadFromDb } = useLoadriteData();
   const { signOut, session } = useAuth();
+  const navigate = useNavigate();
+  const { fields: templateFields } = useTicketTemplate();
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [view, setView] = useState<View>("list");
 
@@ -166,6 +170,9 @@ const Index = () => {
                 <Plus className="h-4 w-4" />
                 New Ticket
               </Button>
+              <Button variant="ghost" size="icon" onClick={() => navigate("/settings")} title="Template Settings">
+                <Settings className="h-4 w-4" />
+              </Button>
               <Button variant="ghost" size="icon" onClick={signOut} title="Sign out">
                 <LogOut className="h-4 w-4" />
               </Button>
@@ -182,7 +189,7 @@ const Index = () => {
           <TicketEditor ticket={selectedTicket} onSave={handleSaveTicket} onPreview={handlePreview} />
         )}
         {view === "preview" && selectedTicket && (
-          <TicketPreview ticket={selectedTicket} />
+          <TicketPreview ticket={selectedTicket} templateFields={templateFields} />
         )}
       </main>
     </div>
