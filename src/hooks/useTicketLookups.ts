@@ -120,5 +120,5 @@ export function useTicketLookups(): LookupData {
     load();
   }, []);
 
-  return { products, customers, trucks, loading };
+  return { products, customers, customerEmails, trucks, loading };
 }
