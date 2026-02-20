@@ -3,14 +3,16 @@ import { TicketData, createEmptyTicket } from "@/types/ticket";
 import { TicketList } from "@/components/TicketList";
 import { TicketEditor } from "@/components/TicketEditor";
 import { TicketPreview } from "@/components/TicketPreview";
+import { Reports } from "@/components/Reports";
 import { useLoadriteData } from "@/hooks/useLoadriteData";
-import { ArrowLeft, Plus, RefreshCw, Loader2, LogOut, Settings } from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw, Loader2, LogOut, Settings, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useTicketTemplate } from "@/hooks/useTicketTemplate";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 type View = "list" | "editor" | "preview";
 
@@ -21,6 +23,7 @@ const Index = () => {
   const { fields: templateFields, copiesPerPage } = useTicketTemplate();
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [view, setView] = useState<View>("list");
+  const [activeTab, setActiveTab] = useState<string>("tickets");
 
   // Load persisted tickets on mount
   useEffect(() => {
@@ -133,7 +136,7 @@ const Index = () => {
       <header className="sticky top-0 z-10 border-b bg-card/80 backdrop-blur-sm no-print">
         <div className="container mx-auto flex items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-3">
-            {view !== "list" && (
+            {view !== "list" && activeTab === "tickets" && (
               <Button variant="ghost" size="icon" onClick={handleBack}>
                 <ArrowLeft className="h-5 w-5" />
               </Button>
@@ -142,7 +145,7 @@ const Index = () => {
               <h1 className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
                 Ticket Manager
               </h1>
-              {view === "list" && (
+              {view === "list" && activeTab === "tickets" && (
                 <p className="text-xs text-muted-foreground">
                   {tickets.length} ticket{tickets.length !== 1 ? "s" : ""}
                   {loading && " · syncing..."}
@@ -150,46 +153,65 @@ const Index = () => {
               )}
             </div>
           </div>
-          {view === "list" && (
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRefresh}
-                disabled={loading}
-                className="gap-1.5"
-              >
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
-                )}
-                Sync
-              </Button>
-              <Button onClick={handleNewTicket} size="sm" className="gap-1.5">
-                <Plus className="h-4 w-4" />
-                New Ticket
-              </Button>
-              <Button variant="ghost" size="icon" onClick={() => navigate("/settings")} title="Template Settings">
-                <Settings className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={signOut} title="Sign out">
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
+          <div className="flex gap-2">
+            {view === "list" && activeTab === "tickets" && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefresh}
+                  disabled={loading}
+                  className="gap-1.5"
+                >
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  Sync
+                </Button>
+                <Button onClick={handleNewTicket} size="sm" className="gap-1.5">
+                  <Plus className="h-4 w-4" />
+                  New Ticket
+                </Button>
+              </>
+            )}
+            <Button variant="ghost" size="icon" onClick={() => navigate("/settings")} title="Template Settings">
+              <Settings className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={signOut} title="Sign out">
+              <LogOut className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-6 sm:px-6">
-        {view === "list" && (
-          <TicketList tickets={tickets} onSelect={handleSelectTicket} onDelete={handleDeleteTicket} onPreview={handlePreview} />
-        )}
-        {view === "editor" && selectedTicket && (
-          <TicketEditor ticket={selectedTicket} onSave={handleSaveTicket} onPreview={handlePreview} />
-        )}
-        {view === "preview" && selectedTicket && (
-          <TicketPreview ticket={selectedTicket} templateFields={templateFields} copiesPerPage={copiesPerPage} />
+        {view === "list" ? (
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="mb-4">
+              <TabsTrigger value="tickets">Tickets</TabsTrigger>
+              <TabsTrigger value="reports" className="gap-1.5">
+                <BarChart3 className="h-4 w-4" />
+                Reports
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="tickets">
+              <TicketList tickets={tickets} onSelect={handleSelectTicket} onDelete={handleDeleteTicket} onPreview={handlePreview} />
+            </TabsContent>
+            <TabsContent value="reports">
+              <Reports tickets={tickets} />
+            </TabsContent>
+          </Tabs>
+        ) : (
+          <>
+            {view === "editor" && selectedTicket && (
+              <TicketEditor ticket={selectedTicket} onSave={handleSaveTicket} onPreview={handlePreview} />
+            )}
+            {view === "preview" && selectedTicket && (
+              <TicketPreview ticket={selectedTicket} templateFields={templateFields} copiesPerPage={copiesPerPage} />
+            )}
+          </>
         )}
       </main>
     </div>

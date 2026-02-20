@@ -1,0 +1,302 @@
+import { useState, useMemo } from "react";
+import { TicketData } from "@/types/ticket";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
+import { CalendarIcon } from "lucide-react";
+import { format, startOfDay, endOfDay, subDays, startOfWeek, startOfMonth, startOfYear } from "date-fns";
+import { cn } from "@/lib/utils";
+
+type TimePeriod = "today" | "yesterday" | "weekly" | "monthly" | "yearly" | "custom";
+
+interface ReportsProps {
+  tickets: TicketData[];
+}
+
+function parseTicketDate(dateTime: string): Date | null {
+  if (!dateTime) return null;
+  const d = new Date(dateTime);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+export function Reports({ tickets }: ReportsProps) {
+  const [period, setPeriod] = useState<TimePeriod>("today");
+  const [customFrom, setCustomFrom] = useState<Date | undefined>();
+  const [customTo, setCustomTo] = useState<Date | undefined>();
+  const [customerFilter, setCustomerFilter] = useState<string>("all");
+
+  const now = new Date();
+
+  const dateRange = useMemo((): { from: Date; to: Date } => {
+    switch (period) {
+      case "today":
+        return { from: startOfDay(now), to: endOfDay(now) };
+      case "yesterday":
+        return { from: startOfDay(subDays(now, 1)), to: endOfDay(subDays(now, 1)) };
+      case "weekly":
+        return { from: startOfWeek(now, { weekStartsOn: 1 }), to: endOfDay(now) };
+      case "monthly":
+        return { from: startOfMonth(now), to: endOfDay(now) };
+      case "yearly":
+        return { from: startOfYear(now), to: endOfDay(now) };
+      case "custom":
+        return {
+          from: customFrom ? startOfDay(customFrom) : startOfDay(now),
+          to: customTo ? endOfDay(customTo) : endOfDay(now),
+        };
+    }
+  }, [period, customFrom, customTo]);
+
+  const customers = useMemo(() => {
+    const set = new Set<string>();
+    tickets.forEach((t) => {
+      if (t.customer && t.customer.trim()) set.add(t.customer.trim());
+    });
+    return Array.from(set).sort();
+  }, [tickets]);
+
+  const filtered = useMemo(() => {
+    return tickets.filter((t) => {
+      const d = parseTicketDate(t.dateTime);
+      if (!d) return false;
+      if (d < dateRange.from || d > dateRange.to) return false;
+      if (customerFilter !== "all" && t.customer.trim() !== customerFilter) return false;
+      return true;
+    });
+  }, [tickets, dateRange, customerFilter]);
+
+  const summary = useMemo(() => {
+    let totalTons = 0;
+    let totalYards = 0;
+    const byCustomer: Record<string, { tons: number; yards: number; count: number }> = {};
+    const byProduct: Record<string, { tons: number; yards: number; count: number }> = {};
+
+    filtered.forEach((t) => {
+      const amount = parseFloat(t.totalAmount) || 0;
+      const isTon = (t.totalUnit || "").toLowerCase().includes("ton");
+      const isYard = (t.totalUnit || "").toLowerCase().includes("yard");
+
+      if (isTon) totalTons += amount;
+      if (isYard) totalYards += amount;
+
+      const cust = t.customer.trim() || "Unknown";
+      if (!byCustomer[cust]) byCustomer[cust] = { tons: 0, yards: 0, count: 0 };
+      byCustomer[cust].count++;
+      if (isTon) byCustomer[cust].tons += amount;
+      if (isYard) byCustomer[cust].yards += amount;
+
+      const prod = t.product.trim() || "Unknown";
+      if (!byProduct[prod]) byProduct[prod] = { tons: 0, yards: 0, count: 0 };
+      byProduct[prod].count++;
+      if (isTon) byProduct[prod].tons += amount;
+      if (isYard) byProduct[prod].yards += amount;
+    });
+
+    return { totalTons, totalYards, byCustomer, byProduct, ticketCount: filtered.length };
+  }, [filtered]);
+
+  const periodLabel: Record<TimePeriod, string> = {
+    today: "Today",
+    yesterday: "Yesterday",
+    weekly: "This Week",
+    monthly: "This Month",
+    yearly: "This Year",
+    custom: "Custom Range",
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Report Filters</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-4 items-end">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-muted-foreground">Time Period</label>
+              <Select value={period} onValueChange={(v) => setPeriod(v as TimePeriod)}>
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="yesterday">Yesterday</SelectItem>
+                  <SelectItem value="weekly">This Week</SelectItem>
+                  <SelectItem value="monthly">This Month</SelectItem>
+                  <SelectItem value="yearly">This Year</SelectItem>
+                  <SelectItem value="custom">Custom Range</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {period === "custom" && (
+              <>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-muted-foreground">From</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal", !customFrom && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {customFrom ? format(customFrom, "MM/dd/yyyy") : "Start"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={customFrom} onSelect={setCustomFrom} initialFocus className="p-3 pointer-events-auto" />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-muted-foreground">To</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal", !customTo && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {customTo ? format(customTo, "MM/dd/yyyy") : "End"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={customTo} onSelect={setCustomTo} initialFocus className="p-3 pointer-events-auto" />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </>
+            )}
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-muted-foreground">Customer</label>
+              <Select value={customerFilter} onValueChange={setCustomerFilter}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Customers</SelectItem>
+                  {customers.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">Total Tickets</p>
+            <p className="text-3xl font-bold text-foreground">{summary.ticketCount}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">Total Tonnage</p>
+            <p className="text-3xl font-bold text-foreground">{summary.totalTons.toFixed(2)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-sm text-muted-foreground">Total Yardage</p>
+            <p className="text-3xl font-bold text-foreground">{summary.totalYards.toFixed(2)}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* By Customer */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">By Customer</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Customer</TableHead>
+                <TableHead className="text-right">Tickets</TableHead>
+                <TableHead className="text-right">Tons</TableHead>
+                <TableHead className="text-right">Yards</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(summary.byCustomer)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([cust, data]) => (
+                  <TableRow key={cust}>
+                    <TableCell className="font-medium">{cust}</TableCell>
+                    <TableCell className="text-right">{data.count}</TableCell>
+                    <TableCell className="text-right">{data.tons.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">{data.yards.toFixed(2)}</TableCell>
+                  </TableRow>
+                ))}
+              {Object.keys(summary.byCustomer).length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">No data for this period</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+            {Object.keys(summary.byCustomer).length > 0 && (
+              <TableFooter>
+                <TableRow>
+                  <TableCell className="font-bold">Total</TableCell>
+                  <TableCell className="text-right font-bold">{summary.ticketCount}</TableCell>
+                  <TableCell className="text-right font-bold">{summary.totalTons.toFixed(2)}</TableCell>
+                  <TableCell className="text-right font-bold">{summary.totalYards.toFixed(2)}</TableCell>
+                </TableRow>
+              </TableFooter>
+            )}
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* By Product */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">By Product</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Product</TableHead>
+                <TableHead className="text-right">Tickets</TableHead>
+                <TableHead className="text-right">Tons</TableHead>
+                <TableHead className="text-right">Yards</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(summary.byProduct)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([prod, data]) => (
+                  <TableRow key={prod}>
+                    <TableCell className="font-medium">{prod}</TableCell>
+                    <TableCell className="text-right">{data.count}</TableCell>
+                    <TableCell className="text-right">{data.tons.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">{data.yards.toFixed(2)}</TableCell>
+                  </TableRow>
+                ))}
+              {Object.keys(summary.byProduct).length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">No data for this period</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+            {Object.keys(summary.byProduct).length > 0 && (
+              <TableFooter>
+                <TableRow>
+                  <TableCell className="font-bold">Total</TableCell>
+                  <TableCell className="text-right font-bold">{summary.ticketCount}</TableCell>
+                  <TableCell className="text-right font-bold">{summary.totalTons.toFixed(2)}</TableCell>
+                  <TableCell className="text-right font-bold">{summary.totalYards.toFixed(2)}</TableCell>
+                </TableRow>
+              </TableFooter>
+            )}
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
