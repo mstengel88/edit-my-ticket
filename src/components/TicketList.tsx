@@ -3,6 +3,7 @@ import { TicketData } from "@/types/ticket";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Eye, Pencil, Trash2, Search } from "lucide-react";
 
 interface TicketListProps {
@@ -20,6 +21,7 @@ const statusColors: Record<TicketData["status"], string> = {
 
 export function TicketList({ tickets, onSelect, onDelete, onPreview }: TicketListProps) {
   const [search, setSearch] = useState("");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const filtered = tickets.filter((t) => {
     if (!search.trim()) return true;
@@ -43,6 +45,7 @@ export function TicketList({ tickets, onSelect, onDelete, onPreview }: TicketLis
   }
 
   return (
+    <>
     <div className="space-y-3 animate-fade-in">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -95,7 +98,7 @@ export function TicketList({ tickets, onSelect, onDelete, onPreview }: TicketLis
                 variant="ghost"
                 size="icon"
                 className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
-                onClick={(e) => { e.stopPropagation(); onDelete(ticket.id); }}
+                onClick={(e) => { e.stopPropagation(); setDeleteId(ticket.id); }}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -106,6 +109,24 @@ export function TicketList({ tickets, onSelect, onDelete, onPreview }: TicketLis
           <p className="text-center text-sm text-muted-foreground py-8">No tickets match your search.</p>
         )}
       </div>
-    </div>
+      </div>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete ticket?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this ticket.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (deleteId) { onDelete(deleteId); setDeleteId(null); } }}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
