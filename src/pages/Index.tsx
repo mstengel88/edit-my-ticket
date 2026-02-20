@@ -134,6 +134,7 @@ const Index = () => {
 
   const handleRefresh = () => {
     fetchData();
+    logAudit("sync", "ticket");
     toast.info("Syncing from Loadrite...");
   };
 
