@@ -229,7 +229,7 @@ const Index = () => {
         ) : (
           <>
             {view === "editor" && selectedTicket && (
-              <TicketEditor ticket={selectedTicket} onSave={handleSaveTicket} onPreview={handlePreview} />
+              <TicketEditor ticket={selectedTicket} onSave={handleSaveTicket} onPreview={handlePreview} templateFields={templateFields} />
             )}
             {view === "preview" && selectedTicket && (
               <TicketPreview ticket={selectedTicket} templateFields={templateFields} copiesPerPage={copiesPerPage} />
