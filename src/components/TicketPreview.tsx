@@ -2,6 +2,7 @@ import { TicketData } from "@/types/ticket";
 import { Button } from "@/components/ui/button";
 import { Printer, Mail } from "lucide-react";
 import { toast } from "sonner";
+import companyLogo from "@/assets/Greenhillssupply_logo.png";
 
 interface TicketPreviewProps {
   ticket: TicketData;
