@@ -6,6 +6,7 @@ import { TemplateField, DEFAULT_TEMPLATE_FIELDS } from "@/types/template";
 export function useTicketTemplate() {
   const { session } = useAuth();
   const [fields, setFields] = useState<TemplateField[]>(DEFAULT_TEMPLATE_FIELDS);
+  const [copiesPerPage, setCopiesPerPage] = useState(2);
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
