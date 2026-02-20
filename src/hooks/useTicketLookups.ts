@@ -109,6 +109,9 @@ export function useTicketLookups(): LookupData {
 
       setProducts((productRows || []).map((r) => r.name));
       setCustomers((customerRows || []).map((r) => r.name));
+      const emailMap: Record<string, string> = {};
+      (customerRows || []).forEach((r) => { if (r.email) emailMap[r.name] = r.email; });
+      setCustomerEmails(emailMap);
       setTrucks((truckRows || []).map((r) => r.name));
 
       setLoading(false);
