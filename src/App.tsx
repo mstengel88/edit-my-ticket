@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import Settings from "./pages/Settings";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();

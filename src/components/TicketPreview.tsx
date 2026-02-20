@@ -1,4 +1,5 @@
 import { TicketData } from "@/types/ticket";
+import { TemplateField, DEFAULT_TEMPLATE_FIELDS } from "@/types/template";
 import { Button } from "@/components/ui/button";
 import { Printer, Mail } from "lucide-react";
 import { toast } from "sonner";
@@ -6,9 +7,22 @@ import companyLogo from "@/assets/Greenhillssupply_logo.png";
 
 interface TicketPreviewProps {
   ticket: TicketData;
+  templateFields?: TemplateField[];
 }
 
-export function TicketPreview({ ticket }: TicketPreviewProps) {
+export function TicketPreview({ ticket, templateFields }: TicketPreviewProps) {
+  const fields = templateFields || DEFAULT_TEMPLATE_FIELDS;
+  const visible = (key: string) => fields.find((f) => f.id === key)?.visible ?? true;
+
+  // Group visible fields by section in template order
+  const headerFields = fields.filter((f) => f.section === "header" && f.visible);
+  const productFields = fields.filter((f) => f.section === "product" && f.visible);
+  const footerFields = fields.filter((f) => f.section === "footer" && f.visible);
+
+  const getFieldValue = (key: string): string => {
+    return (ticket as any)[key] || "—";
+  };
+
   const handlePrint = () => {
     window.print();
   };
@@ -57,53 +71,67 @@ export function TicketPreview({ ticket }: TicketPreviewProps) {
         {/* Divider */}
         <div className="border-t border-foreground/30 mx-4" />
 
-        {/* Details grid */}
-        <div className="grid grid-cols-2 gap-x-8 gap-y-0.5 px-4 py-2">
-          <FieldRow label="Date" value={ticket.dateTime} />
-          <div />
-          <FieldRow label="Job" value={ticket.jobName} />
-          <div />
-          <FieldRow label="Customer" value={ticket.customer} />
-          <FieldRow label="Customer Email" value={ticket.customerEmail || "—"} />
-        </div>
+        {/* Header details (dynamic) */}
+        {headerFields.length > 0 && (
+          <div className="grid grid-cols-2 gap-x-8 gap-y-0.5 px-4 py-2">
+            {headerFields.map((f) => (
+              <FieldRow key={f.id} label={f.label} value={getFieldValue(f.key)} />
+            ))}
+          </div>
+        )}
 
         {/* Product + Total row */}
-        <div className="mx-4 border-t border-foreground/30" />
-        <div className="px-4 py-2">
-          <div className="flex items-baseline justify-between">
-            <div className="flex gap-8">
-              <FieldRow label="Product" value={ticket.product} />
+        {productFields.length > 0 && (
+          <>
+            <div className="mx-4 border-t border-foreground/30" />
+            <div className="px-4 py-2">
+              <div className="flex items-baseline justify-between">
+                <div className="flex gap-8">
+                  {visible("product") && <FieldRow label="Product" value={ticket.product} />}
+                </div>
+                {(visible("totalAmount") || visible("totalUnit")) && (
+                  <div className="text-right">
+                    {visible("totalAmount") && (
+                      <span className="text-xl font-bold">{ticket.totalAmount}</span>
+                    )}
+                    {visible("totalUnit") && (
+                      <span className="text-sm font-medium ml-2">{ticket.totalUnit}</span>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="text-right">
-              <span className="text-xl font-bold">{ticket.totalAmount}</span>
-              <span className="text-sm font-medium ml-2">{ticket.totalUnit}</span>
+          </>
+        )}
+
+        {/* Footer details (dynamic) */}
+        {footerFields.length > 0 && (
+          <>
+            <div className="mx-4 border-t border-foreground/30" />
+            <div className="grid grid-cols-2 gap-x-8 gap-y-0.5 px-4 py-2">
+              {footerFields
+                .filter((f) => f.id !== "customerName")
+                .map((f) => (
+                  <FieldRow key={f.id} label={f.label} value={getFieldValue(f.key)} />
+                ))}
             </div>
-          </div>
-        </div>
+          </>
+        )}
 
-        {/* Divider */}
-        <div className="mx-4 border-t border-foreground/30" />
-
-        {/* Bottom details */}
-        <div className="grid grid-cols-2 gap-x-8 gap-y-0.5 px-4 py-2">
-          <FieldRow label="Truck" value={ticket.truck} />
-          <FieldRow label="Bucket" value={ticket.bucket} />
-          <FieldRow label="Note" value={ticket.note || "—"} />
-          <div />
-        </div>
-
-        {/* Divider */}
-        <div className="mx-4 border-t border-foreground/30" />
-
-        {/* Sign-off */}
-        <div className="px-4 py-2 pb-3">
-          <div className="flex gap-2 items-end">
-            <span className="text-xs font-medium text-foreground/70 whitespace-nowrap">Received&nbsp;:</span>
-            <div className="flex-1 border-b border-foreground/40 min-h-[20px] pb-0.5">
-              <span className="text-sm">{ticket.customerName}</span>
+        {/* Sign-off (if customerName visible) */}
+        {visible("customerName") && (
+          <>
+            <div className="mx-4 border-t border-foreground/30" />
+            <div className="px-4 py-2 pb-3">
+              <div className="flex gap-2 items-end">
+                <span className="text-xs font-medium text-foreground/70 whitespace-nowrap">Received&nbsp;:</span>
+                <div className="flex-1 border-b border-foreground/40 min-h-[20px] pb-0.5">
+                  <span className="text-sm">{ticket.customerName}</span>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
