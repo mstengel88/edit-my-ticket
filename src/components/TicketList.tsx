@@ -21,6 +21,7 @@ const statusColors: Record<TicketData["status"], string> = {
 
 export function TicketList({ tickets, onSelect, onDelete, onPreview }: TicketListProps) {
   const [search, setSearch] = useState("");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const filtered = tickets.filter((t) => {
     if (!search.trim()) return true;
