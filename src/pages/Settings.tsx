@@ -69,8 +69,9 @@ function SortableFieldItem({
 
 const Settings = () => {
   const navigate = useNavigate();
-  const { fields, loading, saveTemplate } = useTicketTemplate();
+  const { fields, copiesPerPage, loading, saveTemplate } = useTicketTemplate();
   const [localFields, setLocalFields] = useState<TemplateField[]>([]);
+  const [localCopies, setLocalCopies] = useState(2);
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
