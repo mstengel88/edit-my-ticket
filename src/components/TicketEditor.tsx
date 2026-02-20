@@ -142,6 +142,10 @@ export function TicketEditor({ ticket, onSave, onPreview }: TicketEditorProps) {
           <Input value={data.customerName} onChange={(e) => updateField("customerName", e.target.value)} />
         </div>
         <div>
+          <Label className="text-xs text-muted-foreground">Email</Label>
+          <Input type="email" value={data.customerEmail} onChange={(e) => updateField("customerEmail", e.target.value)} placeholder="customer@example.com" />
+        </div>
+        <div>
           <Label className="text-xs text-muted-foreground">Address</Label>
           <Textarea rows={2} value={data.customerAddress} onChange={(e) => updateField("customerAddress", e.target.value)} />
         </div>

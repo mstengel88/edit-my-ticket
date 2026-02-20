@@ -21,6 +21,7 @@ export interface TicketData {
 
   // Customer sign-off
   customerName: string;
+  customerEmail: string;
   customerAddress: string;
   signature: string;
 
@@ -53,6 +54,7 @@ export const createEmptyTicket = (): TicketData => ({
   note: "",
   bucket: "",
   customerName: "",
+  customerEmail: "",
   customerAddress: "",
   signature: "",
   status: "draft",
@@ -76,6 +78,7 @@ export const sampleTickets: TicketData[] = [
     note: "Undefined",
     bucket: "Bucket 04",
     customerName: "",
+    customerEmail: "",
     customerAddress: "",
     signature: "",
     status: "sent",
@@ -97,6 +100,7 @@ export const sampleTickets: TicketData[] = [
     note: "Deliver to back lot",
     bucket: "Bucket 02",
     customerName: "Mike Davis",
+    customerEmail: "mike@abclandscaping.com",
     customerAddress: "100 Industrial Pkwy, Milwaukee WI",
     signature: "",
     status: "completed",
