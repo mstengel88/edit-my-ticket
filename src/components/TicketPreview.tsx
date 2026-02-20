@@ -69,14 +69,14 @@ export function TicketPreview({ ticket }: TicketPreviewProps) {
 
         {/* Product + Total row */}
         <div className="mx-4 border-t border-foreground/30" />
-        <div className="p-6 py-4">
+        <div className="px-4 py-2">
           <div className="flex items-baseline justify-between">
             <div className="flex gap-8">
               <FieldRow label="Product" value={ticket.product} />
             </div>
             <div className="text-right">
-              <span className="text-2xl font-bold">{ticket.totalAmount}</span>
-              <span className="text-base font-medium ml-2">{ticket.totalUnit}</span>
+              <span className="text-xl font-bold">{ticket.totalAmount}</span>
+              <span className="text-sm font-medium ml-2">{ticket.totalUnit}</span>
             </div>
           </div>
         </div>
