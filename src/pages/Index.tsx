@@ -23,6 +23,7 @@ const Index = () => {
   const { fields: templateFields, copiesPerPage } = useTicketTemplate();
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [view, setView] = useState<View>("list");
+  const [activeTab, setActiveTab] = useState<string>("tickets");
 
   // Load persisted tickets on mount
   useEffect(() => {
