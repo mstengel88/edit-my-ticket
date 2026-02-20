@@ -297,6 +297,60 @@ export function Reports({ tickets }: ReportsProps) {
           </Table>
         </CardContent>
       </Card>
+
+      {/* All Tickets Detail */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Ticket Details</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Job #</TableHead>
+                <TableHead>Job Name</TableHead>
+                <TableHead>Date/Time</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Customer Email</TableHead>
+                <TableHead>Customer Address</TableHead>
+                <TableHead>Product</TableHead>
+                <TableHead>Truck</TableHead>
+                <TableHead>Bucket</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead>Unit</TableHead>
+                <TableHead>Note</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered
+                .sort((a, b) => a.jobNumber.localeCompare(b.jobNumber))
+                .map((t) => (
+                  <TableRow key={t.id}>
+                    <TableCell className="font-medium">{t.jobNumber}</TableCell>
+                    <TableCell>{t.jobName}</TableCell>
+                    <TableCell className="whitespace-nowrap">{t.dateTime}</TableCell>
+                    <TableCell>{t.customer}</TableCell>
+                    <TableCell>{t.customerEmail}</TableCell>
+                    <TableCell>{t.customerAddress}</TableCell>
+                    <TableCell>{t.product}</TableCell>
+                    <TableCell>{t.truck}</TableCell>
+                    <TableCell>{t.bucket}</TableCell>
+                    <TableCell className="text-right">{t.totalAmount}</TableCell>
+                    <TableCell>{t.totalUnit}</TableCell>
+                    <TableCell>{t.note}</TableCell>
+                    <TableCell className="capitalize">{t.status}</TableCell>
+                  </TableRow>
+                ))}
+              {filtered.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={13} className="text-center text-muted-foreground py-8">No tickets for this period</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }
