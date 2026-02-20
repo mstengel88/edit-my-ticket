@@ -13,6 +13,7 @@ interface LookupData {
 export function useTicketLookups(): LookupData {
   const [products, setProducts] = useState<string[]>([]);
   const [customers, setCustomers] = useState<string[]>([]);
+  const [customerEmails, setCustomerEmails] = useState<Record<string, string>>({});
   const [trucks, setTrucks] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
