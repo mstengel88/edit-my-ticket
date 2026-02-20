@@ -47,18 +47,21 @@ export type Database = {
       customers: {
         Row: {
           created_at: string
+          email: string
           id: string
           name: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          email?: string
           id?: string
           name: string
           user_id: string
         }
         Update: {
           created_at?: string
+          email?: string
           id?: string
           name?: string
           user_id?: string
