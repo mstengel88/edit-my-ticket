@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { TicketData } from "@/types/ticket";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Eye, Pencil, Trash2, Search } from "lucide-react";
 
 interface TicketListProps {
   tickets: TicketData[];
