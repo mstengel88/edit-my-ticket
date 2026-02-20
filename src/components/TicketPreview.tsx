@@ -35,85 +35,80 @@ export function TicketPreview({ ticket }: TicketPreviewProps) {
         </Button>
       </div>
 
-      {/* Professional ticket layout */}
-      <div className="max-w-3xl mx-auto bg-white border-2 border-foreground/80 text-foreground font-sans text-sm print:border print:shadow-none">
-        {/* Top section: Company info left, Ticket No right */}
-        <div className="flex justify-between items-start p-6 pb-4">
-          <div className="flex items-start gap-4">
-            <img src={companyLogo} alt={ticket.companyName} className="h-16 w-auto" />
+      {/* Modern slim ticket */}
+      <div className="max-w-md mx-auto bg-card text-card-foreground font-sans text-sm rounded-xl shadow-lg overflow-hidden print:shadow-none print:rounded-none">
+        {/* Header bar */}
+        <div className="bg-primary px-5 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <img src={companyLogo} alt={ticket.companyName} className="h-8 w-auto brightness-0 invert" />
+            <span className="text-primary-foreground font-semibold text-sm">{ticket.companyName}</span>
+          </div>
+          <span className="text-primary-foreground/80 text-xs font-mono">#{ticket.jobNumber}</span>
+        </div>
+
+        {/* Body */}
+        <div className="px-5 py-4 space-y-3">
+          {/* Date */}
+          <p className="text-xs text-muted-foreground">{ticket.dateTime}</p>
+
+          {/* Customer */}
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Customer</p>
+            <p className="font-semibold">{ticket.customer}</p>
+            {ticket.customerEmail && (
+              <p className="text-xs text-muted-foreground">{ticket.customerEmail}</p>
+            )}
+          </div>
+
+          {/* Job */}
+          <div>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Job</p>
+            <p className="font-semibold">{ticket.jobName}</p>
+          </div>
+
+          {/* Product + Weight highlight */}
+          <div className="bg-accent/50 rounded-lg p-3 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold">{ticket.companyName}</h2>
-              <p className="text-xs text-foreground/70">{ticket.companyWebsite}</p>
-              <p className="text-xs text-foreground/70">{ticket.companyEmail}</p>
-              <p className="text-xs text-foreground/70">{ticket.companyPhone}</p>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="text-sm font-medium">Ticket No:</p>
-            <p className="text-3xl font-bold tracking-tight">{ticket.jobNumber}</p>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="border-t border-foreground/30 mx-4" />
-
-        {/* Details grid */}
-        <div className="grid grid-cols-2 gap-x-8 gap-y-1 p-6 py-4">
-          <FieldRow label="Date" value={ticket.dateTime} />
-          <div />
-          <FieldRow label="Job" value={ticket.jobName} />
-          <div />
-          <FieldRow label="Customer" value={ticket.customer} />
-          <FieldRow label="Customer Email" value={ticket.customerEmail || "—"} />
-        </div>
-
-        {/* Product + Total row */}
-        <div className="mx-4 border-t border-foreground/30" />
-        <div className="p-6 py-4">
-          <div className="flex items-baseline justify-between">
-            <div className="flex gap-8">
-              <FieldRow label="Product" value={ticket.product} />
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Product</p>
+              <p className="font-semibold">{ticket.product}</p>
             </div>
             <div className="text-right">
-              <span className="text-2xl font-bold">{ticket.totalAmount}</span>
-              <span className="text-base font-medium ml-2">{ticket.totalUnit}</span>
+              <p className="text-2xl font-bold text-accent-foreground leading-none">{ticket.totalAmount}</p>
+              <p className="text-xs text-muted-foreground">{ticket.totalUnit}</p>
             </div>
           </div>
-        </div>
 
-        {/* Divider */}
-        <div className="mx-4 border-t border-foreground/30" />
-
-        {/* Bottom details */}
-        <div className="grid grid-cols-2 gap-x-8 gap-y-1 p-6 py-4">
-          <FieldRow label="Truck" value={ticket.truck} />
-          <FieldRow label="Bucket" value={ticket.bucket} />
-          <FieldRow label="Note" value={ticket.note || "—"} />
-          <div />
-        </div>
-
-        {/* Divider */}
-        <div className="mx-4 border-t border-foreground/30" />
-
-        {/* Sign-off */}
-        <div className="p-6 py-4 space-y-3">
-          <div className="flex gap-2 items-end">
-            <span className="text-xs font-medium text-foreground/70 whitespace-nowrap">Received&nbsp;:</span>
-            <div className="flex-1 border-b border-foreground/40 min-h-[24px] pb-0.5">
-              <span className="text-sm">{ticket.customerName}</span>
+          {/* Details row */}
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Truck</p>
+              <p className="text-sm font-medium">{ticket.truck}</p>
+            </div>
+            <div className="flex-1">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Bucket</p>
+              <p className="text-sm font-medium">{ticket.bucket}</p>
             </div>
           </div>
+
+          {/* Note */}
+          {ticket.note && (
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">Note</p>
+              <p className="text-sm">{ticket.note}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="border-t border-border px-5 py-3 flex items-center justify-between">
+          <div className="text-xs text-muted-foreground">
+            <span>Received by </span>
+            <span className="font-medium text-foreground">{ticket.customerName || "—"}</span>
+          </div>
+          <div className="text-xs text-muted-foreground">{ticket.companyPhone}</div>
         </div>
       </div>
     </div>
   );
 }
 
-function FieldRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex gap-2 items-baseline">
-      <span className="text-xs font-medium text-foreground/70 whitespace-nowrap min-w-[100px]">{label}&nbsp;:</span>
-      <span className="text-sm font-semibold">{value}</span>
-    </div>
-  );
-}
