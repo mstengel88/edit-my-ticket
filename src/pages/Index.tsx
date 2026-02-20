@@ -5,12 +5,14 @@ import { TicketEditor } from "@/components/TicketEditor";
 import { TicketPreview } from "@/components/TicketPreview";
 import { Reports } from "@/components/Reports";
 import { useLoadriteData } from "@/hooks/useLoadriteData";
-import { ArrowLeft, Plus, RefreshCw, Loader2, LogOut, Settings, BarChart3 } from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw, Loader2, LogOut, Settings, BarChart3, Menu, ClipboardList } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { logAudit } from "@/lib/auditLog";
 import { useTicketTemplate } from "@/hooks/useTicketTemplate";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
@@ -65,6 +67,7 @@ const Index = () => {
         status: newTicket.status,
       };
       await supabase.from("tickets").insert(row);
+      logAudit("create", "ticket", newTicket.id, { jobNumber: newTicket.jobNumber });
     }
     setSelectedTicket(newTicket);
     setView("editor");
@@ -104,11 +107,14 @@ const Index = () => {
     }
     setSelectedTicket(updated);
     toast.success("Ticket saved!");
+    logAudit("update", "ticket", updated.id, { jobNumber: updated.jobNumber });
     await loadFromDb();
   };
 
   const handleDeleteTicket = async (id: string) => {
+    const ticket = tickets.find(t => t.id === id);
     await supabase.from("tickets").delete().eq("id", id);
+    logAudit("delete", "ticket", id, { jobNumber: ticket?.jobNumber });
     if (selectedTicket?.id === id) {
       setSelectedTicket(null);
       setView("list");
@@ -128,6 +134,7 @@ const Index = () => {
 
   const handleRefresh = () => {
     fetchData();
+    logAudit("sync", "ticket");
     toast.info("Syncing from Loadrite...");
   };
 
@@ -176,12 +183,28 @@ const Index = () => {
                 </Button>
               </>
             )}
-            <Button variant="ghost" size="icon" onClick={() => navigate("/settings")} title="Template Settings">
-              <Settings className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={signOut} title="Sign out">
-              <LogOut className="h-4 w-4" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => navigate("/settings")}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/audit-log")}>
+                  <ClipboardList className="mr-2 h-4 w-4" />
+                  Audit Log
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={signOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
