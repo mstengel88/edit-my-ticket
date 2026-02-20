@@ -22,15 +22,25 @@ export function useTicketTemplate() {
 
     if (data && !error) {
       setTemplateId(data.id);
-      const layout = data.layout as unknown as TemplateField[];
-      if (Array.isArray(layout) && layout.length > 0) {
-        // Merge with defaults to pick up any new fields added later
+      const layout = data.layout as unknown as { fields?: TemplateField[]; copiesPerPage?: number } | TemplateField[];
+      if (Array.isArray(layout)) {
+        // Legacy format: just fields array
         const savedKeys = new Set(layout.map((f) => f.id));
         const merged = [
           ...layout,
           ...DEFAULT_TEMPLATE_FIELDS.filter((f) => !savedKeys.has(f.id)),
         ];
         setFields(merged);
+      } else if (layout && typeof layout === "object") {
+        if (Array.isArray(layout.fields) && layout.fields.length > 0) {
+          const savedKeys = new Set(layout.fields.map((f) => f.id));
+          const merged = [
+            ...layout.fields,
+            ...DEFAULT_TEMPLATE_FIELDS.filter((f) => !savedKeys.has(f.id)),
+          ];
+          setFields(merged);
+        }
+        if (layout.copiesPerPage) setCopiesPerPage(layout.copiesPerPage);
       }
     }
     setLoading(false);
