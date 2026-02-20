@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { TicketData } from "@/types/ticket";
+import { ReportField, DEFAULT_REPORT_FIELDS } from "@/types/template";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -14,6 +15,7 @@ type TimePeriod = "today" | "yesterday" | "weekly" | "monthly" | "yearly" | "cus
 
 interface ReportsProps {
   tickets: TicketData[];
+  reportFields?: ReportField[];
 }
 
 function parseTicketDate(dateTime: string): Date | null {
