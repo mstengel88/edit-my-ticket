@@ -112,11 +112,3 @@ export function TicketPreview({ ticket }: TicketPreviewProps) {
   );
 }
 
-function FieldRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex gap-2 items-baseline">
-      <span className="text-xs font-medium text-foreground/70 whitespace-nowrap min-w-[100px]">{label}&nbsp;:</span>
-      <span className="text-sm font-semibold">{value}</span>
-    </div>
-  );
-}
