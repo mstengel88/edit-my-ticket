@@ -99,18 +99,6 @@ export function TicketPreview({ ticket }: TicketPreviewProps) {
               <span className="text-sm">{ticket.customerName}</span>
             </div>
           </div>
-          <div className="flex gap-2 items-end">
-            <span className="text-xs font-medium text-foreground/70 whitespace-nowrap">Address&nbsp;:</span>
-            <div className="flex-1 border-b border-foreground/40 min-h-[24px] pb-0.5">
-              <span className="text-sm">{ticket.customerAddress}</span>
-            </div>
-          </div>
-          <div className="flex gap-2 items-end">
-            <span className="text-xs font-medium text-foreground/70 whitespace-nowrap">Signature&nbsp;:</span>
-            <div className="flex-1 border-b border-foreground/40 min-h-[32px] pb-0.5">
-              {ticket.signature && <span className="text-sm italic">{ticket.signature}</span>}
-            </div>
-          </div>
         </div>
       </div>
     </div>
