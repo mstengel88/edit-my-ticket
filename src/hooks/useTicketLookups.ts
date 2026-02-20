@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface LookupData {
   products: string[];
   customers: string[];
+  customerEmails: Record<string, string>;
   trucks: string[];
   loading: boolean;
 }
@@ -12,6 +13,7 @@ interface LookupData {
 export function useTicketLookups(): LookupData {
   const [products, setProducts] = useState<string[]>([]);
   const [customers, setCustomers] = useState<string[]>([]);
+  const [customerEmails, setCustomerEmails] = useState<Record<string, string>>({});
   const [trucks, setTrucks] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -101,12 +103,15 @@ export function useTicketLookups(): LookupData {
         { data: truckRows },
       ] = await Promise.all([
         supabase.from("products").select("name").order("name"),
-        supabase.from("customers").select("name").order("name"),
+        supabase.from("customers").select("name, email").order("name"),
         supabase.from("trucks").select("name").order("name"),
       ]);
 
       setProducts((productRows || []).map((r) => r.name));
       setCustomers((customerRows || []).map((r) => r.name));
+      const emailMap: Record<string, string> = {};
+      (customerRows || []).forEach((r) => { if (r.email) emailMap[r.name] = r.email; });
+      setCustomerEmails(emailMap);
       setTrucks((truckRows || []).map((r) => r.name));
 
       setLoading(false);
@@ -115,5 +120,5 @@ export function useTicketLookups(): LookupData {
     load();
   }, []);
 
-  return { products, customers, trucks, loading };
+  return { products, customers, customerEmails, trucks, loading };
 }

@@ -20,7 +20,7 @@ interface TicketEditorProps {
 
 export function TicketEditor({ ticket, onSave, onPreview, templateFields }: TicketEditorProps) {
   const [data, setData] = useState<TicketData>(ticket);
-  const { products, customers, trucks } = useTicketLookups();
+  const { products, customers, customerEmails, trucks } = useTicketLookups();
   const fields = templateFields || DEFAULT_TEMPLATE_FIELDS;
   const visible = (key: string) => fields.find((f) => f.id === key)?.visible ?? true;
 
@@ -138,7 +138,11 @@ export function TicketEditor({ ticket, onSave, onPreview, templateFields }: Tick
           {visible("customer") && (
             <div>
               <Label className="text-xs text-muted-foreground">Customer</Label>
-              <ComboInput value={data.customer} onChange={(v) => updateField("customer", v)} options={customers} placeholder="Select or type customer" />
+              <ComboInput value={data.customer} onChange={(v) => {
+                updateField("customer", v);
+                const email = customerEmails[v];
+                if (email) updateField("customerEmail", email);
+              }} options={customers} placeholder="Select or type customer" />
             </div>
           )}
           {visible("customerEmail") && (
