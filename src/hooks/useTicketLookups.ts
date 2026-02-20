@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface LookupData {
   products: string[];
   customers: string[];
+  customerEmails: Record<string, string>;
   trucks: string[];
   loading: boolean;
 }
