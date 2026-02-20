@@ -127,6 +127,6 @@ export function TicketList({ tickets, onSelect, onDelete, onPreview }: TicketLis
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }
