@@ -21,6 +21,7 @@ export interface TicketData {
 
   // Customer sign-off
   customerName: string;
+  customerEmail: string;
   customerAddress: string;
   signature: string;
 
