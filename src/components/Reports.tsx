@@ -111,12 +111,54 @@ export function Reports({ tickets, reportFields }: ReportsProps) {
     custom: "Custom Range",
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const buildReportText = () => {
+    const lines: string[] = [];
+    lines.push(`Report: ${periodLabel[period]} (${format(dateRange.from, "MM/dd/yyyy")} – ${format(dateRange.to, "MM/dd/yyyy")})`);
+    if (customerFilter !== "all") lines.push(`Customer: ${customerFilter}`);
+    lines.push("");
+    lines.push(`Total Tickets: ${summary.ticketCount}`);
+    lines.push(`Total Tonnage: ${summary.totalTons.toFixed(2)}`);
+    lines.push(`Total Yardage: ${summary.totalYards.toFixed(2)}`);
+    lines.push("");
+    lines.push("--- Ticket Details ---");
+    filtered.sort((a, b) => a.jobNumber.localeCompare(b.jobNumber)).forEach((t) => {
+      const parts: string[] = [];
+      if (rVisible("jobNumber")) parts.push(`Job#: ${t.jobNumber}`);
+      if (rVisible("dateTime")) parts.push(`Date: ${t.dateTime}`);
+      if (rVisible("customer")) parts.push(`Customer: ${t.customer}`);
+      if (rVisible("product")) parts.push(`Product: ${t.product}`);
+      if (rVisible("totalAmount")) parts.push(`Amount: ${t.totalAmount}`);
+      if (rVisible("totalUnit")) parts.push(`Unit: ${t.totalUnit}`);
+      if (rVisible("truck")) parts.push(`Truck: ${t.truck}`);
+      lines.push(parts.join(" | "));
+    });
+    return lines.join("\n");
+  };
+
+  const handleEmail = () => {
+    const subject = encodeURIComponent(`Report: ${periodLabel[period]} - ${format(dateRange.from, "MM/dd/yyyy")}`);
+    const body = encodeURIComponent(buildReportText());
+    window.open(`mailto:?subject=${subject}&body=${body}`, "_self");
+  };
+
   return (
     <div className="space-y-6">
       {/* Filters */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-base">Report Filters</CardTitle>
+          <div className="flex gap-2 no-print">
+            <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5">
+              <Printer className="h-4 w-4" /> Print
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleEmail} className="gap-1.5">
+              <Mail className="h-4 w-4" /> Email
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4 items-end">
