@@ -253,7 +253,7 @@ const Index = () => {
               <TicketList tickets={tickets} onSelect={handleSelectTicket} onDelete={handleDeleteTicket} onPreview={handlePreview} />
             </TabsContent>
             <TabsContent value="reports">
-              <Reports tickets={tickets} />
+              <Reports tickets={tickets} reportFields={reportFields} />
             </TabsContent>
           </Tabs>
         ) : (
