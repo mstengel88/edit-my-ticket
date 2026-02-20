@@ -36,13 +36,13 @@ export function TicketPreview({ ticket }: TicketPreviewProps) {
       </div>
 
       {/* Professional ticket layout */}
-      <div className="max-w-3xl mx-auto bg-white border-2 border-foreground/80 text-foreground font-sans text-sm print:border print:shadow-none">
+      <div className="max-w-4xl mx-auto bg-white border-2 border-foreground/80 text-foreground font-sans text-sm print:border print:shadow-none">
         {/* Top section: Company info left, Ticket No right */}
-        <div className="flex justify-between items-start p-6 pb-4">
-          <div className="flex items-start gap-4">
-            <img src={companyLogo} alt={ticket.companyName} className="h-16 w-auto" />
+        <div className="flex justify-between items-start p-4 pb-2">
+          <div className="flex items-start gap-3">
+            <img src={companyLogo} alt={ticket.companyName} className="h-12 w-auto" />
             <div>
-              <h2 className="text-lg font-bold">{ticket.companyName}</h2>
+              <h2 className="text-base font-bold">{ticket.companyName}</h2>
               <p className="text-xs text-foreground/70">{ticket.companyWebsite}</p>
               <p className="text-xs text-foreground/70">{ticket.companyEmail}</p>
               <p className="text-xs text-foreground/70">{ticket.companyPhone}</p>
@@ -50,7 +50,7 @@ export function TicketPreview({ ticket }: TicketPreviewProps) {
           </div>
           <div className="text-right">
             <p className="text-sm font-medium">Ticket No:</p>
-            <p className="text-3xl font-bold tracking-tight">{ticket.jobNumber}</p>
+            <p className="text-2xl font-bold tracking-tight">{ticket.jobNumber}</p>
           </div>
         </div>
 
@@ -58,7 +58,7 @@ export function TicketPreview({ ticket }: TicketPreviewProps) {
         <div className="border-t border-foreground/30 mx-4" />
 
         {/* Details grid */}
-        <div className="grid grid-cols-2 gap-x-8 gap-y-1 p-6 py-4">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-0.5 px-4 py-2">
           <FieldRow label="Date" value={ticket.dateTime} />
           <div />
           <FieldRow label="Job" value={ticket.jobName} />
@@ -69,14 +69,14 @@ export function TicketPreview({ ticket }: TicketPreviewProps) {
 
         {/* Product + Total row */}
         <div className="mx-4 border-t border-foreground/30" />
-        <div className="p-6 py-4">
+        <div className="px-4 py-2">
           <div className="flex items-baseline justify-between">
             <div className="flex gap-8">
               <FieldRow label="Product" value={ticket.product} />
             </div>
             <div className="text-right">
-              <span className="text-2xl font-bold">{ticket.totalAmount}</span>
-              <span className="text-base font-medium ml-2">{ticket.totalUnit}</span>
+              <span className="text-xl font-bold">{ticket.totalAmount}</span>
+              <span className="text-sm font-medium ml-2">{ticket.totalUnit}</span>
             </div>
           </div>
         </div>
@@ -85,7 +85,7 @@ export function TicketPreview({ ticket }: TicketPreviewProps) {
         <div className="mx-4 border-t border-foreground/30" />
 
         {/* Bottom details */}
-        <div className="grid grid-cols-2 gap-x-8 gap-y-1 p-6 py-4">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-0.5 px-4 py-2">
           <FieldRow label="Truck" value={ticket.truck} />
           <FieldRow label="Bucket" value={ticket.bucket} />
           <FieldRow label="Note" value={ticket.note || "—"} />
@@ -96,10 +96,10 @@ export function TicketPreview({ ticket }: TicketPreviewProps) {
         <div className="mx-4 border-t border-foreground/30" />
 
         {/* Sign-off */}
-        <div className="p-6 py-4 space-y-3">
+        <div className="px-4 py-2 pb-3">
           <div className="flex gap-2 items-end">
             <span className="text-xs font-medium text-foreground/70 whitespace-nowrap">Received&nbsp;:</span>
-            <div className="flex-1 border-b border-foreground/40 min-h-[24px] pb-0.5">
+            <div className="flex-1 border-b border-foreground/40 min-h-[20px] pb-0.5">
               <span className="text-sm">{ticket.customerName}</span>
             </div>
           </div>
