@@ -76,7 +76,8 @@ const Settings = () => {
 
   useEffect(() => {
     setLocalFields(fields);
-  }, [fields]);
+    setLocalCopies(copiesPerPage);
+  }, [fields, copiesPerPage]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
