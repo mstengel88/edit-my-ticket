@@ -67,6 +67,7 @@ const Index = () => {
         status: newTicket.status,
       };
       await supabase.from("tickets").insert(row);
+      logAudit("create", "ticket", newTicket.id, { jobNumber: newTicket.jobNumber });
     }
     setSelectedTicket(newTicket);
     setView("editor");
