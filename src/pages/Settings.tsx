@@ -104,9 +104,14 @@ const Settings = () => {
   };
 
   const handleSave = async () => {
-    await saveTemplate(localFields);
+    await saveTemplate(localFields, localCopies);
     setDirty(false);
     toast.success("Template saved!");
+  };
+
+  const handleCopiesChange = (value: string) => {
+    setLocalCopies(Number(value));
+    setDirty(true);
   };
 
   const sampleTicket: TicketData = sampleTickets[0];
