@@ -54,6 +54,7 @@ export const createEmptyTicket = (): TicketData => ({
   note: "",
   bucket: "",
   customerName: "",
+  customerEmail: "",
   customerAddress: "",
   signature: "",
   status: "draft",
