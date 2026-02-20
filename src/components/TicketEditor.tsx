@@ -18,6 +18,7 @@ interface TicketEditorProps {
 
 export function TicketEditor({ ticket, onSave, onPreview }: TicketEditorProps) {
   const [data, setData] = useState<TicketData>(ticket);
+  const { products, customers, trucks } = useTicketLookups();
 
   useEffect(() => {
     setData(ticket);
