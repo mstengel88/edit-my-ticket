@@ -68,7 +68,7 @@ function groupToTicketRow(group: LoadGroup, userId: string) {
     id: group.ticketNumber,
     user_id: userId,
     job_number: group.ticketNumber,
-    job_name: "Job",
+    job_name: "",
     date_time: formatDate(group.time),
     total_amount: group.totalWeight.toFixed(2),
     total_unit: "Ton",
