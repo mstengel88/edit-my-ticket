@@ -105,6 +105,36 @@ const Index = () => {
       console.error(err);
       return;
     }
+
+    // Sync lookup tables
+    const userId = session?.user?.id;
+    if (userId) {
+      if (updated.customer?.trim() && updated.customer !== "NOT SPECIFIED") {
+        await supabase
+          .from("customers")
+          .upsert(
+            { name: updated.customer, email: updated.customerEmail || "", user_id: userId },
+            { onConflict: "name,user_id" }
+          );
+      }
+      if (updated.product?.trim()) {
+        await supabase
+          .from("products")
+          .upsert(
+            { name: updated.product, user_id: userId, source: "manual" },
+            { onConflict: "name" }
+          );
+      }
+      if (updated.truck?.trim() && updated.truck !== "-" && updated.truck !== "NOT SPECIFIED") {
+        await supabase
+          .from("trucks")
+          .upsert(
+            { name: updated.truck, user_id: userId },
+            { onConflict: "name,user_id" }
+          );
+      }
+    }
+
     setSelectedTicket(updated);
     toast.success("Ticket saved!");
     logAudit("update", "ticket", updated.id, { jobNumber: updated.jobNumber });
