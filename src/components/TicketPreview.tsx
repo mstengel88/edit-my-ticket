@@ -7,12 +7,6 @@ interface TicketPreviewProps {
   ticket: TicketData;
 }
 
-function DottedLine() {
-  return (
-    <div className="border-b border-dashed border-foreground/30 my-2" />
-  );
-}
-
 export function TicketPreview({ ticket }: TicketPreviewProps) {
   const handlePrint = () => {
     window.print();
@@ -40,101 +34,94 @@ export function TicketPreview({ ticket }: TicketPreviewProps) {
         </Button>
       </div>
 
-      {/* Receipt-style ticket */}
-      <div className="max-w-md mx-auto bg-card border border-ticket-border ticket-shadow rounded-sm font-mono text-sm">
-        <div className="p-6 space-y-0">
-          {/* Dotted top border */}
-          <DottedLine />
-
-          {/* Company Header */}
-          <div className="text-center space-y-0.5 py-1">
-            <h2 className="text-lg font-bold text-foreground">{ticket.companyName}</h2>
-            <p className="text-xs text-muted-foreground">{ticket.companyEmail}</p>
-            <p className="text-xs text-muted-foreground">{ticket.companyWebsite}</p>
-            <p className="text-xs text-muted-foreground">{ticket.companyPhone}</p>
+      {/* Professional ticket layout */}
+      <div className="max-w-3xl mx-auto bg-white border-2 border-foreground/80 text-foreground font-sans text-sm print:border print:shadow-none">
+        {/* Top section: Company info left, Ticket No right */}
+        <div className="flex justify-between items-start p-6 pb-4">
+          <div>
+            <h2 className="text-lg font-bold">{ticket.companyName}</h2>
+            <p className="text-xs text-foreground/70">{ticket.companyWebsite}</p>
+            <p className="text-xs text-foreground/70">{ticket.companyEmail}</p>
+            <p className="text-xs text-foreground/70">{ticket.companyPhone}</p>
           </div>
-
-          <DottedLine />
-
-          {/* Job Info */}
-          <div className="py-1 space-y-0.5">
-            <p className="text-foreground">Job Number {ticket.jobNumber}</p>
+          <div className="text-right">
+            <p className="text-sm font-medium">Ticket No:</p>
+            <p className="text-3xl font-bold tracking-tight">{ticket.jobNumber}</p>
           </div>
+        </div>
 
-          <DottedLine />
+        {/* Divider */}
+        <div className="border-t border-foreground/30 mx-4" />
 
-          <div className="py-1 space-y-0.5">
-            <p className="text-foreground">Job: {ticket.jobName}</p>
-            <p className="text-muted-foreground text-xs">{ticket.dateTime}</p>
-          </div>
+        {/* Details grid */}
+        <div className="grid grid-cols-2 gap-x-8 gap-y-1 p-6 py-4">
+          <FieldRow label="Date" value={ticket.dateTime} />
+          <div />
+          <FieldRow label="Job" value={ticket.jobName} />
+          <div />
+          <FieldRow label="Customer" value={ticket.customer} />
+          <FieldRow label="Customer Email" value={ticket.customerEmail || "—"} />
+        </div>
 
-          {/* Total - emphasized */}
-          <div className="py-3 text-center">
-            <p className="text-2xl font-bold text-foreground">
-              Total {ticket.totalAmount} {ticket.totalUnit}
-            </p>
-          </div>
-
-          <DottedLine />
-
-          {/* Details */}
-          <div className="py-2 space-y-1">
-            <ReceiptRow label="Customer" value={ticket.customer} />
-            <ReceiptRow label="Product" value={ticket.product} />
-            <ReceiptRow label="Truck" value={ticket.truck} />
-            <ReceiptRow label="Note" value={ticket.note || "—"} />
-          </div>
-
-          <DottedLine />
-
-          <div className="py-1">
-            <p className="text-foreground text-center">{ticket.bucket}</p>
-          </div>
-
-          <DottedLine />
-
-          {/* Sign-off area */}
-          <div className="py-3 space-y-4">
-            <div>
-              <p className="text-muted-foreground text-xs mb-1">Name:</p>
-              <div className="border-b border-foreground/20 min-h-[24px]">
-                <span className="text-foreground">{ticket.customerName}</span>
-              </div>
+        {/* Product + Total row */}
+        <div className="mx-4 border-t border-foreground/30" />
+        <div className="p-6 py-4">
+          <div className="flex items-baseline justify-between">
+            <div className="flex gap-8">
+              <FieldRow label="Product" value={ticket.product} />
             </div>
-            <div>
-              <p className="text-muted-foreground text-xs mb-1">Address:</p>
-              <div className="border-b border-foreground/20 min-h-[24px]">
-                <span className="text-foreground">{ticket.customerAddress}</span>
-              </div>
-            </div>
-            <div>
-              <p className="text-muted-foreground text-xs mb-1">Signature:</p>
-              <div className="border-b border-foreground/20 min-h-[32px]">
-                {ticket.signature && <span className="text-foreground italic">{ticket.signature}</span>}
-              </div>
+            <div className="text-right">
+              <span className="text-2xl font-bold">{ticket.totalAmount}</span>
+              <span className="text-base font-medium ml-2">{ticket.totalUnit}</span>
             </div>
           </div>
+        </div>
 
-          <DottedLine />
+        {/* Divider */}
+        <div className="mx-4 border-t border-foreground/30" />
 
-          {/* Footer timestamp */}
-          <div className="py-1 text-center">
-            <p className="text-xs text-muted-foreground">{ticket.dateTime}</p>
+        {/* Bottom details */}
+        <div className="grid grid-cols-2 gap-x-8 gap-y-1 p-6 py-4">
+          <FieldRow label="Truck" value={ticket.truck} />
+          <FieldRow label="Bucket" value={ticket.bucket} />
+          <FieldRow label="Note" value={ticket.note || "—"} />
+          <div />
+        </div>
+
+        {/* Divider */}
+        <div className="mx-4 border-t border-foreground/30" />
+
+        {/* Sign-off */}
+        <div className="p-6 py-4 space-y-3">
+          <div className="flex gap-2 items-end">
+            <span className="text-xs font-medium text-foreground/70 whitespace-nowrap">Received&nbsp;:</span>
+            <div className="flex-1 border-b border-foreground/40 min-h-[24px] pb-0.5">
+              <span className="text-sm">{ticket.customerName}</span>
+            </div>
           </div>
-
-          <DottedLine />
+          <div className="flex gap-2 items-end">
+            <span className="text-xs font-medium text-foreground/70 whitespace-nowrap">Address&nbsp;:</span>
+            <div className="flex-1 border-b border-foreground/40 min-h-[24px] pb-0.5">
+              <span className="text-sm">{ticket.customerAddress}</span>
+            </div>
+          </div>
+          <div className="flex gap-2 items-end">
+            <span className="text-xs font-medium text-foreground/70 whitespace-nowrap">Signature&nbsp;:</span>
+            <div className="flex-1 border-b border-foreground/40 min-h-[32px] pb-0.5">
+              {ticket.signature && <span className="text-sm italic">{ticket.signature}</span>}
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function ReceiptRow({ label, value }: { label: string; value: string }) {
+function FieldRow({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <span className="text-muted-foreground">{label}:</span>
-      <br />
-      <span className="text-foreground ml-2">{value}</span>
+    <div className="flex gap-2 items-baseline">
+      <span className="text-xs font-medium text-foreground/70 whitespace-nowrap min-w-[100px]">{label}&nbsp;:</span>
+      <span className="text-sm font-semibold">{value}</span>
     </div>
   );
 }
