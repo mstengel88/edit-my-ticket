@@ -4,7 +4,7 @@ import { TicketList } from "@/components/TicketList";
 import { TicketEditor } from "@/components/TicketEditor";
 import { TicketPreview } from "@/components/TicketPreview";
 import { useLoadriteData } from "@/hooks/useLoadriteData";
-import { ArrowLeft, Plus, RefreshCw, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw, Loader2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
