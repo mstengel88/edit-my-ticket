@@ -8,9 +8,10 @@ import companyLogo from "@/assets/Greenhillssupply_logo.png";
 interface TicketPreviewProps {
   ticket: TicketData;
   templateFields?: TemplateField[];
+  copiesPerPage?: number;
 }
 
-export function TicketPreview({ ticket, templateFields }: TicketPreviewProps) {
+export function TicketPreview({ ticket, templateFields, copiesPerPage = 2 }: TicketPreviewProps) {
   const fields = templateFields || DEFAULT_TEMPLATE_FIELDS;
   const visible = (key: string) => fields.find((f) => f.id === key)?.visible ?? true;
 
