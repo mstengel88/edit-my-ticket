@@ -61,7 +61,7 @@ export interface LoadriteLoadingRecord {
   UserData2?: string;
   UserData3?: string;
   Weight?: string;
-  [key: string]: unknown;
+  
 }
 
 export interface LoadriteLoadingResponse {
