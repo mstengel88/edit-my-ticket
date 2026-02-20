@@ -7,6 +7,7 @@ import { useLoadriteData } from "@/hooks/useLoadriteData";
 import { ArrowLeft, Plus, RefreshCw, Loader2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 type View = "list" | "editor" | "preview";
 
