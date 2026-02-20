@@ -82,7 +82,7 @@ function mapGroupToTicket(group: LoadGroup, index: number): TicketData {
     totalUnit: "Ton",
     customer: group.customer,
     product: group.product,
-    truck: group.truck || "NOT SPECIFIED",
+    truck: group.truck && group.truck !== "NOT SPECIFIED" ? group.truck : "-",
     note: group.note,
     bucket: group.bucketWeights.map((w, i) => `B${i + 1}: ${w}`).join(", "),
     customerName: "",
