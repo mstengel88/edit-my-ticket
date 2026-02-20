@@ -38,11 +38,11 @@ export function TicketPreview({ ticket }: TicketPreviewProps) {
       {/* Professional ticket layout */}
       <div className="max-w-4xl mx-auto bg-white border-2 border-foreground/80 text-foreground font-sans text-sm print:border print:shadow-none">
         {/* Top section: Company info left, Ticket No right */}
-        <div className="flex justify-between items-start p-6 pb-4">
-          <div className="flex items-start gap-4">
-            <img src={companyLogo} alt={ticket.companyName} className="h-16 w-auto" />
+        <div className="flex justify-between items-start p-4 pb-2">
+          <div className="flex items-start gap-3">
+            <img src={companyLogo} alt={ticket.companyName} className="h-12 w-auto" />
             <div>
-              <h2 className="text-lg font-bold">{ticket.companyName}</h2>
+              <h2 className="text-base font-bold">{ticket.companyName}</h2>
               <p className="text-xs text-foreground/70">{ticket.companyWebsite}</p>
               <p className="text-xs text-foreground/70">{ticket.companyEmail}</p>
               <p className="text-xs text-foreground/70">{ticket.companyPhone}</p>
@@ -50,7 +50,7 @@ export function TicketPreview({ ticket }: TicketPreviewProps) {
           </div>
           <div className="text-right">
             <p className="text-sm font-medium">Ticket No:</p>
-            <p className="text-3xl font-bold tracking-tight">{ticket.jobNumber}</p>
+            <p className="text-2xl font-bold tracking-tight">{ticket.jobNumber}</p>
           </div>
         </div>
 
