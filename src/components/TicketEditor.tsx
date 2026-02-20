@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Eye, Save } from "lucide-react";
 import { toast } from "sonner";
+import { ComboInput } from "@/components/ComboInput";
+import { useTicketLookups } from "@/hooks/useTicketLookups";
 
 interface TicketEditorProps {
   ticket: TicketData;
