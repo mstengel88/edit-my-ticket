@@ -169,6 +169,21 @@ const Settings = () => {
                 </div>
               </SortableContext>
             </DndContext>
+
+            {/* Copies per page */}
+            <div className="mt-4 flex items-center gap-3">
+              <Label className="text-sm font-medium text-foreground whitespace-nowrap">Tickets per page</Label>
+              <Select value={String(localCopies)} onValueChange={handleCopiesChange}>
+                <SelectTrigger className="w-20 bg-card">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-popover z-50">
+                  <SelectItem value="1">1</SelectItem>
+                  <SelectItem value="2">2</SelectItem>
+                  <SelectItem value="3">3</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Live preview */}
