@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import Settings from "./pages/Settings";
+import AuditLog from "./pages/AuditLog";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
