@@ -83,6 +83,7 @@ const Index = () => {
         note: updated.note,
         bucket: updated.bucket,
         customer_name: updated.customerName,
+        customer_email: updated.customerEmail,
         customer_address: updated.customerAddress,
         signature: updated.signature,
         status: updated.status,
