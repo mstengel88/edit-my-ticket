@@ -49,31 +49,23 @@ export async function getProducts(): Promise<LoadriteProduct[]> {
 }
 
 export interface LoadriteLoadingRecord {
-  BucketWeights?: number[];
-  Customer?: string;
-  Date?: string;
-  JobNumber?: string;
-  JobName?: string;
-  Note?: string;
-  Operator?: string;
+  Event?: string;
+  GPSLatitude?: string;
+  GPSLongitude?: string;
+  Id?: string;
   Product?: string;
-  Scale?: string;
-  Site?: string;
-  TicketNumber?: string;
-  TotalWeight?: number;
-  Truck?: string;
-  WeightUnit?: string;
+  "Scale ID"?: string;
+  Sequence?: string;
+  Time?: string;
+  UserData1?: string;
+  UserData2?: string;
+  UserData3?: string;
+  Weight?: string;
   [key: string]: unknown;
 }
 
-export interface LoadritePagedResponse {
-  Data?: LoadriteLoadingRecord[];
-  Meta?: {
-    CurrentPage?: number;
-    TotalPages?: number;
-    TotalRecords?: number;
-    IsCached?: boolean;
-  };
+export interface LoadriteLoadingResponse {
+  data?: LoadriteLoadingRecord[];
 }
 
 export async function getScaleDataLoading(
@@ -81,7 +73,7 @@ export async function getScaleDataLoading(
   startDate: string,
   endDate: string,
   page?: string
-): Promise<LoadritePagedResponse | LoadriteLoadingRecord[]> {
+): Promise<LoadriteLoadingResponse | LoadriteLoadingRecord[]> {
   return callLoadrite("Loading", {
     Site: site,
     FromLocalTime: `${startDate} 00:00:00`,
