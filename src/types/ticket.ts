@@ -50,7 +50,7 @@ export const createEmptyTicket = (): TicketData => ({
   totalUnit: "Ton",
   customer: "",
   product: "",
-  truck: "NOT SPECIFIED",
+  truck: "",
   note: "",
   bucket: "",
   customerName: "",
