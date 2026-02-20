@@ -2,6 +2,7 @@ import { TicketData } from "@/types/ticket";
 import { Button } from "@/components/ui/button";
 import { Printer, Mail } from "lucide-react";
 import { toast } from "sonner";
+import companyLogo from "@/assets/Greenhillssupply_logo.png";
 
 interface TicketPreviewProps {
   ticket: TicketData;
@@ -38,11 +39,14 @@ export function TicketPreview({ ticket }: TicketPreviewProps) {
       <div className="max-w-3xl mx-auto bg-white border-2 border-foreground/80 text-foreground font-sans text-sm print:border print:shadow-none">
         {/* Top section: Company info left, Ticket No right */}
         <div className="flex justify-between items-start p-6 pb-4">
-          <div>
-            <h2 className="text-lg font-bold">{ticket.companyName}</h2>
-            <p className="text-xs text-foreground/70">{ticket.companyWebsite}</p>
-            <p className="text-xs text-foreground/70">{ticket.companyEmail}</p>
-            <p className="text-xs text-foreground/70">{ticket.companyPhone}</p>
+          <div className="flex items-start gap-4">
+            <img src={companyLogo} alt={ticket.companyName} className="h-16 w-auto" />
+            <div>
+              <h2 className="text-lg font-bold">{ticket.companyName}</h2>
+              <p className="text-xs text-foreground/70">{ticket.companyWebsite}</p>
+              <p className="text-xs text-foreground/70">{ticket.companyEmail}</p>
+              <p className="text-xs text-foreground/70">{ticket.companyPhone}</p>
+            </div>
           </div>
           <div className="text-right">
             <p className="text-sm font-medium">Ticket No:</p>
