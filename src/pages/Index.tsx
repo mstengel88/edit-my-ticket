@@ -8,20 +8,20 @@ import { ArrowLeft, Plus, RefreshCw, Loader2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 type View = "list" | "editor" | "preview";
 
 const Index = () => {
-  const { tickets: apiTickets, loading, error, fetchData } = useLoadriteData();
-  const { signOut } = useAuth();
-  const [localTickets, setLocalTickets] = useState<TicketData[]>([]);
+  const { tickets, loading, error, fetchData, loadFromDb } = useLoadriteData();
+  const { signOut, session } = useAuth();
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [view, setView] = useState<View>("list");
 
-  // Fetch data on mount
+  // Load persisted tickets on mount
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    loadFromDb();
+  }, [loadFromDb]);
 
   // Show errors
   useEffect(() => {
@@ -30,46 +30,81 @@ const Index = () => {
     }
   }, [error]);
 
-  // Merge API tickets with local edits
-  const allTickets = [
-    ...apiTickets.map((at) => {
-      const local = localTickets.find((lt) => lt.id === at.id);
-      return local ?? at;
-    }),
-    ...localTickets.filter((lt) => !apiTickets.some((at) => at.id === lt.id)),
-  ];
-
   const handleSelectTicket = (ticket: TicketData) => {
     setSelectedTicket({ ...ticket });
     setView("editor");
   };
 
-  const handleNewTicket = () => {
+  const handleNewTicket = async () => {
     const newTicket = createEmptyTicket();
+    if (session?.user) {
+      const row = {
+        id: newTicket.id,
+        user_id: session.user.id,
+        job_number: newTicket.jobNumber,
+        job_name: newTicket.jobName,
+        date_time: newTicket.dateTime,
+        total_amount: newTicket.totalAmount,
+        total_unit: newTicket.totalUnit,
+        customer: newTicket.customer,
+        product: newTicket.product,
+        truck: newTicket.truck,
+        note: newTicket.note,
+        bucket: newTicket.bucket,
+        customer_name: newTicket.customerName,
+        customer_address: newTicket.customerAddress,
+        signature: newTicket.signature,
+        status: newTicket.status,
+      };
+      await supabase.from("tickets").insert(row);
+    }
     setSelectedTicket(newTicket);
     setView("editor");
+    await loadFromDb();
   };
 
-  const handleSaveTicket = (updated: TicketData) => {
-    setLocalTickets((prev) => {
-      const idx = prev.findIndex((t) => t.id === updated.id);
-      if (idx >= 0) {
-        const next = [...prev];
-        next[idx] = updated;
-        return next;
-      }
-      return [...prev, updated];
-    });
+  const handleSaveTicket = async (updated: TicketData) => {
+    const { error: err } = await supabase
+      .from("tickets")
+      .update({
+        job_number: updated.jobNumber,
+        job_name: updated.jobName,
+        date_time: updated.dateTime,
+        company_name: updated.companyName,
+        company_email: updated.companyEmail,
+        company_website: updated.companyWebsite,
+        company_phone: updated.companyPhone,
+        total_amount: updated.totalAmount,
+        total_unit: updated.totalUnit,
+        customer: updated.customer,
+        product: updated.product,
+        truck: updated.truck,
+        note: updated.note,
+        bucket: updated.bucket,
+        customer_name: updated.customerName,
+        customer_address: updated.customerAddress,
+        signature: updated.signature,
+        status: updated.status,
+      })
+      .eq("id", updated.id);
+
+    if (err) {
+      toast.error("Failed to save ticket");
+      console.error(err);
+      return;
+    }
     setSelectedTicket(updated);
     toast.success("Ticket saved!");
+    await loadFromDb();
   };
 
-  const handleDeleteTicket = (id: string) => {
-    setLocalTickets((prev) => prev.filter((t) => t.id !== id));
+  const handleDeleteTicket = async (id: string) => {
+    await supabase.from("tickets").delete().eq("id", id);
     if (selectedTicket?.id === id) {
       setSelectedTicket(null);
       setView("list");
     }
+    await loadFromDb();
   };
 
   const handlePreview = (ticket: TicketData) => {
@@ -84,7 +119,7 @@ const Index = () => {
 
   const handleRefresh = () => {
     fetchData();
-    toast.info("Refreshing from Loadrite...");
+    toast.info("Syncing from Loadrite...");
   };
 
   return (
@@ -103,7 +138,7 @@ const Index = () => {
               </h1>
               {view === "list" && (
                 <p className="text-xs text-muted-foreground">
-                  {allTickets.length} ticket{allTickets.length !== 1 ? "s" : ""}
+                  {tickets.length} ticket{tickets.length !== 1 ? "s" : ""}
                   {loading && " · syncing..."}
                 </p>
               )}
@@ -139,7 +174,7 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-6 sm:px-6">
         {view === "list" && (
-          <TicketList tickets={allTickets} onSelect={handleSelectTicket} onDelete={handleDeleteTicket} onPreview={handlePreview} />
+          <TicketList tickets={tickets} onSelect={handleSelectTicket} onDelete={handleDeleteTicket} onPreview={handlePreview} />
         )}
         {view === "editor" && selectedTicket && (
           <TicketEditor ticket={selectedTicket} onSave={handleSaveTicket} onPreview={handlePreview} />

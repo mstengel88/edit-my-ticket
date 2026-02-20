@@ -41,6 +41,81 @@ export type Database = {
         }
         Relationships: []
       }
+      tickets: {
+        Row: {
+          bucket: string
+          company_email: string
+          company_name: string
+          company_phone: string
+          company_website: string
+          created_at: string
+          customer: string
+          customer_address: string
+          customer_name: string
+          date_time: string
+          id: string
+          job_name: string
+          job_number: string
+          note: string
+          product: string
+          signature: string
+          status: string
+          total_amount: string
+          total_unit: string
+          truck: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bucket?: string
+          company_email?: string
+          company_name?: string
+          company_phone?: string
+          company_website?: string
+          created_at?: string
+          customer?: string
+          customer_address?: string
+          customer_name?: string
+          date_time: string
+          id: string
+          job_name?: string
+          job_number: string
+          note?: string
+          product?: string
+          signature?: string
+          status?: string
+          total_amount?: string
+          total_unit?: string
+          truck?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bucket?: string
+          company_email?: string
+          company_name?: string
+          company_phone?: string
+          company_website?: string
+          created_at?: string
+          customer?: string
+          customer_address?: string
+          customer_name?: string
+          date_time?: string
+          id?: string
+          job_name?: string
+          job_number?: string
+          note?: string
+          product?: string
+          signature?: string
+          status?: string
+          total_amount?: string
+          total_unit?: string
+          truck?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
