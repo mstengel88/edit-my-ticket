@@ -77,15 +77,15 @@ export interface LoadritePagedResponse {
 }
 
 export async function getScaleDataLoading(
-  siteId: string,
+  site: string,
   startDate: string,
   endDate: string,
   page?: string
 ): Promise<LoadritePagedResponse | LoadriteLoadingRecord[]> {
-  return callLoadrite("scale-data/get-loading", {
-    siteId,
-    startDate,
-    endDate,
-    ...(page ? { page } : {}),
+  return callLoadrite("Loading", {
+    Site: site,
+    FromLocalTime: `${startDate} 00:00:00`,
+    ToLocalTime: `${endDate} 23:59:59`,
+    ...(page ? { Page: page } : {}),
   });
 }

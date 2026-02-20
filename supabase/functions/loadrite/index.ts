@@ -48,7 +48,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const allowedPrefixes = ["context/", "scale-data/", "auth/", "data/", "diy/", "loadout/"];
+    const allowedPrefixes = ["context/", "scale-data/", "auth/", "data/", "diy/", "loadout/", "Loading"];
     const isAllowed = allowedPrefixes.some((p) => endpoint!.startsWith(p));
     if (!isAllowed) {
       return new Response(JSON.stringify({ error: "Invalid endpoint" }), {

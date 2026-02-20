@@ -64,7 +64,7 @@ export function useLoadriteData() {
         startDate ??
         new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
-      const response = await getScaleDataLoading("1", start, end);
+      const response = await getScaleDataLoading("Green Hills Landscape - Menomonee Falls", start, end);
 
       let records: LoadriteLoadingRecord[];
       if (Array.isArray(response)) {
