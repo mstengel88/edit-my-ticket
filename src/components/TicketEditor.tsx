@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Eye, Save } from "lucide-react";
 import { toast } from "sonner";
+import { ComboInput } from "@/components/ComboInput";
+import { useTicketLookups } from "@/hooks/useTicketLookups";
 
 interface TicketEditorProps {
   ticket: TicketData;
@@ -16,6 +18,7 @@ interface TicketEditorProps {
 
 export function TicketEditor({ ticket, onSave, onPreview }: TicketEditorProps) {
   const [data, setData] = useState<TicketData>(ticket);
+  const { products, customers, trucks } = useTicketLookups();
 
   useEffect(() => {
     setData(ticket);
@@ -120,15 +123,15 @@ export function TicketEditor({ ticket, onSave, onPreview }: TicketEditorProps) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label className="text-xs text-muted-foreground">Customer</Label>
-            <Input value={data.customer} onChange={(e) => updateField("customer", e.target.value)} />
+            <ComboInput value={data.customer} onChange={(v) => updateField("customer", v)} options={customers} placeholder="Select or type customer" />
           </div>
           <div>
             <Label className="text-xs text-muted-foreground">Product</Label>
-            <Input value={data.product} onChange={(e) => updateField("product", e.target.value)} />
+            <ComboInput value={data.product} onChange={(v) => updateField("product", v)} options={products} placeholder="Select or type product" />
           </div>
           <div>
             <Label className="text-xs text-muted-foreground">Truck</Label>
-            <Input value={data.truck} onChange={(e) => updateField("truck", e.target.value)} />
+            <ComboInput value={data.truck} onChange={(v) => updateField("truck", v)} options={trucks} placeholder="Select or type truck" />
           </div>
           <div>
             <Label className="text-xs text-muted-foreground">Bucket</Label>
