@@ -107,6 +107,7 @@ const Index = () => {
     }
     setSelectedTicket(updated);
     toast.success("Ticket saved!");
+    logAudit("update", "ticket", updated.id, { jobNumber: updated.jobNumber });
     await loadFromDb();
   };
 
