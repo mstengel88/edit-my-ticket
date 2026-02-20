@@ -52,6 +52,7 @@ const Index = () => {
         note: newTicket.note,
         bucket: newTicket.bucket,
         customer_name: newTicket.customerName,
+        customer_email: newTicket.customerEmail,
         customer_address: newTicket.customerAddress,
         signature: newTicket.signature,
         status: newTicket.status,
