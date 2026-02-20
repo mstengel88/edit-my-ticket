@@ -156,18 +156,7 @@ export function TicketEditor({ ticket, onSave, onPreview, templateFields }: Tick
           {visible("truck") && (
             <div>
               <Label className="text-xs text-muted-foreground">Truck</Label>
-              <select
-                value={data.truck}
-                onChange={(e) => updateField("truck", e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              >
-                <option value="">Select truck</option>
-                <option value="-">-</option>
-                <option value="NOT SPECIFIED">NOT SPECIFIED</option>
-                {trucks.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
+              <ComboInput value={data.truck} onChange={(v) => updateField("truck", v)} options={trucks} placeholder="Select or type truck" />
             </div>
           )}
           {visible("bucket") && (
