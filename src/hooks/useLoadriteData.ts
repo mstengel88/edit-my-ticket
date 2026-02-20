@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { getScaleDataLoading, LoadriteLoadingRecord, LoadriteLoadingResponse } from "@/services/loadrite";
 import { TicketData } from "@/types/ticket";
+import { supabase } from "@/integrations/supabase/client";
 
 interface LoadGroup {
   ticketNumber: string;
@@ -50,45 +51,57 @@ function groupRecordsIntoTickets(records: LoadriteLoadingRecord[]): LoadGroup[] 
   return groups;
 }
 
-function mapGroupToTicket(group: LoadGroup, index: number): TicketData {
-  const dateStr = group.time
-    ? new Date(group.time).toLocaleString("en-US", {
-        month: "2-digit",
-        day: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      })
-    : new Date().toLocaleString("en-US", {
-        month: "2-digit",
-        day: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      });
+function formatDate(time: string): string {
+  const d = time ? new Date(time) : new Date();
+  return d.toLocaleString("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
 
+function groupToTicketRow(group: LoadGroup, userId: string) {
   return {
     id: group.ticketNumber,
-    jobNumber: group.ticketNumber,
-    jobName: "Job",
-    dateTime: dateStr,
-    companyName: "Green Hills Supply",
-    companyEmail: "order@greenhillsupply.com",
-    companyWebsite: "www.GreenHillsSupply.com",
-    companyPhone: "262-345-4001",
-    totalAmount: group.totalWeight.toFixed(2),
-    totalUnit: "Ton",
+    user_id: userId,
+    job_number: group.ticketNumber,
+    job_name: "Job",
+    date_time: formatDate(group.time),
+    total_amount: group.totalWeight.toFixed(2),
+    total_unit: "Ton",
     customer: group.customer,
     product: group.product,
     truck: group.truck && group.truck !== "NOT SPECIFIED" ? group.truck : "-",
     note: group.note,
     bucket: group.bucketWeights.map((w, i) => `B${i + 1}: ${w}`).join(", "),
-    customerName: "",
-    customerAddress: "",
-    signature: "",
     status: "completed",
+  };
+}
+
+function dbRowToTicket(row: any): TicketData {
+  return {
+    id: row.id,
+    jobNumber: row.job_number,
+    jobName: row.job_name,
+    dateTime: row.date_time,
+    companyName: row.company_name,
+    companyEmail: row.company_email,
+    companyWebsite: row.company_website,
+    companyPhone: row.company_phone,
+    totalAmount: row.total_amount,
+    totalUnit: row.total_unit,
+    customer: row.customer,
+    product: row.product,
+    truck: row.truck,
+    note: row.note,
+    bucket: row.bucket,
+    customerName: row.customer_name,
+    customerAddress: row.customer_address,
+    signature: row.signature,
+    status: row.status as TicketData["status"],
   };
 }
 
@@ -97,15 +110,36 @@ export function useLoadriteData() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const loadFromDb = useCallback(async () => {
+    const { data, error: dbErr } = await supabase
+      .from("tickets")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (dbErr) {
+      console.error("DB load error:", dbErr);
+      return;
+    }
+    if (data) {
+      setTickets(data.map(dbRowToTicket));
+    }
+  }, []);
+
   const fetchData = useCallback(async (startDate?: string, endDate?: string) => {
     setLoading(true);
     setError(null);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        // Just load from DB if not authenticated for Loadrite sync
+        await loadFromDb();
+        return;
+      }
+
+      const userId = session.user.id;
       const end = endDate ?? new Date().toISOString().split("T")[0];
-      const start =
-        startDate ??
-        new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+      const start = startDate ?? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
       const response = await getScaleDataLoading("Green Hills Landscape - Menomonee Falls", start, end);
 
@@ -119,8 +153,21 @@ export function useLoadriteData() {
       }
 
       const groups = groupRecordsIntoTickets(records);
-      const mapped = groups.map((g, i) => mapGroupToTicket(g, i));
-      setTickets(mapped);
+
+      if (groups.length > 0) {
+        const rows = groups.map((g) => groupToTicketRow(g, userId));
+
+        const { error: upsertErr } = await supabase
+          .from("tickets")
+          .upsert(rows, { onConflict: "id" });
+
+        if (upsertErr) {
+          console.error("Upsert error:", upsertErr);
+        }
+      }
+
+      // Always reload from DB to get the full picture
+      await loadFromDb();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to fetch data";
       setError(msg);
@@ -128,7 +175,7 @@ export function useLoadriteData() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadFromDb]);
 
-  return { tickets, loading, error, fetchData };
+  return { tickets, loading, error, fetchData, loadFromDb };
 }
