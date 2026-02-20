@@ -18,7 +18,7 @@ const Index = () => {
   const { tickets, loading, error, fetchData, loadFromDb } = useLoadriteData();
   const { signOut, session } = useAuth();
   const navigate = useNavigate();
-  const { fields: templateFields } = useTicketTemplate();
+  const { fields: templateFields, copiesPerPage } = useTicketTemplate();
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [view, setView] = useState<View>("list");
 
