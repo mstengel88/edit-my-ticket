@@ -51,29 +51,32 @@ export function useTicketTemplate() {
   }, [loadTemplate]);
 
   const saveTemplate = useCallback(
-    async (updatedFields: TemplateField[]) => {
+    async (updatedFields: TemplateField[], updatedCopies?: number) => {
       if (!session?.user) return;
       setFields(updatedFields);
+      if (updatedCopies !== undefined) setCopiesPerPage(updatedCopies);
+
+      const layoutData = { fields: updatedFields, copiesPerPage: updatedCopies ?? copiesPerPage };
 
       if (templateId) {
         await supabase
           .from("ticket_templates")
-          .update({ layout: updatedFields as any })
+          .update({ layout: layoutData as any })
           .eq("id", templateId);
       } else {
         const { data } = await supabase
           .from("ticket_templates")
           .insert({
             user_id: session.user.id,
-            layout: updatedFields as any,
+            layout: layoutData as any,
           })
           .select("id")
           .single();
         if (data) setTemplateId(data.id);
       }
     },
-    [session?.user, templateId]
+    [session?.user, templateId, copiesPerPage]
   );
 
-  return { fields, loading, saveTemplate };
+  return { fields, copiesPerPage, loading, saveTemplate };
 }
