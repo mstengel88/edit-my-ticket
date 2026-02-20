@@ -13,6 +13,7 @@ type View = "list" | "editor" | "preview";
 
 const Index = () => {
   const { tickets: apiTickets, loading, error, fetchData } = useLoadriteData();
+  const { signOut } = useAuth();
   const [localTickets, setLocalTickets] = useState<TicketData[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [view, setView] = useState<View>("list");
