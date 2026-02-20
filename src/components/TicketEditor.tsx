@@ -186,33 +186,35 @@ export function TicketEditor({ ticket, onSave, onPreview, templateFields }: Tick
       </div>
 
       {/* Customer Sign-off */}
-      <div className="rounded-lg border bg-card p-4 mb-4 space-y-3">
-        <h3 className="text-sm font-semibold text-foreground">Customer Sign-off</h3>
-        <div>
-          <Label className="text-xs text-muted-foreground">Name</Label>
-          <Input value={data.customerName} onChange={(e) => updateField("customerName", e.target.value)} />
+      {(visible("customerName") || visible("customerAddress") || visible("signature")) && (
+        <div className="rounded-lg border bg-card p-4 mb-4 space-y-3">
+          <h3 className="text-sm font-semibold text-foreground">Customer Sign-off</h3>
+          {visible("customerName") && (
+            <div>
+              <Label className="text-xs text-muted-foreground">Name</Label>
+              <Input value={data.customerName} onChange={(e) => updateField("customerName", e.target.value)} />
+            </div>
+          )}
+          {visible("customerAddress") && (
+            <div>
+              <Label className="text-xs text-muted-foreground">Address</Label>
+              <Textarea rows={2} value={data.customerAddress} onChange={(e) => updateField("customerAddress", e.target.value)} />
+            </div>
+          )}
+          <div>
+            <Label className="text-xs text-muted-foreground">Status</Label>
+            <select
+              value={data.status}
+              onChange={(e) => updateField("status", e.target.value as TicketData["status"])}
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="draft">Draft</option>
+              <option value="sent">Sent</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
         </div>
-        <div>
-          <Label className="text-xs text-muted-foreground">Email</Label>
-          <Input type="email" value={data.customerEmail} onChange={(e) => updateField("customerEmail", e.target.value)} placeholder="customer@example.com" />
-        </div>
-        <div>
-          <Label className="text-xs text-muted-foreground">Address</Label>
-          <Textarea rows={2} value={data.customerAddress} onChange={(e) => updateField("customerAddress", e.target.value)} />
-        </div>
-        <div>
-          <Label className="text-xs text-muted-foreground">Status</Label>
-          <select
-            value={data.status}
-            onChange={(e) => updateField("status", e.target.value as TicketData["status"])}
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            <option value="draft">Draft</option>
-            <option value="sent">Sent</option>
-            <option value="completed">Completed</option>
-          </select>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
