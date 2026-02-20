@@ -24,11 +24,13 @@ function parseTicketDate(dateTime: string): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
-export function Reports({ tickets }: ReportsProps) {
+export function Reports({ tickets, reportFields }: ReportsProps) {
   const [period, setPeriod] = useState<TimePeriod>("today");
   const [customFrom, setCustomFrom] = useState<Date | undefined>();
   const [customTo, setCustomTo] = useState<Date | undefined>();
   const [customerFilter, setCustomerFilter] = useState<string>("all");
+  const rFields = reportFields || DEFAULT_REPORT_FIELDS;
+  const rVisible = (id: string) => rFields.find((f) => f.id === id)?.visible ?? true;
 
   const now = new Date();
 
