@@ -23,8 +23,8 @@ export function TicketPreview({ ticket }: TicketPreviewProps) {
     const body = encodeURIComponent(
       `Job #${ticket.jobNumber}\nCustomer: ${ticket.customer}\nProduct: ${ticket.product}\nTotal: ${ticket.totalAmount} ${ticket.totalUnit}\n\nThank you,\n${ticket.companyName}`
     );
-    const to = ticket.companyEmail;
-    window.open(`mailto:?subject=${subject}&body=${body}`);
+    const to = ticket.customerEmail || "";
+    window.open(`mailto:${encodeURIComponent(to)}?subject=${subject}&body=${body}`);
     toast.success("Email client opened!");
   };
 

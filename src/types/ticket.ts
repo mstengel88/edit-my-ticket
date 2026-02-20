@@ -100,6 +100,7 @@ export const sampleTickets: TicketData[] = [
     note: "Deliver to back lot",
     bucket: "Bucket 02",
     customerName: "Mike Davis",
+    customerEmail: "mike@abclandscaping.com",
     customerAddress: "100 Industrial Pkwy, Milwaukee WI",
     signature: "",
     status: "completed",

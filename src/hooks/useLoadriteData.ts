@@ -99,6 +99,7 @@ function dbRowToTicket(row: any): TicketData {
     note: row.note,
     bucket: row.bucket,
     customerName: row.customer_name,
+    customerEmail: row.customer_email,
     customerAddress: row.customer_address,
     signature: row.signature,
     status: row.status as TicketData["status"],
