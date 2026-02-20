@@ -19,6 +19,17 @@ const statusColors: Record<TicketData["status"], string> = {
 };
 
 export function TicketList({ tickets, onSelect, onDelete, onPreview }: TicketListProps) {
+  const [search, setSearch] = useState("");
+
+  const filtered = tickets.filter((t) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      t.jobNumber.toLowerCase().includes(q) ||
+      t.customer.toLowerCase().includes(q)
+    );
+  });
+
   if (tickets.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
@@ -32,55 +43,69 @@ export function TicketList({ tickets, onSelect, onDelete, onPreview }: TicketLis
   }
 
   return (
-    <div className="grid gap-3 animate-fade-in">
-      {tickets.map((ticket) => (
-        <div
-          key={ticket.id}
-          className="group flex items-center justify-between rounded-lg border bg-card p-4 transition-all hover:shadow-md cursor-pointer"
-          onClick={() => onSelect(ticket)}
-        >
-          <div className="flex flex-col gap-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-foreground">Job #{ticket.jobNumber}</span>
-              <Badge className={statusColors[ticket.status]} variant="secondary">
-                {ticket.status}
-              </Badge>
+    <div className="space-y-3 animate-fade-in">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search by ticket # or customer..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+      <div className="grid gap-3">
+        {filtered.map((ticket) => (
+          <div
+            key={ticket.id}
+            className="group flex items-center justify-between rounded-lg border bg-card p-4 transition-all hover:shadow-md cursor-pointer"
+            onClick={() => onSelect(ticket)}
+          >
+            <div className="flex flex-col gap-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-semibold text-foreground">Job #{ticket.jobNumber}</span>
+                <Badge className={statusColors[ticket.status]} variant="secondary">
+                  {ticket.status}
+                </Badge>
+              </div>
+              <span className="text-sm text-foreground truncate">{ticket.customer || "No customer"}</span>
+              <span className="text-xs text-muted-foreground">{ticket.product} · {ticket.dateTime}</span>
             </div>
-            <span className="text-sm text-foreground truncate">{ticket.customer || "No customer"}</span>
-            <span className="text-xs text-muted-foreground">{ticket.product} · {ticket.dateTime}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="text-right mr-3">
-              <span className="text-lg font-bold text-foreground tabular-nums">{ticket.totalAmount}</span>
-              <span className="text-sm text-muted-foreground ml-1">{ticket.totalUnit}</span>
+            <div className="flex items-center gap-2">
+              <div className="text-right mr-3">
+                <span className="text-lg font-bold text-foreground tabular-nums">{ticket.totalAmount}</span>
+                <span className="text-sm text-muted-foreground ml-1">{ticket.totalUnit}</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => { e.stopPropagation(); onPreview(ticket); }}
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => { e.stopPropagation(); onSelect(ticket); }}
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+                onClick={(e) => { e.stopPropagation(); onDelete(ticket.id); }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={(e) => { e.stopPropagation(); onPreview(ticket); }}
-            >
-              <Eye className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={(e) => { e.stopPropagation(); onSelect(ticket); }}
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
-              onClick={(e) => { e.stopPropagation(); onDelete(ticket.id); }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
           </div>
-        </div>
-      ))}
+        ))}
+        {filtered.length === 0 && (
+          <p className="text-center text-sm text-muted-foreground py-8">No tickets match your search.</p>
+        )}
+      </div>
     </div>
   );
 }
