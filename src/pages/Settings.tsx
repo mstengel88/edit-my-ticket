@@ -190,7 +190,7 @@ const Settings = () => {
           <div>
             <h2 className="text-sm font-semibold text-foreground mb-3">Live Preview</h2>
             <div className="pointer-events-none">
-              <TicketPreview ticket={sampleTicket} templateFields={localFields} />
+              <TicketPreview ticket={sampleTicket} templateFields={localFields} copiesPerPage={localCopies} />
             </div>
           </div>
         </div>
