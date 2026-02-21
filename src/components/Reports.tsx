@@ -374,7 +374,7 @@ export function Reports({ tickets, reportFields }: ReportsProps) {
       </Card>
 
       {/* All Tickets Detail */}
-      <Card>
+      <Card data-report-section="tickets">
         <CardHeader>
           <CardTitle className="text-base">Ticket Details</CardTitle>
         </CardHeader>
