@@ -169,7 +169,18 @@ export function Reports({ tickets, reportFields }: ReportsProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-base">Report Filters</CardTitle>
-          <div className="flex gap-2 no-print">
+          <div className="flex gap-2 items-center no-print">
+            <Select value={printSection} onValueChange={(v) => setPrintSection(v as typeof printSection)}>
+              <SelectTrigger className="w-[160px] h-9 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Print All</SelectItem>
+                <SelectItem value="tickets">Tickets Only</SelectItem>
+                <SelectItem value="customer">By Customer</SelectItem>
+                <SelectItem value="product">By Product</SelectItem>
+              </SelectContent>
+            </Select>
             <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5">
               <Printer className="h-4 w-4" /> Print
             </Button>
