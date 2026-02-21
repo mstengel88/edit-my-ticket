@@ -132,7 +132,8 @@
     color: black !important;
   }
 
-  .no-print {
+  .no-print,
+  .print-hidden {
     display: none !important;
   }
 

@@ -111,8 +111,26 @@ export function Reports({ tickets, reportFields }: ReportsProps) {
     custom: "Custom Range",
   };
 
+  const [printSection, setPrintSection] = useState<"all" | "tickets" | "customer" | "product">("all");
+
   const handlePrint = () => {
-    window.print();
+    const sections = document.querySelectorAll("[data-report-section]");
+    sections.forEach((el) => {
+      const section = el.getAttribute("data-report-section");
+      if (printSection === "all") {
+        (el as HTMLElement).classList.remove("print-hidden");
+      } else {
+        if (section === printSection || section === "summary") {
+          (el as HTMLElement).classList.remove("print-hidden");
+        } else {
+          (el as HTMLElement).classList.add("print-hidden");
+        }
+      }
+    });
+    setTimeout(() => {
+      window.print();
+      sections.forEach((el) => (el as HTMLElement).classList.remove("print-hidden"));
+    }, 100);
   };
 
   const buildReportText = () => {
@@ -151,7 +169,18 @@ export function Reports({ tickets, reportFields }: ReportsProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-base">Report Filters</CardTitle>
-          <div className="flex gap-2 no-print">
+          <div className="flex gap-2 items-center no-print">
+            <Select value={printSection} onValueChange={(v) => setPrintSection(v as typeof printSection)}>
+              <SelectTrigger className="w-[160px] h-9 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Print All</SelectItem>
+                <SelectItem value="tickets">Tickets Only</SelectItem>
+                <SelectItem value="customer">By Customer</SelectItem>
+                <SelectItem value="product">By Product</SelectItem>
+              </SelectContent>
+            </Select>
             <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5">
               <Printer className="h-4 w-4" /> Print
             </Button>
@@ -231,7 +260,7 @@ export function Reports({ tickets, reportFields }: ReportsProps) {
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" data-report-section="summary">
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">Total Tickets</p>
@@ -253,7 +282,7 @@ export function Reports({ tickets, reportFields }: ReportsProps) {
       </div>
 
       {/* By Customer */}
-      <Card>
+      <Card data-report-section="customer">
         <CardHeader>
           <CardTitle className="text-base">By Customer</CardTitle>
         </CardHeader>
@@ -299,7 +328,7 @@ export function Reports({ tickets, reportFields }: ReportsProps) {
       </Card>
 
       {/* By Product */}
-      <Card>
+      <Card data-report-section="product">
         <CardHeader>
           <CardTitle className="text-base">By Product</CardTitle>
         </CardHeader>
@@ -345,7 +374,7 @@ export function Reports({ tickets, reportFields }: ReportsProps) {
       </Card>
 
       {/* All Tickets Detail */}
-      <Card>
+      <Card data-report-section="tickets">
         <CardHeader>
           <CardTitle className="text-base">Ticket Details</CardTitle>
         </CardHeader>
