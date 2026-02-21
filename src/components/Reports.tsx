@@ -328,7 +328,7 @@ export function Reports({ tickets, reportFields }: ReportsProps) {
       </Card>
 
       {/* By Product */}
-      <Card>
+      <Card data-report-section="product">
         <CardHeader>
           <CardTitle className="text-base">By Product</CardTitle>
         </CardHeader>
