@@ -111,8 +111,26 @@ export function Reports({ tickets, reportFields }: ReportsProps) {
     custom: "Custom Range",
   };
 
+  const [printSection, setPrintSection] = useState<"all" | "tickets" | "customer" | "product">("all");
+
   const handlePrint = () => {
-    window.print();
+    const sections = document.querySelectorAll("[data-report-section]");
+    sections.forEach((el) => {
+      const section = el.getAttribute("data-report-section");
+      if (printSection === "all") {
+        (el as HTMLElement).classList.remove("print-hidden");
+      } else {
+        if (section === printSection || section === "summary") {
+          (el as HTMLElement).classList.remove("print-hidden");
+        } else {
+          (el as HTMLElement).classList.add("print-hidden");
+        }
+      }
+    });
+    setTimeout(() => {
+      window.print();
+      sections.forEach((el) => (el as HTMLElement).classList.remove("print-hidden"));
+    }, 100);
   };
 
   const buildReportText = () => {
