@@ -166,7 +166,7 @@ export function Reports({ tickets, reportFields }: ReportsProps) {
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <Card>
+      <Card className="no-print">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-base">Report Filters</CardTitle>
           <div className="flex gap-2 items-center no-print">
