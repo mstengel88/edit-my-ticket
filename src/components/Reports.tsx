@@ -282,7 +282,7 @@ export function Reports({ tickets, reportFields }: ReportsProps) {
       </div>
 
       {/* By Customer */}
-      <Card>
+      <Card data-report-section="customer">
         <CardHeader>
           <CardTitle className="text-base">By Customer</CardTitle>
         </CardHeader>
