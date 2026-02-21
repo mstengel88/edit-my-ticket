@@ -260,7 +260,7 @@ export function Reports({ tickets, reportFields }: ReportsProps) {
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" data-report-section="summary">
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">Total Tickets</p>
