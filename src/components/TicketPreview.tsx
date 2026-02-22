@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { TicketData } from "@/types/ticket";
 import { TemplateField, DEFAULT_TEMPLATE_FIELDS } from "@/types/template";
 import { Button } from "@/components/ui/button";
-import { Printer, Mail } from "lucide-react";
+import { Printer, Mail, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import companyLogo from "@/assets/Greenhillssupply_logo.png";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TicketPreviewProps {
   ticket: TicketData;
@@ -14,6 +16,7 @@ interface TicketPreviewProps {
 export function TicketPreview({ ticket, templateFields, copiesPerPage = 2 }: TicketPreviewProps) {
   const fields = templateFields || DEFAULT_TEMPLATE_FIELDS;
   const visible = (key: string) => fields.find((f) => f.id === key)?.visible ?? true;
+  const [sending, setSending] = useState(false);
 
   // Group visible fields by section in template order
   const headerFields = fields.filter((f) => f.section === "header" && f.visible);
@@ -28,14 +31,28 @@ export function TicketPreview({ ticket, templateFields, copiesPerPage = 2 }: Tic
     window.print();
   };
 
-  const handleEmail = () => {
-    const subject = encodeURIComponent(`Ticket - Job #${ticket.jobNumber} from ${ticket.companyName}`);
-    const body = encodeURIComponent(
-      `Job #${ticket.jobNumber}\nCustomer: ${ticket.customer}\nProduct: ${ticket.product}\nTotal: ${ticket.totalAmount} ${ticket.totalUnit}\n\nThank you,\n${ticket.companyName}`
-    );
-    const to = ticket.customerEmail || "";
-    window.open(`mailto:${encodeURIComponent(to)}?subject=${subject}&body=${body}`);
-    toast.success("Email client opened!");
+  const handleEmail = async () => {
+    if (!ticket.customerEmail) {
+      toast.error("No customer email set. Add one in the editor first.");
+      return;
+    }
+    setSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-ticket-email", {
+        body: {
+          to: ticket.customerEmail,
+          subject: `Ticket - Job #${ticket.jobNumber} from ${ticket.companyName}`,
+          ticket,
+        },
+      });
+      if (error) throw error;
+      toast.success(`Email sent to ${ticket.customerEmail}!`);
+    } catch (err: any) {
+      console.error("Email send error:", err);
+      toast.error(err?.message || "Failed to send email");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -45,8 +62,9 @@ export function TicketPreview({ ticket, templateFields, copiesPerPage = 2 }: Tic
         <Button onClick={handlePrint} className="gap-1.5">
           <Printer className="h-4 w-4" /> Print Ticket
         </Button>
-        <Button variant="outline" onClick={handleEmail} className="gap-1.5">
-          <Mail className="h-4 w-4" /> Email Ticket
+        <Button variant="outline" onClick={handleEmail} className="gap-1.5" disabled={sending}>
+          {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+          {sending ? "Sending…" : "Email Ticket"}
         </Button>
       </div>
 
