@@ -117,6 +117,9 @@ export function Reports({ tickets, reportFields }: ReportsProps) {
   };
 
   const [printSection, setPrintSection] = useState<"all" | "tickets" | "customer" | "product">("all");
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailTo, setEmailTo] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   const handlePrint = () => {
     const sections = document.querySelectorAll("[data-report-section]");
@@ -138,34 +141,62 @@ export function Reports({ tickets, reportFields }: ReportsProps) {
     }, 100);
   };
 
-  const buildReportText = () => {
-    const lines: string[] = [];
-    lines.push(`Report: ${periodLabel[period]} (${format(dateRange.from, "MM/dd/yyyy")} – ${format(dateRange.to, "MM/dd/yyyy")})`);
-    if (customerFilter !== "all") lines.push(`Customer: ${customerFilter}`);
-    lines.push("");
-    lines.push(`Total Tickets: ${summary.ticketCount}`);
-    lines.push(`Total Tonnage: ${summary.totalTons.toFixed(2)}`);
-    lines.push(`Total Yardage: ${summary.totalYards.toFixed(2)}`);
-    lines.push("");
-    lines.push("--- Ticket Details ---");
-    filtered.sort((a, b) => a.jobNumber.localeCompare(b.jobNumber)).forEach((t) => {
-      const parts: string[] = [];
-      if (rVisible("jobNumber")) parts.push(`Job#: ${t.jobNumber}`);
-      if (rVisible("dateTime")) parts.push(`Date: ${t.dateTime}`);
-      if (rVisible("customer")) parts.push(`Customer: ${t.customer}`);
-      if (rVisible("product")) parts.push(`Product: ${t.product}`);
-      if (rVisible("totalAmount")) parts.push(`Amount: ${t.totalAmount}`);
-      if (rVisible("totalUnit")) parts.push(`Unit: ${t.totalUnit}`);
-      if (rVisible("truck")) parts.push(`Truck: ${t.truck}`);
-      lines.push(parts.join(" | "));
-    });
-    return lines.join("\n");
+  const handleEmail = () => {
+    setEmailDialogOpen(true);
   };
 
-  const handleEmail = () => {
-    const subject = encodeURIComponent(`Report: ${periodLabel[period]} - ${format(dateRange.from, "MM/dd/yyyy")}`);
-    const body = encodeURIComponent(buildReportText());
-    window.open(`mailto:?subject=${subject}&body=${body}`, "_self");
+  const handleSendEmail = async () => {
+    if (!emailTo.trim()) {
+      toast.error("Please enter an email address");
+      return;
+    }
+    setSendingEmail(true);
+    try {
+      const report = {
+        companyName: filtered[0]?.companyName || "Ticket Manager",
+        periodLabel: periodLabel[period],
+        dateFrom: format(dateRange.from, "MM/dd/yyyy"),
+        dateTo: format(dateRange.to, "MM/dd/yyyy"),
+        customerFilter: customerFilter !== "all" ? customerFilter : undefined,
+        totalTickets: summary.ticketCount,
+        totalTons: summary.totalTons.toFixed(2),
+        totalYards: summary.totalYards.toFixed(2),
+        byCustomer: Object.entries(summary.byCustomer)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([name, data]) => ({ name, count: data.count, tons: data.tons.toFixed(2), yards: data.yards.toFixed(2) })),
+        byProduct: Object.entries(summary.byProduct)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([name, data]) => ({ name, count: data.count, tons: data.tons.toFixed(2), yards: data.yards.toFixed(2) })),
+        tickets: filtered
+          .sort((a, b) => a.jobNumber.localeCompare(b.jobNumber))
+          .map((t) => ({
+            jobNumber: t.jobNumber,
+            dateTime: t.dateTime,
+            customer: t.customer,
+            product: t.product,
+            amount: t.totalAmount,
+            unit: t.totalUnit,
+            truck: t.truck,
+          })),
+      };
+
+      const { error } = await supabase.functions.invoke("send-report-email", {
+        body: {
+          to: emailTo.trim(),
+          subject: `Report: ${periodLabel[period]} - ${format(dateRange.from, "MM/dd/yyyy")}`,
+          report,
+        },
+      });
+      if (error) throw error;
+      toast.success(`Report sent to ${emailTo.trim()}!`);
+      setEmailDialogOpen(false);
+      setEmailTo("");
+    } catch (err: any) {
+      console.error("Report email error:", err);
+      toast.error(err?.message || "Failed to send report email");
+    } finally {
+      setSendingEmail(false);
+    }
   };
 
   return (
