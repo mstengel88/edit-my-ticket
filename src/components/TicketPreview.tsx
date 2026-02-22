@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { TicketData } from "@/types/ticket";
 import { TemplateField, DEFAULT_TEMPLATE_FIELDS } from "@/types/template";
 import { Button } from "@/components/ui/button";
-import { Printer, Mail } from "lucide-react";
+import { Printer, Mail, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import companyLogo from "@/assets/Greenhillssupply_logo.png";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TicketPreviewProps {
   ticket: TicketData;
