@@ -7,8 +7,13 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
-import { CalendarIcon, Printer, Mail } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { CalendarIcon, Printer, Mail, Loader2 } from "lucide-react";
 import { format, startOfDay, endOfDay, subDays, startOfWeek, startOfMonth, startOfYear } from "date-fns";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 type TimePeriod = "today" | "yesterday" | "weekly" | "monthly" | "yearly" | "custom";
@@ -112,6 +117,9 @@ export function Reports({ tickets, reportFields }: ReportsProps) {
   };
 
   const [printSection, setPrintSection] = useState<"all" | "tickets" | "customer" | "product">("all");
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailTo, setEmailTo] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   const handlePrint = () => {
     const sections = document.querySelectorAll("[data-report-section]");
@@ -133,34 +141,62 @@ export function Reports({ tickets, reportFields }: ReportsProps) {
     }, 100);
   };
 
-  const buildReportText = () => {
-    const lines: string[] = [];
-    lines.push(`Report: ${periodLabel[period]} (${format(dateRange.from, "MM/dd/yyyy")} – ${format(dateRange.to, "MM/dd/yyyy")})`);
-    if (customerFilter !== "all") lines.push(`Customer: ${customerFilter}`);
-    lines.push("");
-    lines.push(`Total Tickets: ${summary.ticketCount}`);
-    lines.push(`Total Tonnage: ${summary.totalTons.toFixed(2)}`);
-    lines.push(`Total Yardage: ${summary.totalYards.toFixed(2)}`);
-    lines.push("");
-    lines.push("--- Ticket Details ---");
-    filtered.sort((a, b) => a.jobNumber.localeCompare(b.jobNumber)).forEach((t) => {
-      const parts: string[] = [];
-      if (rVisible("jobNumber")) parts.push(`Job#: ${t.jobNumber}`);
-      if (rVisible("dateTime")) parts.push(`Date: ${t.dateTime}`);
-      if (rVisible("customer")) parts.push(`Customer: ${t.customer}`);
-      if (rVisible("product")) parts.push(`Product: ${t.product}`);
-      if (rVisible("totalAmount")) parts.push(`Amount: ${t.totalAmount}`);
-      if (rVisible("totalUnit")) parts.push(`Unit: ${t.totalUnit}`);
-      if (rVisible("truck")) parts.push(`Truck: ${t.truck}`);
-      lines.push(parts.join(" | "));
-    });
-    return lines.join("\n");
+  const handleEmail = () => {
+    setEmailDialogOpen(true);
   };
 
-  const handleEmail = () => {
-    const subject = encodeURIComponent(`Report: ${periodLabel[period]} - ${format(dateRange.from, "MM/dd/yyyy")}`);
-    const body = encodeURIComponent(buildReportText());
-    window.open(`mailto:?subject=${subject}&body=${body}`, "_self");
+  const handleSendEmail = async () => {
+    if (!emailTo.trim()) {
+      toast.error("Please enter an email address");
+      return;
+    }
+    setSendingEmail(true);
+    try {
+      const report = {
+        companyName: filtered[0]?.companyName || "Ticket Manager",
+        periodLabel: periodLabel[period],
+        dateFrom: format(dateRange.from, "MM/dd/yyyy"),
+        dateTo: format(dateRange.to, "MM/dd/yyyy"),
+        customerFilter: customerFilter !== "all" ? customerFilter : undefined,
+        totalTickets: summary.ticketCount,
+        totalTons: summary.totalTons.toFixed(2),
+        totalYards: summary.totalYards.toFixed(2),
+        byCustomer: Object.entries(summary.byCustomer)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([name, data]) => ({ name, count: data.count, tons: data.tons.toFixed(2), yards: data.yards.toFixed(2) })),
+        byProduct: Object.entries(summary.byProduct)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([name, data]) => ({ name, count: data.count, tons: data.tons.toFixed(2), yards: data.yards.toFixed(2) })),
+        tickets: filtered
+          .sort((a, b) => a.jobNumber.localeCompare(b.jobNumber))
+          .map((t) => ({
+            jobNumber: t.jobNumber,
+            dateTime: t.dateTime,
+            customer: t.customer,
+            product: t.product,
+            amount: t.totalAmount,
+            unit: t.totalUnit,
+            truck: t.truck,
+          })),
+      };
+
+      const { error } = await supabase.functions.invoke("send-report-email", {
+        body: {
+          to: emailTo.trim(),
+          subject: `Report: ${periodLabel[period]} - ${format(dateRange.from, "MM/dd/yyyy")}`,
+          report,
+        },
+      });
+      if (error) throw error;
+      toast.success(`Report sent to ${emailTo.trim()}!`);
+      setEmailDialogOpen(false);
+      setEmailTo("");
+    } catch (err: any) {
+      console.error("Report email error:", err);
+      toast.error(err?.message || "Failed to send report email");
+    } finally {
+      setSendingEmail(false);
+    }
   };
 
   return (
@@ -189,6 +225,38 @@ export function Reports({ tickets, reportFields }: ReportsProps) {
             </Button>
           </div>
         </CardHeader>
+
+        {/* Email Dialog */}
+        <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Email Report</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="report-email">Recipient Email</Label>
+                <Input
+                  id="report-email"
+                  type="email"
+                  placeholder="email@example.com"
+                  value={emailTo}
+                  onChange={(e) => setEmailTo(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSendEmail()}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                The report for {periodLabel[period]} ({format(dateRange.from, "MM/dd/yyyy")} – {format(dateRange.to, "MM/dd/yyyy")}) will be sent as a formatted HTML email.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleSendEmail} disabled={sendingEmail} className="gap-1.5">
+                {sendingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                {sendingEmail ? "Sending…" : "Send"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         <CardContent>
           <div className="flex flex-wrap gap-4 items-end">
             <div className="space-y-1.5">
