@@ -63,9 +63,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: ticket.companyEmail
-          ? `${ticket.companyName} <${ticket.companyEmail}>`
-          : "Ticket Printer <onboarding@resend.dev>",
+        from: `${ticket.companyName || "Ticket Printer"} <onboarding@resend.dev>`,
         to: [to],
         subject,
         html,
