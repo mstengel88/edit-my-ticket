@@ -225,6 +225,38 @@ export function Reports({ tickets, reportFields }: ReportsProps) {
             </Button>
           </div>
         </CardHeader>
+
+        {/* Email Dialog */}
+        <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Email Report</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="report-email">Recipient Email</Label>
+                <Input
+                  id="report-email"
+                  type="email"
+                  placeholder="email@example.com"
+                  value={emailTo}
+                  onChange={(e) => setEmailTo(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSendEmail()}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                The report for {periodLabel[period]} ({format(dateRange.from, "MM/dd/yyyy")} – {format(dateRange.to, "MM/dd/yyyy")}) will be sent as a formatted HTML email.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleSendEmail} disabled={sendingEmail} className="gap-1.5">
+                {sendingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                {sendingEmail ? "Sending…" : "Send"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         <CardContent>
           <div className="flex flex-wrap gap-4 items-end">
             <div className="space-y-1.5">
