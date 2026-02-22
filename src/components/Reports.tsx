@@ -142,6 +142,13 @@ export function Reports({ tickets, reportFields }: ReportsProps) {
   };
 
   const handleEmail = () => {
+    // Auto-fill email from customer on file when a specific customer is selected
+    if (customerFilter !== "all") {
+      const match = filtered.find((t) => t.customer.trim() === customerFilter && t.customerEmail?.trim());
+      if (match?.customerEmail) {
+        setEmailTo(match.customerEmail.trim());
+      }
+    }
     setEmailDialogOpen(true);
   };
 
