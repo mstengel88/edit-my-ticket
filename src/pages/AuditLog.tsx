@@ -15,6 +15,8 @@ interface AuditEntry {
   entity_id: string | null;
   details: Record<string, unknown>;
   created_at: string;
+  user_id: string;
+  user_display_name?: string;
 }
 
 const actionColors: Record<string, string> = {
@@ -58,9 +60,22 @@ const AuditLog = () => {
     if (actionFilter !== "all") query = query.eq("action", actionFilter);
     if (entityFilter !== "all") query = query.eq("entity_type", entityFilter);
 
-    const { data, error } = await query;
-    if (error) console.error("Audit fetch error:", error);
-    setLogs((data as any as AuditEntry[]) ?? []);
+    const [logsRes, profilesRes] = await Promise.all([
+      query,
+      supabase.from("profiles").select("user_id, display_name"),
+    ]);
+
+    if (logsRes.error) console.error("Audit fetch error:", logsRes.error);
+
+    const profileMap = new Map(
+      (profilesRes.data ?? []).map((p) => [p.user_id, p.display_name])
+    );
+
+    const entries = ((logsRes.data as any[]) ?? []).map((row: any) => ({
+      ...row,
+      user_display_name: profileMap.get(row.user_id) ?? row.user_id?.slice(0, 8),
+    }));
+    setLogs(entries as AuditEntry[]);
     setLoading(false);
   }, [actionFilter, entityFilter]);
 
@@ -117,6 +132,7 @@ const AuditLog = () => {
                     <SelectItem value="template">Template</SelectItem>
                     <SelectItem value="profile">Profile</SelectItem>
                     <SelectItem value="auth">Auth</SelectItem>
+                    <SelectItem value="user_role">User Role</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -128,31 +144,33 @@ const AuditLog = () => {
           <CardContent className="p-0">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Action</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Entity ID</TableHead>
-                  <TableHead>Details</TableHead>
-                </TableRow>
+                 <TableRow>
+                   <TableHead>Date</TableHead>
+                   <TableHead>User</TableHead>
+                   <TableHead>Action</TableHead>
+                   <TableHead>Type</TableHead>
+                   <TableHead>Entity ID</TableHead>
+                   <TableHead>Details</TableHead>
+                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-12">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-                    </TableCell>
-                  </TableRow>
-                ) : logs.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-12">
-                      No audit logs found
+                   <TableRow>
+                     <TableCell colSpan={6} className="text-center py-12">
+                       <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                     </TableCell>
+                   </TableRow>
+                 ) : logs.length === 0 ? (
+                   <TableRow>
+                     <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
+                       No audit logs found
                     </TableCell>
                   </TableRow>
                 ) : (
                   logs.map((log) => (
                     <TableRow key={log.id}>
-                      <TableCell className="whitespace-nowrap text-sm">{formatDate(log.created_at)}</TableCell>
+                     <TableCell className="whitespace-nowrap text-sm">{formatDate(log.created_at)}</TableCell>
+                     <TableCell className="text-sm truncate max-w-[150px]">{log.user_display_name ?? "-"}</TableCell>
                       <TableCell>
                         <Badge variant="secondary" className={actionColors[log.action] ?? ""}>
                           {log.action}
