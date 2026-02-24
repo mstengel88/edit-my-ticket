@@ -15,6 +15,8 @@ interface AuditEntry {
   entity_id: string | null;
   details: Record<string, unknown>;
   created_at: string;
+  user_id: string;
+  user_display_name?: string;
 }
 
 const actionColors: Record<string, string> = {
