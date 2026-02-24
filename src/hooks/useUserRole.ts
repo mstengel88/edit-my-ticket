@@ -6,7 +6,7 @@ export type AppRole = "admin" | "manager" | "user";
 export const useUserRole = () => {
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null | undefined>(undefined);
 
   // Listen for auth changes directly to avoid race conditions
   useEffect(() => {
