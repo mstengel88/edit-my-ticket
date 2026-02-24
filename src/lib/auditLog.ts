@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export type AuditAction = "create" | "update" | "delete" | "sync" | "sign_in" | "sign_out";
-export type AuditEntityType = "ticket" | "template" | "profile" | "auth";
+export type AuditEntityType = "ticket" | "template" | "profile" | "auth" | "user_role";
 
 export async function logAudit(
   action: AuditAction,

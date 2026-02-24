@@ -89,6 +89,14 @@ export function UserRolesManager() {
       return;
     }
 
+    const oldRole = users.find((u) => u.userId === userId)?.role;
+    const targetName = users.find((u) => u.userId === userId)?.displayName || userId;
+    await logAudit("update", "user_role", userId, {
+      target_user: targetName,
+      old_role: oldRole,
+      new_role: newRole,
+    });
+
     toast.success("Role updated");
     setUsers((prev) =>
       prev.map((u) => (u.userId === userId ? { ...u, role: newRole } : u))
