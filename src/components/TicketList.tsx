@@ -87,22 +87,26 @@ export function TicketList({ tickets, onSelect, onDelete, onPreview, readOnly }:
               >
                 <Eye className="h-4 w-4" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={(e) => { e.stopPropagation(); onSelect(ticket); }}
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
-                onClick={(e) => { e.stopPropagation(); setDeleteId(ticket.id); }}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {!readOnly && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => { e.stopPropagation(); onSelect(ticket); }}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              )}
+              {!readOnly && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+                  onClick={(e) => { e.stopPropagation(); setDeleteId(ticket.id); }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
         ))}
