@@ -53,19 +53,27 @@ const AuditLog = () => {
     setLoading(true);
     let query = supabase
       .from("audit_logs" as any)
-      .select("*, profiles!audit_logs_user_id_fkey(display_name)" as any)
+      .select("*")
       .order("created_at", { ascending: false })
       .limit(200);
 
     if (actionFilter !== "all") query = query.eq("action", actionFilter);
     if (entityFilter !== "all") query = query.eq("entity_type", entityFilter);
 
-    const { data, error } = await query;
-    if (error) console.error("Audit fetch error:", error);
+    const [logsRes, profilesRes] = await Promise.all([
+      query,
+      supabase.from("profiles").select("user_id, display_name"),
+    ]);
 
-    const entries = ((data as any[]) ?? []).map((row: any) => ({
+    if (logsRes.error) console.error("Audit fetch error:", logsRes.error);
+
+    const profileMap = new Map(
+      (profilesRes.data ?? []).map((p) => [p.user_id, p.display_name])
+    );
+
+    const entries = ((logsRes.data as any[]) ?? []).map((row: any) => ({
       ...row,
-      user_display_name: row.profiles?.display_name ?? row.user_id,
+      user_display_name: profileMap.get(row.user_id) ?? row.user_id?.slice(0, 8),
     }));
     setLogs(entries as AuditEntry[]);
     setLoading(false);
