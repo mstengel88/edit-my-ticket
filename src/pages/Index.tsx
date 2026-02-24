@@ -26,6 +26,7 @@ const Index = () => {
   const { isAdminOrManager } = useUserRole();
   const navigate = useNavigate();
   const { fields: templateFields, reportFields, copiesPerPage } = useTicketTemplate();
+  const { theme, setTheme } = useTheme();
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [view, setView] = useState<View>("list");
   const [activeTab, setActiveTab] = useState<string>("tickets");
