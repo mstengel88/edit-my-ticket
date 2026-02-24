@@ -124,6 +124,7 @@ const AuditLog = () => {
                     <SelectItem value="template">Template</SelectItem>
                     <SelectItem value="profile">Profile</SelectItem>
                     <SelectItem value="auth">Auth</SelectItem>
+                    <SelectItem value="user_role">User Role</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
