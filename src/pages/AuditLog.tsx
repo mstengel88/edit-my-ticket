@@ -147,15 +147,15 @@ const AuditLog = () => {
               </TableHeader>
               <TableBody>
                 {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-12">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-                    </TableCell>
-                  </TableRow>
-                ) : logs.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-12">
-                      No audit logs found
+                   <TableRow>
+                     <TableCell colSpan={6} className="text-center py-12">
+                       <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                     </TableCell>
+                   </TableRow>
+                 ) : logs.length === 0 ? (
+                   <TableRow>
+                     <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
+                       No audit logs found
                     </TableCell>
                   </TableRow>
                 ) : (
