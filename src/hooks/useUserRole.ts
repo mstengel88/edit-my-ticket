@@ -22,11 +22,18 @@ export const useUserRole = () => {
   }, []);
 
   useEffect(() => {
-    if (!userId) {
+    if (userId === undefined) {
+      setLoading(true);
+      return;
+    }
+
+    if (userId === null) {
       setRole(null);
       setLoading(false);
       return;
     }
+
+    let cancelled = false;
 
     const fetchRole = async () => {
       setLoading(true);
@@ -37,6 +44,8 @@ export const useUserRole = () => {
         .limit(1)
         .single();
 
+      if (cancelled) return;
+
       if (error || !data) {
         setRole("user");
       } else {
@@ -46,6 +55,10 @@ export const useUserRole = () => {
     };
 
     fetchRole();
+
+    return () => {
+      cancelled = true;
+    };
   }, [userId]);
 
   const isAdminOrManager = role === "admin" || role === "manager";
