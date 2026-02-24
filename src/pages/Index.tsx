@@ -256,7 +256,7 @@ const Index = () => {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="tickets">
-              <TicketList tickets={tickets} onSelect={handleSelectTicket} onDelete={handleDeleteTicket} onPreview={handlePreview} />
+              <TicketList tickets={tickets} onSelect={handleSelectTicket} onDelete={handleDeleteTicket} onPreview={handlePreview} readOnly={!isAdminOrManager} />
             </TabsContent>
             <TabsContent value="reports">
               <Reports tickets={tickets} reportFields={reportFields} />
