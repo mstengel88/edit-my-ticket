@@ -77,7 +77,7 @@ function groupToTicketRow(group: LoadGroup, userId: string) {
     truck: group.truck && group.truck !== "NOT SPECIFIED" ? group.truck : "-",
     note: group.note,
     bucket: group.bucketWeights.map((w, i) => `B${i + 1}: ${w}`).join(", "),
-    status: "completed",
+    status: "pending",
   };
 }
 
