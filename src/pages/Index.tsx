@@ -222,15 +222,19 @@ const Index = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => navigate("/settings")}>
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/audit-log")}>
-                  <ClipboardList className="mr-2 h-4 w-4" />
-                  Audit Log
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
+                {isAdminOrManager && (
+                  <>
+                    <DropdownMenuItem onClick={() => navigate("/settings")}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/audit-log")}>
+                      <ClipboardList className="mr-2 h-4 w-4" />
+                      Audit Log
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
                 <DropdownMenuItem onClick={signOut}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign Out
