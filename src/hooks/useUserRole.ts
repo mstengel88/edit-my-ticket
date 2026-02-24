@@ -1,33 +1,24 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export type AppRole = "admin" | "manager" | "user";
 
 export const useUserRole = () => {
+  const { session, loading: authLoading } = useAuth();
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null | undefined>(undefined);
-
-  // Listen for auth changes directly to avoid race conditions
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserId(session?.user?.id ?? null);
-    });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUserId(session?.user?.id ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   useEffect(() => {
-    if (userId === undefined) {
+    // Wait for auth to finish loading
+    if (authLoading) {
       setLoading(true);
       return;
     }
 
-    if (userId === null) {
+    const userId = session?.user?.id;
+
+    if (!userId) {
       setRole(null);
       setLoading(false);
       return;
@@ -59,7 +50,7 @@ export const useUserRole = () => {
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [session?.user?.id, authLoading]);
 
   const isAdminOrManager = role === "admin" || role === "manager";
 
