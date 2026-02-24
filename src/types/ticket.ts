@@ -26,7 +26,7 @@ export interface TicketData {
   signature: string;
 
   // Status
-  status: "draft" | "sent" | "completed";
+  status: "draft" | "pending" | "sent" | "completed";
 }
 
 export const createEmptyTicket = (): TicketData => ({
