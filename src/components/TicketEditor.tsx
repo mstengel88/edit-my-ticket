@@ -60,19 +60,19 @@ export function TicketEditor({ ticket, onSave, onPreview, templateFields }: Tick
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label className="text-xs text-muted-foreground">Company Name</Label>
-            <Input value={data.companyName} onChange={(e) => updateField("companyName", e.target.value)} />
+            <Input value={data.companyName} readOnly disabled className="opacity-70" />
           </div>
           <div>
             <Label className="text-xs text-muted-foreground">Phone</Label>
-            <Input value={data.companyPhone} onChange={(e) => updateField("companyPhone", e.target.value)} />
+            <Input value={data.companyPhone} readOnly disabled className="opacity-70" />
           </div>
           <div>
             <Label className="text-xs text-muted-foreground">Email</Label>
-            <Input value={data.companyEmail} onChange={(e) => updateField("companyEmail", e.target.value)} />
+            <Input value={data.companyEmail} readOnly disabled className="opacity-70" />
           </div>
           <div>
             <Label className="text-xs text-muted-foreground">Website</Label>
-            <Input value={data.companyWebsite} onChange={(e) => updateField("companyWebsite", e.target.value)} />
+            <Input value={data.companyWebsite} readOnly disabled className="opacity-70" />
           </div>
         </div>
       </div>
