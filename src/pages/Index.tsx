@@ -5,7 +5,7 @@ import { TicketEditor } from "@/components/TicketEditor";
 import { TicketPreview } from "@/components/TicketPreview";
 import { Reports } from "@/components/Reports";
 import { useLoadriteData } from "@/hooks/useLoadriteData";
-import { ArrowLeft, Plus, RefreshCw, Loader2, LogOut, Settings, BarChart3, Menu, ClipboardList } from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw, Loader2, LogOut, Settings, BarChart3, Menu, ClipboardList, Sun, Moon } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 import { logAudit } from "@/lib/auditLog";
 import { useTicketTemplate } from "@/hooks/useTicketTemplate";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useTheme } from "next-themes";
 
 type View = "list" | "editor" | "preview";
 
@@ -25,6 +26,7 @@ const Index = () => {
   const { isAdminOrManager } = useUserRole();
   const navigate = useNavigate();
   const { fields: templateFields, reportFields, copiesPerPage } = useTicketTemplate();
+  const { theme, setTheme } = useTheme();
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [view, setView] = useState<View>("list");
   const [activeTab, setActiveTab] = useState<string>("tickets");
@@ -235,6 +237,11 @@ const Index = () => {
                     <DropdownMenuSeparator />
                   </>
                 )}
+                <DropdownMenuItem onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+                  {theme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+                  {theme === "dark" ? "Light Mode" : "Dark Mode"}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={signOut}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign Out
