@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Save, GripVertical, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, GripVertical, Loader2, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { UserRolesManager } from "@/components/UserRolesManager";
+import { useUserRole } from "@/hooks/useUserRole";
 import {
   DndContext,
   closestCenter,
