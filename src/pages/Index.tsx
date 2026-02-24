@@ -5,7 +5,7 @@ import { TicketEditor } from "@/components/TicketEditor";
 import { TicketPreview } from "@/components/TicketPreview";
 import { Reports } from "@/components/Reports";
 import { useLoadriteData } from "@/hooks/useLoadriteData";
-import { ArrowLeft, Plus, RefreshCw, Loader2, LogOut, Settings, BarChart3, Menu, ClipboardList } from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw, Loader2, LogOut, Settings, BarChart3, Menu, ClipboardList, Sun, Moon } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
