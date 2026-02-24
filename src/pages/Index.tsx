@@ -193,7 +193,7 @@ const Index = () => {
             </div>
           </div>
           <div className="flex gap-2">
-            {view === "list" && activeTab === "tickets" && isAdminOrManager && (
+            {view === "list" && activeTab === "tickets" && (
               <>
                 <Button
                   variant="outline"
