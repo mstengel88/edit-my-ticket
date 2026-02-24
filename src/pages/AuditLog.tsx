@@ -53,7 +53,7 @@ const AuditLog = () => {
     setLoading(true);
     let query = supabase
       .from("audit_logs" as any)
-      .select("*")
+      .select("*, profiles!audit_logs_user_id_fkey(display_name)" as any)
       .order("created_at", { ascending: false })
       .limit(200);
 
@@ -62,7 +62,12 @@ const AuditLog = () => {
 
     const { data, error } = await query;
     if (error) console.error("Audit fetch error:", error);
-    setLogs((data as any as AuditEntry[]) ?? []);
+
+    const entries = ((data as any[]) ?? []).map((row: any) => ({
+      ...row,
+      user_display_name: row.profiles?.display_name ?? row.user_id,
+    }));
+    setLogs(entries as AuditEntry[]);
     setLoading(false);
   }, [actionFilter, entityFilter]);
 
