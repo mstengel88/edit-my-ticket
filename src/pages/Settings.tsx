@@ -256,6 +256,12 @@ const Settings = () => {
               </div>
             </div>
           </TabsContent>
+
+          {role === "admin" && (
+            <TabsContent value="roles">
+              <UserRolesManager />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
     </div>
