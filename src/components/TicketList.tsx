@@ -62,7 +62,7 @@ export function TicketList({ tickets, onSelect, onDelete, onPreview, readOnly }:
           <div
             key={ticket.id}
             className="group flex items-center justify-between rounded-lg border bg-card p-4 transition-all hover:shadow-md cursor-pointer"
-            onClick={() => onSelect(ticket)}
+            onClick={() => readOnly ? onPreview(ticket) : onSelect(ticket)}
           >
             <div className="flex flex-col gap-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
