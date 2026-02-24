@@ -177,8 +177,14 @@ const Settings = () => {
         <Tabs defaultValue="preview">
           <TabsList className="mb-4">
             <TabsTrigger value="preview">Ticket Preview</TabsTrigger>
-            <TabsTrigger value="reports">Reports</TabsTrigger>
-          </TabsList>
+             <TabsTrigger value="reports">Reports</TabsTrigger>
+              {role === "admin" && (
+                <TabsTrigger value="roles" className="gap-1.5">
+                  <Users className="h-4 w-4" />
+                  User Roles
+                </TabsTrigger>
+              )}
+            </TabsList>
 
           <TabsContent value="preview">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
