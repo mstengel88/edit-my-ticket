@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import type { AppRole } from "@/hooks/useUserRole";
+import { logAudit } from "@/lib/auditLog";
 
 interface UserWithRole {
   userId: string;
