@@ -22,6 +22,7 @@ type View = "list" | "editor" | "preview";
 const Index = () => {
   const { tickets, loading, error, fetchData, loadFromDb } = useLoadriteData();
   const { signOut, session } = useAuth();
+  const { isAdminOrManager } = useUserRole();
   const navigate = useNavigate();
   const { fields: templateFields, reportFields, copiesPerPage } = useTicketTemplate();
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
