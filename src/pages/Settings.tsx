@@ -91,6 +91,7 @@ function ReportFieldItem({
 const Settings = () => {
   const navigate = useNavigate();
   const { fields, reportFields, copiesPerPage, loading, saveTemplate } = useTicketTemplate();
+  const { role } = useUserRole();
   const [localFields, setLocalFields] = useState<TemplateField[]>([]);
   const [localReportFields, setLocalReportFields] = useState<ReportField[]>([]);
   const [localCopies, setLocalCopies] = useState(2);
