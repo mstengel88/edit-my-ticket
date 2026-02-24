@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Save, GripVertical, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, GripVertical, Loader2, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { UserRolesManager } from "@/components/UserRolesManager";
+import { useUserRole } from "@/hooks/useUserRole";
 import {
   DndContext,
   closestCenter,
@@ -89,6 +91,7 @@ function ReportFieldItem({
 const Settings = () => {
   const navigate = useNavigate();
   const { fields, reportFields, copiesPerPage, loading, saveTemplate } = useTicketTemplate();
+  const { role } = useUserRole();
   const [localFields, setLocalFields] = useState<TemplateField[]>([]);
   const [localReportFields, setLocalReportFields] = useState<ReportField[]>([]);
   const [localCopies, setLocalCopies] = useState(2);
@@ -174,8 +177,14 @@ const Settings = () => {
         <Tabs defaultValue="preview">
           <TabsList className="mb-4">
             <TabsTrigger value="preview">Ticket Preview</TabsTrigger>
-            <TabsTrigger value="reports">Reports</TabsTrigger>
-          </TabsList>
+             <TabsTrigger value="reports">Reports</TabsTrigger>
+              {role === "admin" && (
+                <TabsTrigger value="roles" className="gap-1.5">
+                  <Users className="h-4 w-4" />
+                  User Roles
+                </TabsTrigger>
+              )}
+            </TabsList>
 
           <TabsContent value="preview">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -247,6 +256,12 @@ const Settings = () => {
               </div>
             </div>
           </TabsContent>
+
+          {role === "admin" && (
+            <TabsContent value="roles">
+              <UserRolesManager />
+            </TabsContent>
+          )}
         </Tabs>
       </main>
     </div>
