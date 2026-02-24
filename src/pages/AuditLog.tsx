@@ -161,7 +161,8 @@ const AuditLog = () => {
                 ) : (
                   logs.map((log) => (
                     <TableRow key={log.id}>
-                      <TableCell className="whitespace-nowrap text-sm">{formatDate(log.created_at)}</TableCell>
+                     <TableCell className="whitespace-nowrap text-sm">{formatDate(log.created_at)}</TableCell>
+                     <TableCell className="text-sm truncate max-w-[150px]">{log.user_display_name ?? "-"}</TableCell>
                       <TableCell>
                         <Badge variant="secondary" className={actionColors[log.action] ?? ""}>
                           {log.action}
