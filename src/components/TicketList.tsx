@@ -11,6 +11,7 @@ interface TicketListProps {
   onSelect: (ticket: TicketData) => void;
   onDelete: (id: string) => void;
   onPreview: (ticket: TicketData) => void;
+  readOnly?: boolean;
 }
 
 const statusColors: Record<TicketData["status"], string> = {
