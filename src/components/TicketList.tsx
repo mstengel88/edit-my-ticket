@@ -11,6 +11,7 @@ interface TicketListProps {
   onSelect: (ticket: TicketData) => void;
   onDelete: (id: string) => void;
   onPreview: (ticket: TicketData) => void;
+  readOnly?: boolean;
 }
 
 const statusColors: Record<TicketData["status"], string> = {
@@ -19,7 +20,7 @@ const statusColors: Record<TicketData["status"], string> = {
   completed: "bg-success text-success-foreground",
 };
 
-export function TicketList({ tickets, onSelect, onDelete, onPreview }: TicketListProps) {
+export function TicketList({ tickets, onSelect, onDelete, onPreview, readOnly }: TicketListProps) {
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -61,7 +62,7 @@ export function TicketList({ tickets, onSelect, onDelete, onPreview }: TicketLis
           <div
             key={ticket.id}
             className="group flex items-center justify-between rounded-lg border bg-card p-4 transition-all hover:shadow-md cursor-pointer"
-            onClick={() => onSelect(ticket)}
+            onClick={() => readOnly ? onPreview(ticket) : onSelect(ticket)}
           >
             <div className="flex flex-col gap-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
@@ -86,22 +87,26 @@ export function TicketList({ tickets, onSelect, onDelete, onPreview }: TicketLis
               >
                 <Eye className="h-4 w-4" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={(e) => { e.stopPropagation(); onSelect(ticket); }}
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
-                onClick={(e) => { e.stopPropagation(); setDeleteId(ticket.id); }}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {!readOnly && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => { e.stopPropagation(); onSelect(ticket); }}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              )}
+              {!readOnly && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+                  onClick={(e) => { e.stopPropagation(); setDeleteId(ticket.id); }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
         ))}

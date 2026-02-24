@@ -6,6 +6,7 @@ import { TicketPreview } from "@/components/TicketPreview";
 import { Reports } from "@/components/Reports";
 import { useLoadriteData } from "@/hooks/useLoadriteData";
 import { ArrowLeft, Plus, RefreshCw, Loader2, LogOut, Settings, BarChart3, Menu, ClipboardList } from "lucide-react";
+import { useUserRole } from "@/hooks/useUserRole";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -21,6 +22,7 @@ type View = "list" | "editor" | "preview";
 const Index = () => {
   const { tickets, loading, error, fetchData, loadFromDb } = useLoadriteData();
   const { signOut, session } = useAuth();
+  const { isAdminOrManager } = useUserRole();
   const navigate = useNavigate();
   const { fields: templateFields, reportFields, copiesPerPage } = useTicketTemplate();
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
@@ -191,7 +193,7 @@ const Index = () => {
             </div>
           </div>
           <div className="flex gap-2">
-            {view === "list" && activeTab === "tickets" && (
+            {view === "list" && activeTab === "tickets" && isAdminOrManager && (
               <>
                 <Button
                   variant="outline"
@@ -220,15 +222,19 @@ const Index = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => navigate("/settings")}>
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/audit-log")}>
-                  <ClipboardList className="mr-2 h-4 w-4" />
-                  Audit Log
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
+                {isAdminOrManager && (
+                  <>
+                    <DropdownMenuItem onClick={() => navigate("/settings")}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/audit-log")}>
+                      <ClipboardList className="mr-2 h-4 w-4" />
+                      Audit Log
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
                 <DropdownMenuItem onClick={signOut}>
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign Out
@@ -250,7 +256,7 @@ const Index = () => {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="tickets">
-              <TicketList tickets={tickets} onSelect={handleSelectTicket} onDelete={handleDeleteTicket} onPreview={handlePreview} />
+              <TicketList tickets={tickets} onSelect={handleSelectTicket} onDelete={handleDeleteTicket} onPreview={handlePreview} readOnly={!isAdminOrManager} />
             </TabsContent>
             <TabsContent value="reports">
               <Reports tickets={tickets} reportFields={reportFields} />
