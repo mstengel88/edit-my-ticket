@@ -136,13 +136,14 @@ const AuditLog = () => {
           <CardContent className="p-0">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Action</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Entity ID</TableHead>
-                  <TableHead>Details</TableHead>
-                </TableRow>
+                 <TableRow>
+                   <TableHead>Date</TableHead>
+                   <TableHead>User</TableHead>
+                   <TableHead>Action</TableHead>
+                   <TableHead>Type</TableHead>
+                   <TableHead>Entity ID</TableHead>
+                   <TableHead>Details</TableHead>
+                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
