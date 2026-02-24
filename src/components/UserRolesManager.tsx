@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import type { AppRole } from "@/hooks/useUserRole";
+import { logAudit } from "@/lib/auditLog";
 
 interface UserWithRole {
   userId: string;
@@ -87,6 +88,14 @@ export function UserRolesManager() {
       setUpdating(null);
       return;
     }
+
+    const oldRole = users.find((u) => u.userId === userId)?.role;
+    const targetName = users.find((u) => u.userId === userId)?.displayName || userId;
+    await logAudit("update", "user_role", userId, {
+      target_user: targetName,
+      old_role: oldRole,
+      new_role: newRole,
+    });
 
     toast.success("Role updated");
     setUsers((prev) =>
