@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { CanvasElement as CanvasElementType, CANVAS_WIDTH, CANVAS_HEIGHT } from "@/types/template";
 import { TicketData } from "@/types/ticket";
 import { CanvasElementComponent } from "./CanvasElement";
@@ -13,6 +13,8 @@ interface Props {
 
 export function CanvasEditor({ elements, onChange, sampleTicket }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showGrid, setShowGrid] = useState(false);
+  const GRID_SIZE = 20;
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
@@ -31,11 +33,16 @@ export function CanvasEditor({ elements, onChange, sampleTicket }: Props) {
     return () => window.removeEventListener("resize", updateScale);
   }, []);
 
+  const snapToGrid = useCallback(
+    (val: number) => (showGrid ? Math.round(val / GRID_SIZE) * GRID_SIZE : val),
+    [showGrid]
+  );
+
   const handleMove = useCallback(
     (id: string, x: number, y: number) => {
-      onChange(elements.map((e) => (e.id === id ? { ...e, x: Math.max(0, x), y: Math.max(0, y) } : e)));
+      onChange(elements.map((e) => (e.id === id ? { ...e, x: Math.max(0, snapToGrid(x)), y: Math.max(0, snapToGrid(y)) } : e)));
     },
-    [elements, onChange]
+    [elements, onChange, snapToGrid]
   );
 
   const handleResize = useCallback(
@@ -73,7 +80,18 @@ export function CanvasEditor({ elements, onChange, sampleTicket }: Props) {
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <ElementToolbar elements={elements} onAdd={handleAdd} />
+      <div className="flex items-center gap-3">
+        <ElementToolbar elements={elements} onAdd={handleAdd} />
+        <label className="flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer select-none ml-auto">
+          <input
+            type="checkbox"
+            checked={showGrid}
+            onChange={(e) => setShowGrid(e.target.checked)}
+            className="accent-primary h-4 w-4"
+          />
+          Grid
+        </label>
+      </div>
 
       <div className="flex gap-4">
         {/* Canvas */}
@@ -85,6 +103,10 @@ export function CanvasEditor({ elements, onChange, sampleTicket }: Props) {
               height: CANVAS_HEIGHT,
               transform: `scale(${scale})`,
               transformOrigin: "top left",
+              backgroundImage: showGrid
+                ? `linear-gradient(to right, rgba(0,0,0,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.06) 1px, transparent 1px)`
+                : undefined,
+              backgroundSize: showGrid ? `${GRID_SIZE}px ${GRID_SIZE}px` : undefined,
             }}
             onClick={handleCanvasClick}
           >
