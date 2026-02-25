@@ -158,12 +158,24 @@ export function useLoadriteData() {
       if (groups.length > 0) {
         const rows = groups.map((g) => groupToTicketRow(g, userId));
 
-        const { error: upsertErr } = await supabase
+        // Check which tickets already exist so we don't overwrite their status
+        const ids = rows.map((r) => r.id);
+        const { data: existing } = await supabase
           .from("tickets")
-          .upsert(rows, { onConflict: "id" });
+          .select("id")
+          .in("id", ids);
 
-        if (upsertErr) {
-          console.error("Upsert error:", upsertErr);
+        const existingIds = new Set((existing ?? []).map((e) => e.id));
+        const newRows = rows.filter((r) => !existingIds.has(r.id));
+
+        if (newRows.length > 0) {
+          const { error: insertErr } = await supabase
+            .from("tickets")
+            .insert(newRows);
+
+          if (insertErr) {
+            console.error("Insert error:", insertErr);
+          }
         }
       }
 
