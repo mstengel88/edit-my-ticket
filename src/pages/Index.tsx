@@ -25,7 +25,7 @@ const Index = () => {
   const { signOut, session } = useAuth();
   const { isAdminOrManager } = useUserRole();
   const navigate = useNavigate();
-  const { fields: templateFields, reportFields, copiesPerPage } = useTicketTemplate();
+  const { fields: templateFields, canvasElements, reportFields, copiesPerPage } = useTicketTemplate();
   const { theme, setTheme } = useTheme();
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [view, setView] = useState<View>("list");
@@ -275,7 +275,7 @@ const Index = () => {
               <TicketEditor ticket={selectedTicket} onSave={handleSaveTicket} onPreview={handlePreview} templateFields={templateFields} />
             )}
             {view === "preview" && selectedTicket && (
-              <TicketPreview ticket={selectedTicket} templateFields={templateFields} copiesPerPage={copiesPerPage} />
+              <TicketPreview ticket={selectedTicket} canvasElements={canvasElements} copiesPerPage={copiesPerPage} />
             )}
           </>
         )}

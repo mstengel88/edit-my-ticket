@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { TicketData } from "@/types/ticket";
-import { TemplateField, DEFAULT_TEMPLATE_FIELDS } from "@/types/template";
+import { CanvasElement, DEFAULT_CANVAS_ELEMENTS, CANVAS_WIDTH, CANVAS_HEIGHT, TemplateField } from "@/types/template";
 import { Button } from "@/components/ui/button";
 import { Printer, Mail, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -9,26 +9,16 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface TicketPreviewProps {
   ticket: TicketData;
-  templateFields?: TemplateField[];
+  canvasElements?: CanvasElement[];
+  templateFields?: TemplateField[]; // legacy compat
   copiesPerPage?: number;
 }
 
-export function TicketPreview({ ticket, templateFields, copiesPerPage = 2 }: TicketPreviewProps) {
-  const fields = templateFields || DEFAULT_TEMPLATE_FIELDS;
-  const visible = (key: string) => fields.find((f) => f.id === key)?.visible ?? true;
+export function TicketPreview({ ticket, canvasElements, copiesPerPage = 2 }: TicketPreviewProps) {
+  const elements = canvasElements || DEFAULT_CANVAS_ELEMENTS;
   const [sending, setSending] = useState(false);
 
-  const headerFields = fields.filter((f) => f.section === "header" && f.visible);
-  const productFields = fields.filter((f) => f.section === "product" && f.visible);
-  const footerFields = fields.filter((f) => f.section === "footer" && f.visible);
-
-  const getFieldValue = (key: string): string => {
-    return (ticket as any)[key] || "—";
-  };
-
-  const handlePrint = () => {
-    window.print();
-  };
+  const handlePrint = () => window.print();
 
   const handleEmail = async () => {
     if (!ticket.customerEmail) {
@@ -37,7 +27,6 @@ export function TicketPreview({ ticket, templateFields, copiesPerPage = 2 }: Tic
     }
     setSending(true);
     try {
-      // Convert logo to base64 for email
       let logoBase64 = "";
       try {
         const response = await fetch(companyLogo);
@@ -69,6 +58,38 @@ export function TicketPreview({ ticket, templateFields, copiesPerPage = 2 }: Tic
     }
   };
 
+  const getValue = (key: string): string => {
+    return (ticket as any)[key] || "—";
+  };
+
+  const renderElement = (el: CanvasElement) => {
+    if (el.type === "logo") {
+      return <img src={companyLogo} alt={ticket.companyName} className="h-full w-auto object-contain" />;
+    }
+    if (el.type === "divider") {
+      return <div className="w-full border-t border-black/30" style={{ marginTop: el.height / 2 }} />;
+    }
+    if (el.type === "label") {
+      return (
+        <span style={{ fontSize: el.fontSize, fontWeight: el.fontWeight, textAlign: el.textAlign, display: "block", color: "#000" }}>
+          {el.content || el.label}
+        </span>
+      );
+    }
+    // field type
+    const value = getValue(el.key || "");
+    return (
+      <span style={{ fontSize: el.fontSize, fontWeight: el.fontWeight, textAlign: el.textAlign, display: "block", color: "#000" }}>
+        {el.showLabel && (
+          <span style={{ fontWeight: "normal", fontSize: Math.max(10, el.fontSize - 2), color: "rgba(0,0,0,0.55)", marginRight: 4 }}>
+            {el.label}:
+          </span>
+        )}
+        {value}
+      </span>
+    );
+  };
+
   return (
     <div className="animate-fade-in">
       {/* Actions */}
@@ -84,99 +105,31 @@ export function TicketPreview({ ticket, templateFields, copiesPerPage = 2 }: Tic
 
       {/* Ticket copies */}
       {Array.from({ length: copiesPerPage }, (_, i) => i).map((copy) => (
-        <div key={copy} className={`max-w-4xl mx-auto bg-white text-black border-2 border-black/80 font-sans text-sm print:border print:shadow-none ${copy < copiesPerPage - 1 ? "mb-6" : ""}`}>
-        {/* Top section: Company info left, Ticket No right */}
-        <div className="flex justify-between items-start p-4 pb-2">
-          <div className="flex items-start gap-3">
-            <img src={companyLogo} alt={ticket.companyName} className="h-12 w-auto" />
-            <div>
-              <h2 className="text-base font-bold">{ticket.companyName}</h2>
-              <p className="text-xs text-black/60">{ticket.companyWebsite}</p>
-              <p className="text-xs text-black/60">{ticket.companyEmail}</p>
-              <p className="text-xs text-black/60">{ticket.companyPhone}</p>
+        <div
+          key={copy}
+          className={`max-w-4xl mx-auto bg-white text-black border-2 border-black/80 font-sans text-sm print:border print:shadow-none relative ${copy < copiesPerPage - 1 ? "mb-6" : ""}`}
+          style={{
+            width: CANVAS_WIDTH,
+            height: CANVAS_HEIGHT,
+          }}
+        >
+          {elements.map((el) => (
+            <div
+              key={el.id}
+              className="absolute overflow-hidden"
+              style={{
+                left: el.x,
+                top: el.y,
+                width: el.width,
+                height: el.height,
+                textAlign: el.textAlign as any,
+              }}
+            >
+              {renderElement(el)}
             </div>
-          </div>
-          <div className="text-right">
-            <p className="text-sm font-medium">Ticket No:</p>
-            <p className="text-2xl font-bold tracking-tight">{ticket.jobNumber}</p>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="border-t border-black/30 mx-4" />
-
-        {/* Header details (dynamic) */}
-        {headerFields.length > 0 && (
-          <div className="grid grid-cols-2 gap-x-8 gap-y-0.5 px-4 py-2">
-            {headerFields.map((f) => (
-              <FieldRow key={f.id} label={f.label} value={getFieldValue(f.key)} />
-            ))}
-          </div>
-        )}
-
-        {/* Product + Total row */}
-        {productFields.length > 0 && (
-          <>
-            <div className="mx-4 border-t border-black/30" />
-            <div className="px-4 py-2">
-              <div className="flex items-baseline justify-between">
-                <div className="flex gap-8">
-                  {visible("product") && <FieldRow label="Product" value={ticket.product} />}
-                </div>
-                {(visible("totalAmount") || visible("totalUnit")) && (
-                  <div className="text-right">
-                    {visible("totalAmount") && (
-                      <span className="text-xl font-bold">{ticket.totalAmount}</span>
-                    )}
-                    {visible("totalUnit") && (
-                      <span className="text-sm font-medium ml-2">{ticket.totalUnit}</span>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Footer details (dynamic) */}
-        {footerFields.length > 0 && (
-          <>
-            <div className="mx-4 border-t border-black/30" />
-            <div className="grid grid-cols-2 gap-x-8 gap-y-0.5 px-4 py-2">
-              {footerFields
-                .filter((f) => f.id !== "customerName")
-                .map((f) => (
-                  <FieldRow key={f.id} label={f.label} value={getFieldValue(f.key)} />
-                ))}
-            </div>
-          </>
-        )}
-
-        {/* Sign-off (if customerName visible) */}
-        {visible("customerName") && (
-          <>
-            <div className="mx-4 border-t border-black/30" />
-            <div className="px-4 py-2 pb-3">
-              <div className="flex gap-2 items-end">
-                <span className="text-xs font-medium text-black/60 whitespace-nowrap">Received&nbsp;:</span>
-                <div className="flex-1 border-b border-black/40 min-h-[20px] pb-0.5">
-                  <span className="text-sm">{ticket.customerName}</span>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
+          ))}
         </div>
       ))}
-    </div>
-  );
-}
-
-function FieldRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex gap-2 items-baseline">
-      <span className="text-xs font-medium text-black/60 whitespace-nowrap min-w-[100px]">{label}&nbsp;:</span>
-      <span className="text-sm font-semibold text-black">{value}</span>
     </div>
   );
 }
