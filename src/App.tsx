@@ -49,6 +49,23 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const DeveloperRoute = ({ children }: { children: React.ReactNode }) => {
+  const { session, loading: authLoading } = useAuth();
+  const { isDeveloper, loading: roleLoading } = useUserRole();
+
+  if (authLoading || roleLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!session) return <Navigate to="/auth" replace />;
+  if (!isDeveloper) return <Navigate to="/" replace />;
+  return <>{children}</>;
+};
+
 const AuthRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, loading } = useAuth();
 
@@ -77,7 +94,7 @@ const App = () => (
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
           <Route path="/settings" element={<AdminRoute><Settings /></AdminRoute>} />
           <Route path="/audit-log" element={<AdminRoute><AuditLog /></AdminRoute>} />
-          <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
+          <Route path="/admin" element={<DeveloperRoute><Admin /></DeveloperRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

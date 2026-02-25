@@ -47,7 +47,7 @@ export function UserRolesManager() {
     }));
 
     // Sort: admins first, then managers, then users
-    const order: Record<AppRole, number> = { admin: 0, manager: 1, user: 2 };
+    const order: Record<AppRole, number> = { developer: 0, admin: 1, manager: 2, user: 3 };
     merged.sort((a, b) => order[a.role] - order[b.role]);
 
     setUsers(merged);
@@ -113,6 +113,7 @@ export function UserRolesManager() {
   }
 
   const roleBadgeColor: Record<AppRole, string> = {
+    developer: "bg-violet-500/10 text-violet-600 border-violet-500/20",
     admin: "bg-destructive/10 text-destructive border-destructive/20",
     manager: "bg-primary/10 text-primary border-primary/20",
     user: "bg-muted text-muted-foreground",
@@ -153,6 +154,7 @@ export function UserRolesManager() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-popover z-50">
+                    <SelectItem value="developer">Developer</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="manager">Manager</SelectItem>
                     <SelectItem value="user">User</SelectItem>
