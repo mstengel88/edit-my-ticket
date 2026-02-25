@@ -4,11 +4,12 @@ import { CanvasElement, ReportField } from "@/types/template";
 import { TicketData, sampleTickets } from "@/types/ticket";
 import { TicketPreview } from "@/components/TicketPreview";
 import { CanvasEditor } from "@/components/template-editor/CanvasEditor";
+import { FeedbackForm } from "@/components/FeedbackForm";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Save, Loader2, Users } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Users, MessageSquarePlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -97,6 +98,9 @@ const Settings = () => {
                 <Users className="h-4 w-4" /> User Roles
               </TabsTrigger>
             )}
+            <TabsTrigger value="feedback" className="gap-1.5">
+              <MessageSquarePlus className="h-4 w-4" /> Feedback
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="designer">
@@ -138,6 +142,10 @@ const Settings = () => {
               <UserRolesManager />
             </TabsContent>
           )}
+
+          <TabsContent value="feedback">
+            <FeedbackForm />
+          </TabsContent>
         </Tabs>
       </main>
     </div>

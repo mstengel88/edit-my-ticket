@@ -1,0 +1,166 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Send } from "lucide-react";
+import { toast } from "sonner";
+import { z } from "zod";
+
+const feedbackSchema = z.object({
+  type: z.enum(["feature", "bug"]),
+  title: z.string().trim().min(3, "Title must be at least 3 characters").max(200, "Title must be under 200 characters"),
+  description: z.string().trim().max(2000, "Description must be under 2000 characters"),
+});
+
+interface FeedbackItem {
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  status: string;
+  created_at: string;
+}
+
+export function FeedbackForm() {
+  const { session } = useAuth();
+  const [type, setType] = useState<"feature" | "bug">("feature");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [items, setItems] = useState<FeedbackItem[]>([]);
+  const [loadingItems, setLoadingItems] = useState(true);
+
+  const loadFeedback = async () => {
+    if (!session?.user) return;
+    setLoadingItems(true);
+    const { data } = await supabase
+      .from("feedback")
+      .select("*")
+      .order("created_at", { ascending: false });
+    setItems((data as FeedbackItem[]) || []);
+    setLoadingItems(false);
+  };
+
+  useEffect(() => {
+    loadFeedback();
+  }, [session?.user]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!session?.user) return;
+
+    const result = feedbackSchema.safeParse({ type, title, description });
+    if (!result.success) {
+      toast.error(result.error.errors[0].message);
+      return;
+    }
+
+    setSubmitting(true);
+    const { error } = await supabase.from("feedback").insert({
+      user_id: session.user.id,
+      type: result.data.type,
+      title: result.data.title,
+      description: result.data.description,
+    });
+
+    if (error) {
+      toast.error("Failed to submit feedback");
+    } else {
+      toast.success("Feedback submitted — thank you!");
+      setTitle("");
+      setDescription("");
+      setType("feature");
+      await loadFeedback();
+    }
+    setSubmitting(false);
+  };
+
+  const statusColor = (s: string) => {
+    if (s === "open") return "bg-primary/15 text-primary";
+    if (s === "in_progress") return "bg-warning/15 text-warning";
+    if (s === "done") return "bg-success/15 text-success";
+    return "bg-muted text-muted-foreground";
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Submit form */}
+      <div>
+        <h2 className="text-sm font-semibold text-foreground mb-4">Submit Feedback</h2>
+        <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
+          <div>
+            <Label className="text-xs">Type</Label>
+            <Select value={type} onValueChange={(v) => setType(v as "feature" | "bug")}>
+              <SelectTrigger className="bg-card"><SelectValue /></SelectTrigger>
+              <SelectContent className="bg-popover z-50">
+                <SelectItem value="feature">Feature Request</SelectItem>
+                <SelectItem value="bug">Bug Report</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Title</Label>
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={type === "bug" ? "Describe the issue..." : "What would you like to see?"}
+              className="bg-card"
+              maxLength={200}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Description (optional)</Label>
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Add more details..."
+              className="bg-card min-h-[100px]"
+              maxLength={2000}
+            />
+          </div>
+          <Button type="submit" disabled={submitting || !title.trim()} className="gap-1.5">
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            Submit
+          </Button>
+        </form>
+      </div>
+
+      {/* Past submissions */}
+      <div>
+        <h2 className="text-sm font-semibold text-foreground mb-4">Your Submissions</h2>
+        {loadingItems ? (
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        ) : items.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No submissions yet.</p>
+        ) : (
+          <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+            {items.map((item) => (
+              <div key={item.id} className="rounded-md border bg-card px-3 py-2.5">
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge variant="outline" className="text-[10px] uppercase">
+                    {item.type === "bug" ? "🐛 Bug" : "✨ Feature"}
+                  </Badge>
+                  <Badge className={`text-[10px] ${statusColor(item.status)}`}>
+                    {item.status}
+                  </Badge>
+                </div>
+                <p className="text-sm font-medium text-foreground">{item.title}</p>
+                {item.description && (
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.description}</p>
+                )}
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {new Date(item.created_at).toLocaleDateString()}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
