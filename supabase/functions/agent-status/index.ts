@@ -52,6 +52,21 @@ Deno.serve(async (req) => {
     }
 
     const r = await fetch(`${AGENT_BASE}/status`);
+    const contentType = r.headers.get("content-type") || "";
+
+    if (!contentType.includes("application/json")) {
+      const text = await r.text();
+      console.error("Agent /status returned non-JSON:", contentType, text.substring(0, 200));
+      return new Response(
+        JSON.stringify({
+          error: `Agent returned ${r.status} with non-JSON response`,
+          running: {},
+          deployed: {},
+        }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const data = await r.json();
 
     return new Response(JSON.stringify(data), {
