@@ -19,7 +19,6 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Authenticate user
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -44,7 +43,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { to, subject, ticket } = await req.json();
+    const { to, subject, ticket, logoBase64 } = await req.json();
 
     if (!to || !subject || !ticket) {
       return new Response(JSON.stringify({ error: "Missing required fields: to, subject, ticket" }), {
@@ -53,8 +52,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Build HTML email from ticket data
-    const html = buildTicketEmailHtml(ticket);
+    const html = buildTicketEmailHtml(ticket, logoBase64);
 
     const resendRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -94,7 +92,11 @@ Deno.serve(async (req) => {
   }
 });
 
-function buildTicketEmailHtml(ticket: Record<string, string>): string {
+function buildTicketEmailHtml(ticket: Record<string, string>, logoBase64?: string): string {
+  const logoHtml = logoBase64
+    ? `<img src="${logoBase64}" alt="${ticket.companyName || ''}" style="height: 48px; width: auto; margin-right: 12px;" />`
+    : "";
+
   return `
 <!DOCTYPE html>
 <html>
@@ -105,11 +107,16 @@ function buildTicketEmailHtml(ticket: Record<string, string>): string {
       <td style="padding: 16px; border-bottom: 1px solid #ccc;">
         <table width="100%">
           <tr>
-            <td>
-              <strong style="font-size: 16px;">${ticket.companyName || ""}</strong><br/>
-              <span style="font-size: 12px; color: #666;">${ticket.companyWebsite || ""}</span><br/>
-              <span style="font-size: 12px; color: #666;">${ticket.companyEmail || ""}</span><br/>
-              <span style="font-size: 12px; color: #666;">${ticket.companyPhone || ""}</span>
+            <td style="vertical-align: top;">
+              <table><tr>
+                <td style="vertical-align: top;">${logoHtml}</td>
+                <td style="vertical-align: top;">
+                  <strong style="font-size: 16px;">${ticket.companyName || ""}</strong><br/>
+                  <span style="font-size: 12px; color: #666;">${ticket.companyWebsite || ""}</span><br/>
+                  <span style="font-size: 12px; color: #666;">${ticket.companyEmail || ""}</span><br/>
+                  <span style="font-size: 12px; color: #666;">${ticket.companyPhone || ""}</span>
+                </td>
+              </tr></table>
             </td>
             <td style="text-align: right; vertical-align: top;">
               <span style="font-size: 13px;">Ticket No:</span><br/>

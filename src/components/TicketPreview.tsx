@@ -18,7 +18,6 @@ export function TicketPreview({ ticket, templateFields, copiesPerPage = 2 }: Tic
   const visible = (key: string) => fields.find((f) => f.id === key)?.visible ?? true;
   const [sending, setSending] = useState(false);
 
-  // Group visible fields by section in template order
   const headerFields = fields.filter((f) => f.section === "header" && f.visible);
   const productFields = fields.filter((f) => f.section === "product" && f.visible);
   const footerFields = fields.filter((f) => f.section === "footer" && f.visible);
@@ -38,11 +37,26 @@ export function TicketPreview({ ticket, templateFields, copiesPerPage = 2 }: Tic
     }
     setSending(true);
     try {
+      // Convert logo to base64 for email
+      let logoBase64 = "";
+      try {
+        const response = await fetch(companyLogo);
+        const blob = await response.blob();
+        logoBase64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        });
+      } catch (e) {
+        console.warn("Could not convert logo to base64:", e);
+      }
+
       const { data, error } = await supabase.functions.invoke("send-ticket-email", {
         body: {
           to: ticket.customerEmail,
           subject: `Ticket - Job #${ticket.jobNumber} from ${ticket.companyName}`,
           ticket,
+          logoBase64,
         },
       });
       if (error) throw error;
@@ -70,16 +84,16 @@ export function TicketPreview({ ticket, templateFields, copiesPerPage = 2 }: Tic
 
       {/* Ticket copies */}
       {Array.from({ length: copiesPerPage }, (_, i) => i).map((copy) => (
-        <div key={copy} className={`max-w-4xl mx-auto bg-white border-2 border-foreground/80 text-foreground font-sans text-sm print:border print:shadow-none ${copy < copiesPerPage - 1 ? "mb-6" : ""}`}>
+        <div key={copy} className={`max-w-4xl mx-auto bg-white text-black border-2 border-black/80 font-sans text-sm print:border print:shadow-none ${copy < copiesPerPage - 1 ? "mb-6" : ""}`}>
         {/* Top section: Company info left, Ticket No right */}
         <div className="flex justify-between items-start p-4 pb-2">
           <div className="flex items-start gap-3">
             <img src={companyLogo} alt={ticket.companyName} className="h-12 w-auto" />
             <div>
               <h2 className="text-base font-bold">{ticket.companyName}</h2>
-              <p className="text-xs text-foreground/70">{ticket.companyWebsite}</p>
-              <p className="text-xs text-foreground/70">{ticket.companyEmail}</p>
-              <p className="text-xs text-foreground/70">{ticket.companyPhone}</p>
+              <p className="text-xs text-black/60">{ticket.companyWebsite}</p>
+              <p className="text-xs text-black/60">{ticket.companyEmail}</p>
+              <p className="text-xs text-black/60">{ticket.companyPhone}</p>
             </div>
           </div>
           <div className="text-right">
@@ -89,7 +103,7 @@ export function TicketPreview({ ticket, templateFields, copiesPerPage = 2 }: Tic
         </div>
 
         {/* Divider */}
-        <div className="border-t border-foreground/30 mx-4" />
+        <div className="border-t border-black/30 mx-4" />
 
         {/* Header details (dynamic) */}
         {headerFields.length > 0 && (
@@ -103,7 +117,7 @@ export function TicketPreview({ ticket, templateFields, copiesPerPage = 2 }: Tic
         {/* Product + Total row */}
         {productFields.length > 0 && (
           <>
-            <div className="mx-4 border-t border-foreground/30" />
+            <div className="mx-4 border-t border-black/30" />
             <div className="px-4 py-2">
               <div className="flex items-baseline justify-between">
                 <div className="flex gap-8">
@@ -127,7 +141,7 @@ export function TicketPreview({ ticket, templateFields, copiesPerPage = 2 }: Tic
         {/* Footer details (dynamic) */}
         {footerFields.length > 0 && (
           <>
-            <div className="mx-4 border-t border-foreground/30" />
+            <div className="mx-4 border-t border-black/30" />
             <div className="grid grid-cols-2 gap-x-8 gap-y-0.5 px-4 py-2">
               {footerFields
                 .filter((f) => f.id !== "customerName")
@@ -141,11 +155,11 @@ export function TicketPreview({ ticket, templateFields, copiesPerPage = 2 }: Tic
         {/* Sign-off (if customerName visible) */}
         {visible("customerName") && (
           <>
-            <div className="mx-4 border-t border-foreground/30" />
+            <div className="mx-4 border-t border-black/30" />
             <div className="px-4 py-2 pb-3">
               <div className="flex gap-2 items-end">
-                <span className="text-xs font-medium text-foreground/70 whitespace-nowrap">Received&nbsp;:</span>
-                <div className="flex-1 border-b border-foreground/40 min-h-[20px] pb-0.5">
+                <span className="text-xs font-medium text-black/60 whitespace-nowrap">Received&nbsp;:</span>
+                <div className="flex-1 border-b border-black/40 min-h-[20px] pb-0.5">
                   <span className="text-sm">{ticket.customerName}</span>
                 </div>
               </div>
@@ -161,8 +175,8 @@ export function TicketPreview({ ticket, templateFields, copiesPerPage = 2 }: Tic
 function FieldRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex gap-2 items-baseline">
-      <span className="text-xs font-medium text-foreground/70 whitespace-nowrap min-w-[100px]">{label}&nbsp;:</span>
-      <span className="text-sm font-semibold">{value}</span>
+      <span className="text-xs font-medium text-black/60 whitespace-nowrap min-w-[100px]">{label}&nbsp;:</span>
+      <span className="text-sm font-semibold text-black">{value}</span>
     </div>
   );
 }
