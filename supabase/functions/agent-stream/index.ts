@@ -67,12 +67,12 @@ Deno.serve(async (req) => {
     }
 
     const userId = claimsData.claims.sub;
-    const { data: isAdmin } = await supabase.rpc("has_role", {
+    const { data: isDev } = await supabase.rpc("has_role", {
       _user_id: userId,
-      _role: "admin",
+      _role: "developer",
     });
 
-    if (!isAdmin) {
+    if (!isDev) {
       return new Response("event: error\ndata: {\"message\":\"Forbidden\"}\n\n", {
         status: 403,
         headers: sseHeaders,
