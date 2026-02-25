@@ -75,7 +75,19 @@ export function CanvasEditor({ elements, onChange, sampleTicket }: Props) {
     [elements, onChange]
   );
 
-  const handleCanvasClick = () => setSelectedId(null);
+  const handleCanvasClick = (e: React.MouseEvent) => {
+    // Only deselect if clicking directly on the canvas background, not on an element
+    if (e.target === e.currentTarget) setSelectedId(null);
+  };
+
+  // Allow Escape to deselect
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelectedId(null);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   return (
     <div className="space-y-4">
