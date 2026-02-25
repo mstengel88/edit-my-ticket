@@ -1,17 +1,23 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
-import { CanvasElement as CanvasElementType, CANVAS_WIDTH, CANVAS_HEIGHT } from "@/types/template";
+import { CanvasElement as CanvasElementType, CANVAS_WIDTH, CANVAS_HEIGHT, MIN_CANVAS_WIDTH, MAX_CANVAS_WIDTH, MIN_CANVAS_HEIGHT, MAX_CANVAS_HEIGHT } from "@/types/template";
 import { TicketData } from "@/types/ticket";
 import { CanvasElementComponent } from "./CanvasElement";
 import { ElementToolbar } from "./ElementToolbar";
 import { PropertyPanel } from "./PropertyPanel";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
 
 interface Props {
   elements: CanvasElementType[];
   onChange: (elements: CanvasElementType[]) => void;
   sampleTicket: TicketData;
+  canvasWidth?: number;
+  canvasHeight?: number;
+  onCanvasSizeChange?: (width: number, height: number) => void;
 }
 
-export function CanvasEditor({ elements, onChange, sampleTicket }: Props) {
+export function CanvasEditor({ elements, onChange, sampleTicket, canvasWidth = CANVAS_WIDTH, canvasHeight = CANVAS_HEIGHT, onCanvasSizeChange }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showGrid, setShowGrid] = useState(false);
   const GRID_SIZE = 20;
@@ -24,14 +30,14 @@ export function CanvasEditor({ elements, onChange, sampleTicket }: Props) {
   useEffect(() => {
     const updateScale = () => {
       if (containerRef.current) {
-        const containerWidth = containerRef.current.clientWidth;
-        setScale(Math.min(1, containerWidth / CANVAS_WIDTH));
+        const cw = containerRef.current.clientWidth;
+        setScale(Math.min(1, cw / canvasWidth));
       }
     };
     updateScale();
     window.addEventListener("resize", updateScale);
     return () => window.removeEventListener("resize", updateScale);
-  }, []);
+  }, [canvasWidth]);
 
   const snapToGrid = useCallback(
     (val: number) => (showGrid ? Math.round(val / GRID_SIZE) * GRID_SIZE : val),
@@ -92,7 +98,7 @@ export function CanvasEditor({ elements, onChange, sampleTicket }: Props) {
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <ElementToolbar elements={elements} onAdd={handleAdd} />
         <label className="flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer select-none ml-auto">
           <input
@@ -105,14 +111,64 @@ export function CanvasEditor({ elements, onChange, sampleTicket }: Props) {
         </label>
       </div>
 
+      {/* Canvas Size Controls */}
+      {onCanvasSizeChange && (
+        <div className="flex items-center gap-4 flex-wrap rounded-lg border bg-card p-3">
+          <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+            <Label className="text-xs text-muted-foreground whitespace-nowrap w-12">Width</Label>
+            <Slider
+              value={[canvasWidth]}
+              min={MIN_CANVAS_WIDTH}
+              max={MAX_CANVAS_WIDTH}
+              step={10}
+              onValueChange={([v]) => onCanvasSizeChange(v, canvasHeight)}
+              className="flex-1"
+            />
+            <Input
+              type="number"
+              value={canvasWidth}
+              min={MIN_CANVAS_WIDTH}
+              max={MAX_CANVAS_WIDTH}
+              onChange={(e) => {
+                const v = Math.min(MAX_CANVAS_WIDTH, Math.max(MIN_CANVAS_WIDTH, Number(e.target.value) || MIN_CANVAS_WIDTH));
+                onCanvasSizeChange(v, canvasHeight);
+              }}
+              className="w-16 h-7 text-xs"
+            />
+          </div>
+          <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+            <Label className="text-xs text-muted-foreground whitespace-nowrap w-12">Height</Label>
+            <Slider
+              value={[canvasHeight]}
+              min={MIN_CANVAS_HEIGHT}
+              max={MAX_CANVAS_HEIGHT}
+              step={10}
+              onValueChange={([v]) => onCanvasSizeChange(canvasWidth, v)}
+              className="flex-1"
+            />
+            <Input
+              type="number"
+              value={canvasHeight}
+              min={MIN_CANVAS_HEIGHT}
+              max={MAX_CANVAS_HEIGHT}
+              onChange={(e) => {
+                const v = Math.min(MAX_CANVAS_HEIGHT, Math.max(MIN_CANVAS_HEIGHT, Number(e.target.value) || MIN_CANVAS_HEIGHT));
+                onCanvasSizeChange(canvasWidth, v);
+              }}
+              className="w-16 h-7 text-xs"
+            />
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-4">
         {/* Canvas */}
         <div className="flex-1" ref={containerRef}>
           <div
             className="relative bg-white border-2 border-black/80 mx-auto"
             style={{
-              width: CANVAS_WIDTH,
-              height: CANVAS_HEIGHT,
+              width: canvasWidth,
+              height: canvasHeight,
               transform: `scale(${scale})`,
               transformOrigin: "top left",
               backgroundImage: showGrid
@@ -137,7 +193,7 @@ export function CanvasEditor({ elements, onChange, sampleTicket }: Props) {
             ))}
           </div>
           {/* Spacer for scaled canvas */}
-          <div style={{ height: CANVAS_HEIGHT * scale - CANVAS_HEIGHT * scale + 8 }} />
+          <div style={{ height: canvasHeight * scale - canvasHeight * scale + 8 }} />
         </div>
 
         {/* Property Panel */}

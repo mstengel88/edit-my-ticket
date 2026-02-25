@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import {
-  CanvasElement, DEFAULT_CANVAS_ELEMENTS,
+  CanvasElement, DEFAULT_CANVAS_ELEMENTS, CANVAS_WIDTH, CANVAS_HEIGHT,
   TemplateField, DEFAULT_TEMPLATE_FIELDS,
   ReportField, DEFAULT_REPORT_FIELDS,
 } from "@/types/template";
@@ -13,6 +13,8 @@ export function useTicketTemplate() {
   const [canvasElements, setCanvasElements] = useState<CanvasElement[]>(DEFAULT_CANVAS_ELEMENTS);
   const [reportFields, setReportFields] = useState<ReportField[]>(DEFAULT_REPORT_FIELDS);
   const [copiesPerPage, setCopiesPerPage] = useState(2);
+  const [canvasWidth, setCanvasWidth] = useState(CANVAS_WIDTH);
+  const [canvasHeight, setCanvasHeight] = useState(CANVAS_HEIGHT);
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -41,6 +43,8 @@ export function useTicketTemplate() {
           setFields([...layout.fields, ...DEFAULT_TEMPLATE_FIELDS.filter((f) => !savedKeys.has(f.id))]);
         }
         if (layout.copiesPerPage) setCopiesPerPage(layout.copiesPerPage);
+        if (layout.canvasWidth) setCanvasWidth(layout.canvasWidth);
+        if (layout.canvasHeight) setCanvasHeight(layout.canvasHeight);
         if (Array.isArray(layout.reportFields) && layout.reportFields.length > 0) {
           const savedKeys = new Set(layout.reportFields.map((f: any) => f.id));
           setReportFields([...layout.reportFields, ...DEFAULT_REPORT_FIELDS.filter((f) => !savedKeys.has(f.id))]);
@@ -63,19 +67,25 @@ export function useTicketTemplate() {
       updatedFields: TemplateField[],
       updatedCopies?: number,
       updatedReportFields?: ReportField[],
-      updatedCanvasElements?: CanvasElement[]
+      updatedCanvasElements?: CanvasElement[],
+      updatedCanvasWidth?: number,
+      updatedCanvasHeight?: number,
     ) => {
       if (!session?.user) return;
       setFields(updatedFields);
       if (updatedCopies !== undefined) setCopiesPerPage(updatedCopies);
       if (updatedReportFields) setReportFields(updatedReportFields);
       if (updatedCanvasElements) setCanvasElements(updatedCanvasElements);
+      if (updatedCanvasWidth !== undefined) setCanvasWidth(updatedCanvasWidth);
+      if (updatedCanvasHeight !== undefined) setCanvasHeight(updatedCanvasHeight);
 
       const layoutData = {
         fields: updatedFields,
         copiesPerPage: updatedCopies ?? copiesPerPage,
         reportFields: updatedReportFields ?? reportFields,
         canvasElements: updatedCanvasElements ?? canvasElements,
+        canvasWidth: updatedCanvasWidth ?? canvasWidth,
+        canvasHeight: updatedCanvasHeight ?? canvasHeight,
       };
 
       if (templateId) {
@@ -92,8 +102,8 @@ export function useTicketTemplate() {
         if (data) setTemplateId(data.id);
       }
     },
-    [session?.user, templateId, copiesPerPage, reportFields, canvasElements]
+    [session?.user, templateId, copiesPerPage, reportFields, canvasElements, canvasWidth, canvasHeight]
   );
 
-  return { fields, canvasElements, reportFields, copiesPerPage, loading, saveTemplate };
+  return { fields, canvasElements, reportFields, copiesPerPage, canvasWidth, canvasHeight, loading, saveTemplate };
 }

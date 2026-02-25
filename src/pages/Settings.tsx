@@ -27,18 +27,22 @@ function ReportFieldItem({ field, onToggle }: { field: ReportField; onToggle: (i
 
 const Settings = () => {
   const navigate = useNavigate();
-  const { fields, canvasElements, reportFields, copiesPerPage, loading, saveTemplate } = useTicketTemplate();
+  const { fields, canvasElements, reportFields, copiesPerPage, canvasWidth: savedWidth, canvasHeight: savedHeight, loading, saveTemplate } = useTicketTemplate();
   const { role } = useUserRole();
   const [localCanvas, setLocalCanvas] = useState<CanvasElement[]>([]);
   const [localReportFields, setLocalReportFields] = useState<ReportField[]>([]);
   const [localCopies, setLocalCopies] = useState(2);
+  const [localWidth, setLocalWidth] = useState(800);
+  const [localHeight, setLocalHeight] = useState(500);
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
     setLocalCanvas(canvasElements);
     setLocalReportFields(reportFields);
     setLocalCopies(copiesPerPage);
-  }, [canvasElements, reportFields, copiesPerPage]);
+    setLocalWidth(savedWidth);
+    setLocalHeight(savedHeight);
+  }, [canvasElements, reportFields, copiesPerPage, savedWidth, savedHeight]);
 
   const handleCanvasChange = (els: CanvasElement[]) => {
     setLocalCanvas(els);
@@ -51,7 +55,7 @@ const Settings = () => {
   };
 
   const handleSave = async () => {
-    await saveTemplate(fields, localCopies, localReportFields, localCanvas);
+    await saveTemplate(fields, localCopies, localReportFields, localCanvas, localWidth, localHeight);
     setDirty(false);
     toast.success("Template saved!");
   };
@@ -104,7 +108,14 @@ const Settings = () => {
           </TabsList>
 
           <TabsContent value="designer">
-            <CanvasEditor elements={localCanvas} onChange={handleCanvasChange} sampleTicket={sampleTicket} />
+            <CanvasEditor
+              elements={localCanvas}
+              onChange={handleCanvasChange}
+              sampleTicket={sampleTicket}
+              canvasWidth={localWidth}
+              canvasHeight={localHeight}
+              onCanvasSizeChange={(w, h) => { setLocalWidth(w); setLocalHeight(h); setDirty(true); }}
+            />
 
             {/* Copies per page */}
             <div className="mt-6 flex items-center gap-3">
@@ -122,7 +133,7 @@ const Settings = () => {
 
           <TabsContent value="preview">
             <div className="pointer-events-none">
-              <TicketPreview ticket={sampleTicket} canvasElements={localCanvas} copiesPerPage={localCopies} />
+              <TicketPreview ticket={sampleTicket} canvasElements={localCanvas} copiesPerPage={localCopies} canvasWidth={localWidth} canvasHeight={localHeight} />
             </div>
           </TabsContent>
 
