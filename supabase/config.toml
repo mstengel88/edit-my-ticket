@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.agent-action]
 verify_jwt = false
+
+[functions.agent-stream]
+verify_jwt = false
