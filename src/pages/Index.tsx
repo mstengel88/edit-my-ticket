@@ -234,7 +234,7 @@ const Index = () => {
                       <ClipboardList className="mr-2 h-4 w-4" />
                       Audit Log
                     </DropdownMenuItem>
-                    {role === "admin" && (
+                    {role === "developer" && (
                       <DropdownMenuItem onClick={() => navigate("/admin")}>
                         <ShieldCheck className="mr-2 h-4 w-4" />
                         Admin
