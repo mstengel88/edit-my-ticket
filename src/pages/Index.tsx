@@ -5,7 +5,7 @@ import { TicketEditor } from "@/components/TicketEditor";
 import { TicketPreview } from "@/components/TicketPreview";
 import { Reports } from "@/components/Reports";
 import { useLoadriteData } from "@/hooks/useLoadriteData";
-import { ArrowLeft, Plus, RefreshCw, Loader2, LogOut, Settings, BarChart3, Menu, ClipboardList, Sun, Moon } from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw, Loader2, LogOut, Settings, BarChart3, Menu, ClipboardList, Sun, Moon, ShieldCheck } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ type View = "list" | "editor" | "preview";
 const Index = () => {
   const { tickets, loading, error, fetchData, loadFromDb } = useLoadriteData();
   const { signOut, session } = useAuth();
-  const { isAdminOrManager } = useUserRole();
+  const { isAdminOrManager, role } = useUserRole();
   const navigate = useNavigate();
   const { fields: templateFields, canvasElements, reportFields, copiesPerPage } = useTicketTemplate();
   const { theme, setTheme } = useTheme();
@@ -234,6 +234,12 @@ const Index = () => {
                       <ClipboardList className="mr-2 h-4 w-4" />
                       Audit Log
                     </DropdownMenuItem>
+                    {role === "admin" && (
+                      <DropdownMenuItem onClick={() => navigate("/admin")}>
+                        <ShieldCheck className="mr-2 h-4 w-4" />
+                        Admin
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                   </>
                 )}
