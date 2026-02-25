@@ -22,6 +22,10 @@ export interface CanvasElement {
 
 export const CANVAS_WIDTH = 800;
 export const CANVAS_HEIGHT = 500;
+export const MIN_CANVAS_WIDTH = 400;
+export const MAX_CANVAS_WIDTH = 1200;
+export const MIN_CANVAS_HEIGHT = 250;
+export const MAX_CANVAS_HEIGHT = 800;
 
 // Available ticket data fields users can add
 export const AVAILABLE_FIELDS: { key: string; label: string }[] = [

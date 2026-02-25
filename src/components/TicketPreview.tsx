@@ -12,9 +12,11 @@ interface TicketPreviewProps {
   canvasElements?: CanvasElement[];
   templateFields?: TemplateField[]; // legacy compat
   copiesPerPage?: number;
+  canvasWidth?: number;
+  canvasHeight?: number;
 }
 
-export function TicketPreview({ ticket, canvasElements, copiesPerPage = 2 }: TicketPreviewProps) {
+export function TicketPreview({ ticket, canvasElements, copiesPerPage = 2, canvasWidth = CANVAS_WIDTH, canvasHeight = CANVAS_HEIGHT }: TicketPreviewProps) {
   const elements = canvasElements || DEFAULT_CANVAS_ELEMENTS;
   const [sending, setSending] = useState(false);
 
@@ -109,8 +111,8 @@ export function TicketPreview({ ticket, canvasElements, copiesPerPage = 2 }: Tic
           key={copy}
           className={`max-w-4xl mx-auto bg-white text-black border-2 border-black/80 font-sans text-sm print:border print:shadow-none relative ${copy < copiesPerPage - 1 ? "mb-6" : ""}`}
           style={{
-            width: CANVAS_WIDTH,
-            height: CANVAS_HEIGHT,
+            width: canvasWidth,
+            height: canvasHeight,
           }}
         >
           {elements.map((el) => (
