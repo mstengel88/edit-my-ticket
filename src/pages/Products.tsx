@@ -7,9 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus, Pencil, Trash2, Search, Loader2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Plus, Pencil, Trash2, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { AppLayout } from "@/components/AppLayout";
 
 interface Product {
   id: string;
@@ -18,7 +18,6 @@ interface Product {
 }
 
 const Products = () => {
-  const navigate = useNavigate();
   const { session } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,26 +30,17 @@ const Products = () => {
   const load = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase.from("products").select("id, name, source").order("name");
-    setProducts(data || []);
+    setProducts((data as Product[]) ?? []);
     setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  const openNew = () => {
-    setEditing(null);
-    setForm({ name: "" });
-    setDialogOpen(true);
-  };
-
-  const openEdit = (p: Product) => {
-    setEditing(p);
-    setForm({ name: p.name });
-    setDialogOpen(true);
-  };
+  const openNew = () => { setEditing(null); setForm({ name: "" }); setDialogOpen(true); };
+  const openEdit = (p: Product) => { setEditing(p); setForm({ name: p.name }); setDialogOpen(true); };
 
   const handleSave = async () => {
-    if (!form.name.trim()) { toast.error("Name is required"); return; }
+    if (!form.name.trim()) return toast.error("Name is required");
     const userId = session?.user?.id;
     if (!userId) return;
     setSaving(true);
@@ -81,23 +71,15 @@ const Products = () => {
     p.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-10 border-b bg-card/80 backdrop-blur-sm">
-        <div className="container mx-auto flex items-center justify-between px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <h1 className="text-lg font-bold tracking-tight text-foreground">Products</h1>
-          </div>
-          <Button size="sm" className="gap-1.5" onClick={openNew}>
-            <Plus className="h-4 w-4" /> Add Product
-          </Button>
-        </div>
-      </header>
+  const headerExtra = (
+    <Button size="sm" className="gap-1.5" onClick={openNew}>
+      <Plus className="h-4 w-4" /> Add Product
+    </Button>
+  );
 
-      <main className="container mx-auto px-4 py-6 sm:px-6">
+  return (
+    <AppLayout title="Products" headerExtra={headerExtra}>
+      <div className="container mx-auto px-4 py-6 sm:px-6">
         <div className="relative mb-4 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
@@ -146,7 +128,7 @@ const Products = () => {
             </Table>
           </div>
         )}
-      </main>
+      </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
@@ -168,7 +150,7 @@ const Products = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </AppLayout>
   );
 };
 

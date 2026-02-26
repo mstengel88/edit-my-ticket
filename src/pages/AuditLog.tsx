@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Loader2, RefreshCw } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Loader2, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { AppLayout } from "@/components/AppLayout";
 
 interface AuditEntry {
   id: string;
@@ -28,22 +28,17 @@ const actionColors: Record<string, string> = {
   sign_out: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
 };
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString("en-US", {
-    month: "2-digit", day: "2-digit", year: "numeric",
-    hour: "2-digit", minute: "2-digit", hour12: true,
-  });
-}
+const formatDate = (iso: string) => {
+  const d = new Date(iso);
+  return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+};
 
-function formatDetails(details: Record<string, unknown>): string {
-  if (!details || Object.keys(details).length === 0) return "-";
-  return Object.entries(details)
-    .map(([k, v]) => `${k}: ${v}`)
-    .join(", ");
-}
+const formatDetails = (details: Record<string, unknown>) => {
+  if (!details || Object.keys(details).length === 0) return "—";
+  return Object.entries(details).map(([k, v]) => `${k}: ${v}`).join(", ");
+};
 
 const AuditLog = () => {
-  const navigate = useNavigate();
   const [logs, setLogs] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionFilter, setActionFilter] = useState("all");
@@ -79,28 +74,18 @@ const AuditLog = () => {
     setLoading(false);
   }, [actionFilter, entityFilter]);
 
-  useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
+  useEffect(() => { fetchLogs(); }, [fetchLogs]);
+
+  const headerExtra = (
+    <Button variant="outline" size="sm" onClick={fetchLogs} disabled={loading} className="gap-1.5">
+      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+      Refresh
+    </Button>
+  );
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-10 border-b bg-card/80 backdrop-blur-sm">
-        <div className="container mx-auto flex items-center gap-3 px-4 py-3 sm:px-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-lg font-bold tracking-tight text-foreground sm:text-xl">Audit Log</h1>
-          <div className="ml-auto">
-            <Button variant="outline" size="sm" onClick={fetchLogs} disabled={loading} className="gap-1.5">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              Refresh
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-6 sm:px-6 space-y-4">
+    <AppLayout title="Audit Log" headerExtra={headerExtra}>
+      <div className="container mx-auto px-4 py-6 sm:px-6 space-y-4">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Filters</CardTitle>
@@ -144,33 +129,33 @@ const AuditLog = () => {
           <CardContent className="p-0">
             <Table>
               <TableHeader>
-                 <TableRow>
-                   <TableHead>Date</TableHead>
-                   <TableHead>User</TableHead>
-                   <TableHead>Action</TableHead>
-                   <TableHead>Type</TableHead>
-                   <TableHead>Entity ID</TableHead>
-                   <TableHead>Details</TableHead>
-                 </TableRow>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>User</TableHead>
+                  <TableHead>Action</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Entity ID</TableHead>
+                  <TableHead>Details</TableHead>
+                </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
-                   <TableRow>
-                     <TableCell colSpan={6} className="text-center py-12">
-                       <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-                     </TableCell>
-                   </TableRow>
-                 ) : logs.length === 0 ? (
-                   <TableRow>
-                     <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
-                       No audit logs found
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-12">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                    </TableCell>
+                  </TableRow>
+                ) : logs.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
+                      No audit logs found
                     </TableCell>
                   </TableRow>
                 ) : (
                   logs.map((log) => (
                     <TableRow key={log.id}>
-                     <TableCell className="whitespace-nowrap text-sm">{formatDate(log.created_at)}</TableCell>
-                     <TableCell className="text-sm truncate max-w-[150px]">{log.user_display_name ?? "-"}</TableCell>
+                      <TableCell className="whitespace-nowrap text-sm">{formatDate(log.created_at)}</TableCell>
+                      <TableCell className="text-sm truncate max-w-[150px]">{log.user_display_name ?? "-"}</TableCell>
                       <TableCell>
                         <Badge variant="secondary" className={actionColors[log.action] ?? ""}>
                           {log.action}
@@ -190,8 +175,8 @@ const AuditLog = () => {
             </Table>
           </CardContent>
         </Card>
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   );
 };
 
