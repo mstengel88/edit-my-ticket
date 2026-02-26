@@ -15,6 +15,8 @@ import AuditLog from "./pages/AuditLog";
 import Admin from "./pages/Admin";
 import Customers from "./pages/Customers";
 import Products from "./pages/Products";
+import Feedback from "./pages/Feedback";
+import UserRoles from "./pages/UserRoles";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -99,6 +101,8 @@ const App = () => (
           <Route path="/admin" element={<DeveloperRoute><Admin /></DeveloperRoute>} />
           <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
           <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
+          <Route path="/feedback" element={<ProtectedRoute><Feedback /></ProtectedRoute>} />
+          <Route path="/user-roles" element={<AdminRoute><UserRoles /></AdminRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
