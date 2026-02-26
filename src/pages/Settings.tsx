@@ -4,16 +4,13 @@ import { CanvasElement, ReportField } from "@/types/template";
 import { TicketData, sampleTickets } from "@/types/ticket";
 import { TicketPreview } from "@/components/TicketPreview";
 import { CanvasEditor } from "@/components/template-editor/CanvasEditor";
-import { FeedbackForm } from "@/components/FeedbackForm";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Save, Loader2, Users, MessageSquarePlus } from "lucide-react";
+import { Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { UserRolesManager } from "@/components/UserRolesManager";
-import { useUserRole } from "@/hooks/useUserRole";
 import { AppLayout } from "@/components/AppLayout";
 
 function ReportFieldItem({ field, onToggle }: { field: ReportField; onToggle: (id: string) => void }) {
@@ -26,7 +23,6 @@ function ReportFieldItem({ field, onToggle }: { field: ReportField; onToggle: (i
 }
 
 const Settings = () => {
-  const { role } = useUserRole();
   const { fields, canvasElements, reportFields, copiesPerPage, canvasWidth: savedWidth, canvasHeight: savedHeight, loading, saveTemplate } = useTicketTemplate();
 
   const [localCanvas, setLocalCanvas] = useState<CanvasElement[]>(canvasElements);
@@ -85,14 +81,6 @@ const Settings = () => {
             <TabsTrigger value="designer">Ticket Designer</TabsTrigger>
             <TabsTrigger value="preview">Live Preview</TabsTrigger>
             <TabsTrigger value="reports">Reports</TabsTrigger>
-            {(role === "admin" || role === "developer") && (
-              <TabsTrigger value="roles" className="gap-1.5">
-                <Users className="h-4 w-4" /> User Roles
-              </TabsTrigger>
-            )}
-            <TabsTrigger value="feedback" className="gap-1.5">
-              <MessageSquarePlus className="h-4 w-4" /> Feedback
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="designer">
@@ -134,15 +122,6 @@ const Settings = () => {
             </div>
           </TabsContent>
 
-          {(role === "admin" || role === "developer") && (
-            <TabsContent value="roles">
-              <UserRolesManager />
-            </TabsContent>
-          )}
-
-          <TabsContent value="feedback">
-            <FeedbackForm />
-          </TabsContent>
         </Tabs>
       </div>
     </AppLayout>
