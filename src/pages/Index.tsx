@@ -5,43 +5,31 @@ import { TicketEditor } from "@/components/TicketEditor";
 import { TicketPreview } from "@/components/TicketPreview";
 import { Reports } from "@/components/Reports";
 import { useLoadriteData } from "@/hooks/useLoadriteData";
-import { ArrowLeft, Plus, RefreshCw, Loader2, LogOut, Settings, BarChart3, Menu, ClipboardList, Sun, Moon, ShieldCheck, Users, Package } from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw, Loader2, BarChart3 } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
 import { logAudit } from "@/lib/auditLog";
 import { useTicketTemplate } from "@/hooks/useTicketTemplate";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useTheme } from "next-themes";
+import { AppLayout } from "@/components/AppLayout";
 
 type View = "list" | "editor" | "preview";
 
 const Index = () => {
   const { tickets, loading, error, fetchData, loadFromDb } = useLoadriteData();
   const { signOut, session } = useAuth();
-  const { isAdminOrManager, role } = useUserRole();
-  const navigate = useNavigate();
+  const { isAdminOrManager } = useUserRole();
   const { fields: templateFields, canvasElements, reportFields, copiesPerPage, canvasWidth, canvasHeight } = useTicketTemplate();
-  const { theme, setTheme } = useTheme();
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [view, setView] = useState<View>("list");
   const [activeTab, setActiveTab] = useState<string>("tickets");
 
-  // Load persisted tickets on mount
-  useEffect(() => {
-    loadFromDb();
-  }, [loadFromDb]);
+  useEffect(() => { loadFromDb(); }, [loadFromDb]);
 
-  // Show errors
-  useEffect(() => {
-    if (error) {
-      toast.error(error);
-    }
-  }, [error]);
+  useEffect(() => { if (error) toast.error(error); }, [error]);
 
   const handleSelectTicket = (ticket: TicketData) => {
     setSelectedTicket({ ...ticket });
@@ -110,7 +98,6 @@ const Index = () => {
       return;
     }
 
-    // Sync lookup tables
     const userId = session?.user?.id;
     if (userId) {
       if (updated.customer?.trim() && updated.customer !== "NOT SPECIFIED") {
@@ -172,102 +159,35 @@ const Index = () => {
     toast.info("Syncing from Loadrite...");
   };
 
-  return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-10 border-b bg-card/80 backdrop-blur-sm no-print">
-        <div className="container mx-auto flex items-center justify-between px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-3">
-            {view !== "list" && activeTab === "tickets" && (
-              <Button variant="ghost" size="icon" onClick={handleBack}>
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            )}
-            <div>
-              <h1 className="text-lg font-bold tracking-tight text-foreground sm:text-xl">
-                Ticket Manager
-              </h1>
-              {view === "list" && activeTab === "tickets" && (
-                <p className="text-xs text-muted-foreground">
-                  {tickets.length} ticket{tickets.length !== 1 ? "s" : ""}
-                  {loading && " · syncing..."}
-                </p>
-              )}
-            </div>
-          </div>
-          <div className="flex gap-2">
-            {view === "list" && activeTab === "tickets" && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRefresh}
-                  disabled={loading}
-                  className="gap-1.5"
-                >
-                  {loading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4" />
-                  )}
-                  Sync
-                </Button>
-                <Button onClick={handleNewTicket} size="sm" className="gap-1.5">
-                  <Plus className="h-4 w-4" />
-                  New Ticket
-                </Button>
-              </>
-            )}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {isAdminOrManager && (
-                  <>
-                    <DropdownMenuItem onClick={() => navigate("/settings")}>
-                      <Settings className="mr-2 h-4 w-4" />
-                      Settings
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate("/audit-log")}>
-                      <ClipboardList className="mr-2 h-4 w-4" />
-                      Audit Log
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                  </>
-                )}
-                <DropdownMenuItem onClick={() => navigate("/customers")}>
-                  <Users className="mr-2 h-4 w-4" />
-                  Customers
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/products")}>
-                  <Package className="mr-2 h-4 w-4" />
-                  Products
-                </DropdownMenuItem>
-                {role === "developer" && (
-                  <DropdownMenuItem onClick={() => navigate("/admin")}>
-                    <ShieldCheck className="mr-2 h-4 w-4" />
-                    Admin
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-                  {theme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
-                  {theme === "dark" ? "Light Mode" : "Dark Mode"}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={signOut}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign Out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      </header>
+  const subtitle = view === "list" && activeTab === "tickets"
+    ? `${tickets.length} ticket${tickets.length !== 1 ? "s" : ""}${loading ? " · syncing..." : ""}`
+    : undefined;
 
-      <main className="container mx-auto px-4 py-6 sm:px-6">
+  const headerExtra = (
+    <>
+      {view !== "list" && activeTab === "tickets" && (
+        <Button variant="ghost" size="icon" onClick={handleBack}>
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+      )}
+      {view === "list" && activeTab === "tickets" && (
+        <>
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="gap-1.5">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Sync
+          </Button>
+          <Button onClick={handleNewTicket} size="sm" className="gap-1.5">
+            <Plus className="h-4 w-4" />
+            New Ticket
+          </Button>
+        </>
+      )}
+    </>
+  );
+
+  return (
+    <AppLayout title="Tickets" subtitle={subtitle} headerExtra={headerExtra}>
+      <div className="container mx-auto px-4 py-6 sm:px-6">
         {view === "list" ? (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="mb-4">
@@ -294,8 +214,8 @@ const Index = () => {
             )}
           </>
         )}
-      </main>
-    </div>
+      </div>
+    </AppLayout>
   );
 };
 

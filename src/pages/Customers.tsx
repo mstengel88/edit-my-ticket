@@ -6,9 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Pencil, Trash2, Search, Loader2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Plus, Pencil, Trash2, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { AppLayout } from "@/components/AppLayout";
 
 interface Customer {
   id: string;
@@ -17,7 +17,6 @@ interface Customer {
 }
 
 const Customers = () => {
-  const navigate = useNavigate();
   const { session } = useAuth();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,26 +29,17 @@ const Customers = () => {
   const load = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase.from("customers").select("id, name, email").order("name");
-    setCustomers(data || []);
+    setCustomers((data as Customer[]) ?? []);
     setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  const openNew = () => {
-    setEditing(null);
-    setForm({ name: "", email: "" });
-    setDialogOpen(true);
-  };
-
-  const openEdit = (c: Customer) => {
-    setEditing(c);
-    setForm({ name: c.name, email: c.email });
-    setDialogOpen(true);
-  };
+  const openNew = () => { setEditing(null); setForm({ name: "", email: "" }); setDialogOpen(true); };
+  const openEdit = (c: Customer) => { setEditing(c); setForm({ name: c.name, email: c.email }); setDialogOpen(true); };
 
   const handleSave = async () => {
-    if (!form.name.trim()) { toast.error("Name is required"); return; }
+    if (!form.name.trim()) return toast.error("Name is required");
     const userId = session?.user?.id;
     if (!userId) return;
     setSaving(true);
@@ -81,23 +71,15 @@ const Customers = () => {
     c.email.toLowerCase().includes(search.toLowerCase())
   );
 
-  return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-10 border-b bg-card/80 backdrop-blur-sm">
-        <div className="container mx-auto flex items-center justify-between px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/")}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <h1 className="text-lg font-bold tracking-tight text-foreground">Customers</h1>
-          </div>
-          <Button size="sm" className="gap-1.5" onClick={openNew}>
-            <Plus className="h-4 w-4" /> Add Customer
-          </Button>
-        </div>
-      </header>
+  const headerExtra = (
+    <Button size="sm" className="gap-1.5" onClick={openNew}>
+      <Plus className="h-4 w-4" /> Add Customer
+    </Button>
+  );
 
-      <main className="container mx-auto px-4 py-6 sm:px-6">
+  return (
+    <AppLayout title="Customers" headerExtra={headerExtra}>
+      <div className="container mx-auto px-4 py-6 sm:px-6">
         <div className="relative mb-4 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input placeholder="Search customers..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
@@ -142,7 +124,7 @@ const Customers = () => {
             </Table>
           </div>
         )}
-      </main>
+      </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
@@ -168,7 +150,7 @@ const Customers = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </AppLayout>
   );
 };
 
