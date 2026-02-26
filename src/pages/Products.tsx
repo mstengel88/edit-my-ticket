@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Search, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Loader2, RefreshCw, Download } from "lucide-react";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
+import { getProducts as getLoadriteProducts } from "@/services/loadrite";
 
 interface Product {
   id: string;
@@ -26,6 +27,40 @@ const Products = () => {
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState({ name: "" });
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSync = async () => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+    setSyncing(true);
+    try {
+      const lrProducts = await getLoadriteProducts();
+      if (!lrProducts?.length) { toast.info("No products found in Loadrite"); setSyncing(false); return; }
+      const names = [...new Set(lrProducts.map((p: { Name: string }) => p.Name).filter(Boolean))];
+      let added = 0;
+      for (const name of names) {
+        const { error } = await supabase.from("products").upsert(
+          { name: name as string, user_id: userId, source: "loadrite" },
+          { onConflict: "name" }
+        );
+        if (!error) added++;
+      }
+      toast.success(`Synced ${added} products from Loadrite`);
+      load();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Sync failed");
+    }
+    setSyncing(false);
+  };
+
+  const handleExportCsv = () => {
+    if (!filtered.length) return toast.info("No products to export");
+    const csv = ["Name,Source", ...filtered.map((p) => `"${p.name.replace(/"/g, '""')}","${p.source}"`)].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "products.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -72,9 +107,17 @@ const Products = () => {
   );
 
   const headerExtra = (
-    <Button size="sm" className="gap-1.5" onClick={openNew}>
-      <Plus className="h-4 w-4" /> Add Product
-    </Button>
+    <div className="flex gap-2">
+      <Button size="sm" variant="outline" className="gap-1.5" onClick={handleExportCsv}>
+        <Download className="h-4 w-4" /> Export CSV
+      </Button>
+      <Button size="sm" variant="outline" className="gap-1.5" onClick={handleSync} disabled={syncing}>
+        {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Sync Loadrite
+      </Button>
+      <Button size="sm" className="gap-1.5" onClick={openNew}>
+        <Plus className="h-4 w-4" /> Add Product
+      </Button>
+    </div>
   );
 
   return (
