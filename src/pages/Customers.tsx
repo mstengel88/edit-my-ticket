@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Search, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Loader2, RefreshCw, Download } from "lucide-react";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
 
@@ -25,6 +25,41 @@ const Customers = () => {
   const [editing, setEditing] = useState<Customer | null>(null);
   const [form, setForm] = useState({ name: "", email: "" });
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSync = async () => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+    setSyncing(true);
+    try {
+      // Pull unique customer names from tickets (sourced from Loadrite UserData1)
+      const { data: tickets } = await supabase.from("tickets").select("customer").eq("user_id", userId);
+      const names = [...new Set((tickets ?? []).map((t) => t.customer).filter(Boolean))];
+      if (!names.length) { toast.info("No customers found in tickets"); setSyncing(false); return; }
+      let added = 0;
+      for (const name of names) {
+        const { error } = await supabase.from("customers").upsert(
+          { name, user_id: userId, email: "" },
+          { onConflict: "name,user_id" }
+        );
+        if (!error) added++;
+      }
+      toast.success(`Synced ${added} customers from tickets`);
+      load();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Sync failed");
+    }
+    setSyncing(false);
+  };
+
+  const handleExportCsv = () => {
+    if (!filtered.length) return toast.info("No customers to export");
+    const csv = ["Name,Email", ...filtered.map((c) => `"${c.name.replace(/"/g, '""')}","${c.email}"`)].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "customers.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -72,9 +107,17 @@ const Customers = () => {
   );
 
   const headerExtra = (
-    <Button size="sm" className="gap-1.5" onClick={openNew}>
-      <Plus className="h-4 w-4" /> Add Customer
-    </Button>
+    <div className="flex gap-2">
+      <Button size="sm" variant="outline" className="gap-1.5" onClick={handleExportCsv}>
+        <Download className="h-4 w-4" /> Export CSV
+      </Button>
+      <Button size="sm" variant="outline" className="gap-1.5" onClick={handleSync} disabled={syncing}>
+        {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Sync from Tickets
+      </Button>
+      <Button size="sm" className="gap-1.5" onClick={openNew}>
+        <Plus className="h-4 w-4" /> Add Customer
+      </Button>
+    </div>
   );
 
   return (
