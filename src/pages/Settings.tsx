@@ -85,7 +85,7 @@ const Settings = () => {
             <TabsTrigger value="designer">Ticket Designer</TabsTrigger>
             <TabsTrigger value="preview">Live Preview</TabsTrigger>
             <TabsTrigger value="reports">Reports</TabsTrigger>
-            {role === "admin" && (
+            {(role === "admin" || role === "developer") && (
               <TabsTrigger value="roles" className="gap-1.5">
                 <Users className="h-4 w-4" /> User Roles
               </TabsTrigger>
@@ -134,7 +134,7 @@ const Settings = () => {
             </div>
           </TabsContent>
 
-          {role === "admin" && (
+          {(role === "admin" || role === "developer") && (
             <TabsContent value="roles">
               <UserRolesManager />
             </TabsContent>
