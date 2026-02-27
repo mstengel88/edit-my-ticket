@@ -69,13 +69,12 @@ const Settings = () => {
 
   const handleRestore = (layout: any) => {
     restoreVersion(layout);
-    if (layout.canvasElements) setLocalCanvas(layout.canvasElements);
-    if (layout.fields) setFields_unused_but_ok; // fields come from hook
+    if (Array.isArray(layout.canvasElements)) setLocalCanvas(layout.canvasElements);
     if (layout.copiesPerPage) setLocalCopies(layout.copiesPerPage);
-    if (layout.reportFields) setLocalReportFields(layout.reportFields);
+    if (Array.isArray(layout.reportFields)) setLocalReportFields(layout.reportFields);
     if (layout.canvasWidth) setLocalWidth(layout.canvasWidth);
     if (layout.canvasHeight) setLocalHeight(layout.canvasHeight);
-    if (layout.emailElements) setLocalEmailElements(layout.emailElements);
+    if (Array.isArray(layout.emailElements)) setLocalEmailElements(layout.emailElements);
     if (layout.emailCanvasWidth) setLocalEmailW(layout.emailCanvasWidth);
     if (layout.emailCanvasHeight) setLocalEmailH(layout.emailCanvasHeight);
     if (layout.reportEmailConfig) setLocalReportEmailConfig({ ...localReportEmailConfig, ...layout.reportEmailConfig });
