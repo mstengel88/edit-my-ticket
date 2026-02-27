@@ -74,6 +74,57 @@ export const DEFAULT_CANVAS_ELEMENTS: CanvasElement[] = [
   { id: "customerName", type: "field", key: "customerName", label: "Received By", x: 105, y: 270, width: 400, height: 22, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: false },
 ];
 
+// ---- Email template types ----
+
+// Available fields for email templates (same as ticket fields)
+export const EMAIL_AVAILABLE_FIELDS = AVAILABLE_FIELDS;
+
+// Default ticket email canvas layout (table-friendly, horizontal rows)
+export const DEFAULT_TICKET_EMAIL_ELEMENTS: CanvasElement[] = [
+  { id: "e-logo", type: "logo", label: "Logo", x: 20, y: 12, width: 60, height: 48, fontSize: 14, fontWeight: "normal", textAlign: "left", showLabel: false },
+  { id: "e-companyName", type: "field", key: "companyName", label: "Company", x: 90, y: 12, width: 220, height: 22, fontSize: 16, fontWeight: "bold", textAlign: "left", showLabel: false },
+  { id: "e-companyWebsite", type: "field", key: "companyWebsite", label: "Website", x: 90, y: 34, width: 220, height: 16, fontSize: 11, fontWeight: "normal", textAlign: "left", showLabel: false },
+  { id: "e-companyEmail", type: "field", key: "companyEmail", label: "Email", x: 90, y: 50, width: 220, height: 16, fontSize: 11, fontWeight: "normal", textAlign: "left", showLabel: false },
+  { id: "e-companyPhone", type: "field", key: "companyPhone", label: "Phone", x: 90, y: 66, width: 220, height: 16, fontSize: 11, fontWeight: "normal", textAlign: "left", showLabel: false },
+  { id: "e-ticketLabel", type: "label", label: "Ticket No:", content: "Ticket No:", x: 480, y: 12, width: 110, height: 18, fontSize: 13, fontWeight: "normal", textAlign: "right", showLabel: false },
+  { id: "e-jobNumber", type: "field", key: "jobNumber", label: "Ticket No", x: 480, y: 30, width: 110, height: 30, fontSize: 22, fontWeight: "bold", textAlign: "right", showLabel: false },
+  { id: "e-div1", type: "divider", label: "Divider", x: 16, y: 88, width: 568, height: 2, fontSize: 14, fontWeight: "normal", textAlign: "left", showLabel: false },
+  { id: "e-jobName", type: "field", key: "jobName", label: "Job", x: 16, y: 98, width: 280, height: 20, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: true },
+  { id: "e-dateTime", type: "field", key: "dateTime", label: "Date", x: 300, y: 98, width: 290, height: 20, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: true },
+  { id: "e-customer", type: "field", key: "customer", label: "Customer", x: 16, y: 122, width: 280, height: 20, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: true },
+  { id: "e-truck", type: "field", key: "truck", label: "Truck", x: 300, y: 122, width: 290, height: 20, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: true },
+  { id: "e-div2", type: "divider", label: "Divider", x: 16, y: 148, width: 568, height: 2, fontSize: 14, fontWeight: "normal", textAlign: "left", showLabel: false },
+  { id: "e-product", type: "field", key: "product", label: "Product", x: 16, y: 158, width: 300, height: 20, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: true },
+  { id: "e-totalAmount", type: "field", key: "totalAmount", label: "Total", x: 400, y: 155, width: 120, height: 26, fontSize: 20, fontWeight: "bold", textAlign: "right", showLabel: false },
+  { id: "e-totalUnit", type: "field", key: "totalUnit", label: "Unit", x: 530, y: 160, width: 60, height: 18, fontSize: 13, fontWeight: "normal", textAlign: "left", showLabel: false },
+  { id: "e-div3", type: "divider", label: "Divider", x: 16, y: 185, width: 568, height: 2, fontSize: 14, fontWeight: "normal", textAlign: "left", showLabel: false },
+  { id: "e-note", type: "field", key: "note", label: "Note", x: 16, y: 195, width: 574, height: 20, fontSize: 13, fontWeight: "normal", textAlign: "left", showLabel: true },
+  { id: "e-receivedLabel", type: "label", label: "Received:", content: "Received:", x: 16, y: 220, width: 70, height: 18, fontSize: 11, fontWeight: "normal", textAlign: "left", showLabel: false },
+  { id: "e-customerName", type: "field", key: "customerName", label: "Received By", x: 90, y: 220, width: 300, height: 20, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: false },
+];
+
+export const EMAIL_CANVAS_WIDTH = 600;
+export const EMAIL_CANVAS_HEIGHT = 260;
+
+// Report email config (section-based, not full canvas)
+export interface ReportEmailConfig {
+  showSummaryCards: boolean;
+  showCustomerBreakdown: boolean;
+  showProductBreakdown: boolean;
+  showTicketDetails: boolean;
+  headerColor: string;
+  accentColor: string;
+}
+
+export const DEFAULT_REPORT_EMAIL_CONFIG: ReportEmailConfig = {
+  showSummaryCards: true,
+  showCustomerBreakdown: true,
+  showProductBreakdown: true,
+  showTicketDetails: true,
+  headerColor: "#222222",
+  accentColor: "#f5f5f5",
+};
+
 // ---- Legacy types kept for backward compatibility with reports ----
 export interface TemplateField {
   id: string;
