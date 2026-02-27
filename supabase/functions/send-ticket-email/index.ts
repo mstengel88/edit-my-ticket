@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { to, subject, ticket, logoBase64 } = await req.json();
+    const { to, subject, ticket, logoBase64, emailElements } = await req.json();
 
     if (!to || !subject || !ticket) {
       return new Response(JSON.stringify({ error: "Missing required fields: to, subject, ticket" }), {
@@ -52,7 +52,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const html = buildTicketEmailHtml(ticket, logoBase64);
+    const html = emailElements && emailElements.length > 0
+      ? buildFromCanvasElements(ticket, logoBase64, emailElements)
+      : buildTicketEmailHtml(ticket, logoBase64);
 
     const resendRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -92,6 +94,89 @@ Deno.serve(async (req) => {
   }
 });
 
+interface CanvasEl {
+  id: string;
+  type: "field" | "label" | "divider" | "logo";
+  key?: string;
+  label: string;
+  content?: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  fontSize: number;
+  fontWeight: "normal" | "bold";
+  textAlign: "left" | "center" | "right";
+  showLabel: boolean;
+}
+
+function getTicketValue(ticket: Record<string, string>, key: string): string {
+  return ticket[key] || "—";
+}
+
+function buildFromCanvasElements(ticket: Record<string, string>, logoBase64: string | undefined, elements: CanvasEl[]): string {
+  // Sort elements by Y position, then X for row grouping
+  const sorted = [...elements].sort((a, b) => a.y - b.y || a.x - b.x);
+
+  // Group elements into rows (elements within 15px vertical distance)
+  const rows: CanvasEl[][] = [];
+  let currentRow: CanvasEl[] = [];
+  let currentY = -100;
+
+  for (const el of sorted) {
+    if (el.y - currentY > 15 || currentRow.length === 0) {
+      if (currentRow.length > 0) rows.push(currentRow);
+      currentRow = [el];
+      currentY = el.y;
+    } else {
+      currentRow.push(el);
+    }
+  }
+  if (currentRow.length > 0) rows.push(currentRow);
+
+  const renderElement = (el: CanvasEl): string => {
+    if (el.type === "logo") {
+      if (logoBase64) {
+        return `<img src="${logoBase64}" alt="${ticket.companyName || ''}" style="height:${el.height}px;width:auto;max-width:${el.width}px;" />`;
+      }
+      return "";
+    }
+    if (el.type === "divider") {
+      return `<hr style="border:none;border-top:1px solid #ccc;margin:0;" />`;
+    }
+    if (el.type === "label") {
+      return `<span style="font-size:${el.fontSize}px;font-weight:${el.fontWeight};display:block;text-align:${el.textAlign};color:#222;">${el.content || el.label}</span>`;
+    }
+    // field type
+    const value = getTicketValue(ticket, el.key || "");
+    const labelPrefix = el.showLabel ? `<span style="color:#666;font-weight:normal;">${el.label}: </span>` : "";
+    return `<span style="font-size:${el.fontSize}px;font-weight:${el.fontWeight};display:block;text-align:${el.textAlign};color:#222;">${labelPrefix}${value}</span>`;
+  };
+
+  const rowsHtml = rows.map((row) => {
+    if (row.length === 1 && row[0].type === "divider") {
+      return `<tr><td colspan="4" style="padding:4px 16px;"><hr style="border:none;border-top:1px solid #ccc;margin:0;" /></td></tr>`;
+    }
+    const cells = row.map((el) => {
+      const align = el.textAlign || "left";
+      return `<td style="padding:2px 8px;vertical-align:top;text-align:${align};width:${el.width}px;">${renderElement(el)}</td>`;
+    }).join("");
+    return `<tr>${cells}</tr>`;
+  }).join("");
+
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /></head>
+<body style="font-family:Arial,sans-serif;color:#222;max-width:600px;margin:0 auto;padding:20px;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="border:2px solid #333;border-collapse:collapse;">
+    ${rowsHtml}
+  </table>
+  <p style="font-size:11px;color:#999;margin-top:16px;">Sent from ${ticket.companyName || "Ticket Printer"}</p>
+</body>
+</html>`;
+}
+
+// Fallback: original hardcoded HTML
 function buildTicketEmailHtml(ticket: Record<string, string>, logoBase64?: string): string {
   const logoHtml = logoBase64
     ? `<img src="${logoBase64}" alt="${ticket.companyName || ''}" style="height: 48px; width: auto; margin-right: 12px;" />`
