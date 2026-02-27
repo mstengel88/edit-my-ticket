@@ -100,15 +100,29 @@ export function CanvasEditor({ elements, onChange, sampleTicket, canvasWidth = C
       {/* Toolbar */}
       <div className="flex items-center gap-3 flex-wrap">
         <ElementToolbar elements={elements} onAdd={handleAdd} />
-        <label className="flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer select-none ml-auto">
-          <input
-            type="checkbox"
-            checked={showGrid}
-            onChange={(e) => setShowGrid(e.target.checked)}
-            className="accent-primary h-4 w-4"
-          />
-          Grid
-        </label>
+        <div className="flex items-center gap-2 ml-auto">
+          <label className="flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={showGrid}
+              onChange={(e) => setShowGrid(e.target.checked)}
+              className="accent-primary h-4 w-4"
+            />
+            Grid
+          </label>
+          {showGrid && (
+            <Input
+              type="number"
+              value={gridSize}
+              min={5}
+              max={100}
+              step={5}
+              onChange={(e) => setGridSize(Math.min(100, Math.max(5, Number(e.target.value) || 5)))}
+              className="w-16 h-7 text-xs"
+              title="Grid size (px)"
+            />
+          )}
+        </div>
       </div>
 
       {/* Canvas Size Controls */}
