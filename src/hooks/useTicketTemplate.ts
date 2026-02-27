@@ -20,6 +20,22 @@ export function useTicketTemplate() {
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Restore from a version snapshot
+  const restoreVersion = (layout: any) => {
+    if (layout && typeof layout === "object" && !Array.isArray(layout)) {
+      if (Array.isArray(layout.canvasElements)) setCanvasElements(layout.canvasElements);
+      if (Array.isArray(layout.fields)) setFields(layout.fields);
+      if (layout.copiesPerPage) setCopiesPerPage(layout.copiesPerPage);
+      if (layout.canvasWidth) setCanvasWidth(layout.canvasWidth);
+      if (layout.canvasHeight) setCanvasHeight(layout.canvasHeight);
+      if (Array.isArray(layout.reportFields)) setReportFields(layout.reportFields);
+      if (Array.isArray(layout.emailElements)) setEmailElements(layout.emailElements);
+      if (layout.emailCanvasWidth) setEmailCanvasWidth(layout.emailCanvasWidth);
+      if (layout.emailCanvasHeight) setEmailCanvasHeight(layout.emailCanvasHeight);
+      if (layout.reportEmailConfig) setReportEmailConfig({ ...DEFAULT_REPORT_EMAIL_CONFIG, ...layout.reportEmailConfig });
+    }
+  };
+
   // Email template state
   const [emailElements, setEmailElements] = useState<CanvasElement[]>(DEFAULT_TICKET_EMAIL_ELEMENTS);
   const [emailCanvasWidth, setEmailCanvasWidth] = useState(EMAIL_CANVAS_WIDTH);
@@ -113,6 +129,13 @@ export function useTicketTemplate() {
       };
 
       if (templateId) {
+        // Save version snapshot before overwriting
+        await supabase.from("template_versions").insert({
+          template_id: templateId,
+          user_id: session.user.id,
+          layout: layoutData as any,
+          label: "",
+        });
         await supabase
           .from("ticket_templates")
           .update({ layout: layoutData as any })
@@ -132,6 +155,6 @@ export function useTicketTemplate() {
   return {
     fields, canvasElements, reportFields, copiesPerPage, canvasWidth, canvasHeight,
     emailElements, emailCanvasWidth, emailCanvasHeight, reportEmailConfig,
-    loading, saveTemplate,
+    loading, saveTemplate, templateId, restoreVersion,
   };
 }

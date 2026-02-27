@@ -4,6 +4,7 @@ import { CanvasElement, ReportField, ReportEmailConfig, EMAIL_CANVAS_WIDTH, EMAI
 import { TicketData, sampleTickets } from "@/types/ticket";
 import { TicketPreview } from "@/components/TicketPreview";
 import { CanvasEditor } from "@/components/template-editor/CanvasEditor";
+import { VersionHistory } from "@/components/template-editor/VersionHistory";
 import { ReportEmailConfigEditor } from "@/components/template-editor/ReportEmailConfigEditor";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -29,7 +30,7 @@ const Settings = () => {
     canvasWidth: savedWidth, canvasHeight: savedHeight,
     emailElements, emailCanvasWidth: savedEmailW, emailCanvasHeight: savedEmailH,
     reportEmailConfig: savedReportEmailConfig,
-    loading, saveTemplate,
+    loading, saveTemplate, templateId, restoreVersion,
   } = useTicketTemplate();
 
   const [localCanvas, setLocalCanvas] = useState<CanvasElement[]>(canvasElements);
@@ -66,6 +67,20 @@ const Settings = () => {
   const handleEmailCanvasChange = (elements: CanvasElement[]) => { setLocalEmailElements(elements); setDirty(true); };
   const handleReportEmailConfigChange = (config: ReportEmailConfig) => { setLocalReportEmailConfig(config); setDirty(true); };
 
+  const handleRestore = (layout: any) => {
+    restoreVersion(layout);
+    if (Array.isArray(layout.canvasElements)) setLocalCanvas(layout.canvasElements);
+    if (layout.copiesPerPage) setLocalCopies(layout.copiesPerPage);
+    if (Array.isArray(layout.reportFields)) setLocalReportFields(layout.reportFields);
+    if (layout.canvasWidth) setLocalWidth(layout.canvasWidth);
+    if (layout.canvasHeight) setLocalHeight(layout.canvasHeight);
+    if (Array.isArray(layout.emailElements)) setLocalEmailElements(layout.emailElements);
+    if (layout.emailCanvasWidth) setLocalEmailW(layout.emailCanvasWidth);
+    if (layout.emailCanvasHeight) setLocalEmailH(layout.emailCanvasHeight);
+    if (layout.reportEmailConfig) setLocalReportEmailConfig({ ...localReportEmailConfig, ...layout.reportEmailConfig });
+    setDirty(true);
+  };
+
   const handleSave = async () => {
     await saveTemplate(
       fields, localCopies, localReportFields, localCanvas, localWidth, localHeight,
@@ -91,9 +106,12 @@ const Settings = () => {
   }
 
   const headerExtra = (
-    <Button onClick={handleSave} disabled={!dirty} size="sm" className="gap-1.5">
-      <Save className="h-4 w-4" /> Save Template
-    </Button>
+    <div className="flex items-center gap-2">
+      <VersionHistory templateId={templateId} onRestore={handleRestore} />
+      <Button onClick={handleSave} disabled={!dirty} size="sm" className="gap-1.5">
+        <Save className="h-4 w-4" /> Save Template
+      </Button>
+    </div>
   );
 
   return (
