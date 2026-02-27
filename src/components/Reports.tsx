@@ -21,6 +21,7 @@ type TimePeriod = "today" | "yesterday" | "weekly" | "monthly" | "yearly" | "cus
 interface ReportsProps {
   tickets: TicketData[];
   reportFields?: ReportField[];
+  reportEmailConfig?: ReportEmailConfig;
 }
 
 function parseTicketDate(dateTime: string): Date | null {
