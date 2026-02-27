@@ -116,7 +116,7 @@ function getTicketValue(ticket: Record<string, string>, key: string): string {
 
 function buildFromCanvasElements(ticket: Record<string, string>, logoBase64: string | undefined, elements: CanvasEl[]): string {
   const CANVAS_W = 600; // email canvas reference width
-  const ROW_THRESHOLD = 20; // elements within this Y-distance are grouped into the same row
+  const ROW_THRESHOLD = 8; // elements within this Y-distance are grouped into the same row
 
   const sorted = [...elements].sort((a, b) => a.y - b.y || a.x - b.x);
 
