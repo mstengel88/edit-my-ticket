@@ -21,7 +21,7 @@ type View = "list" | "editor" | "preview";
 const Index = () => {
   const { tickets, loading, error, fetchData, loadFromDb } = useLoadriteData();
   const { signOut, session } = useAuth();
-  const { isAdminOrManager } = useUserRole();
+  const { isAdminOrManager, isDeveloper } = useUserRole();
   const { fields: templateFields, canvasElements, reportFields, copiesPerPage, canvasWidth, canvasHeight, emailElements, reportEmailConfig } = useTicketTemplate();
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [view, setView] = useState<View>("list");
