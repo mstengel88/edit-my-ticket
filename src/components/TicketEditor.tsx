@@ -127,6 +127,7 @@ export function TicketEditor({ ticket, onSave, onPreview, templateFields }: Tick
                 >
                   <option value="Ton">Ton</option>
                   <option value="Yardage">Yardage</option>
+                  <option value="Gallons">Gallons</option>
                 </select>
               </div>
             )}
