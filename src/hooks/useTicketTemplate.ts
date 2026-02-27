@@ -48,7 +48,7 @@ export function useTicketTemplate() {
     const { data, error } = await supabase
       .from("ticket_templates")
       .select("*")
-      .eq("user_id", session.user.id)
+      .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
 
