@@ -10,13 +10,14 @@ import { supabase } from "@/integrations/supabase/client";
 interface TicketPreviewProps {
   ticket: TicketData;
   canvasElements?: CanvasElement[];
+  emailElements?: CanvasElement[];
   templateFields?: TemplateField[]; // legacy compat
   copiesPerPage?: number;
   canvasWidth?: number;
   canvasHeight?: number;
 }
 
-export function TicketPreview({ ticket, canvasElements, copiesPerPage = 2, canvasWidth = CANVAS_WIDTH, canvasHeight = CANVAS_HEIGHT }: TicketPreviewProps) {
+export function TicketPreview({ ticket, canvasElements, emailElements, copiesPerPage = 2, canvasWidth = CANVAS_WIDTH, canvasHeight = CANVAS_HEIGHT }: TicketPreviewProps) {
   const elements = canvasElements || DEFAULT_CANVAS_ELEMENTS;
   const [sending, setSending] = useState(false);
 
@@ -48,6 +49,7 @@ export function TicketPreview({ ticket, canvasElements, copiesPerPage = 2, canva
           subject: `Ticket - Job #${ticket.jobNumber} from ${ticket.companyName}`,
           ticket,
           logoBase64,
+          emailElements: emailElements || undefined,
         },
       });
       if (error) throw error;

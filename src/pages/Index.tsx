@@ -22,7 +22,7 @@ const Index = () => {
   const { tickets, loading, error, fetchData, loadFromDb } = useLoadriteData();
   const { signOut, session } = useAuth();
   const { isAdminOrManager } = useUserRole();
-  const { fields: templateFields, canvasElements, reportFields, copiesPerPage, canvasWidth, canvasHeight } = useTicketTemplate();
+  const { fields: templateFields, canvasElements, reportFields, copiesPerPage, canvasWidth, canvasHeight, emailElements, reportEmailConfig } = useTicketTemplate();
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [view, setView] = useState<View>("list");
   const [activeTab, setActiveTab] = useState<string>("tickets");
@@ -201,7 +201,7 @@ const Index = () => {
               <TicketList tickets={tickets} onSelect={handleSelectTicket} onDelete={handleDeleteTicket} onPreview={handlePreview} readOnly={!isAdminOrManager} />
             </TabsContent>
             <TabsContent value="reports">
-              <Reports tickets={tickets} reportFields={reportFields} />
+              <Reports tickets={tickets} reportFields={reportFields} reportEmailConfig={reportEmailConfig} />
             </TabsContent>
           </Tabs>
         ) : (
@@ -210,7 +210,7 @@ const Index = () => {
               <TicketEditor ticket={selectedTicket} onSave={handleSaveTicket} onPreview={handlePreview} templateFields={templateFields} />
             )}
             {view === "preview" && selectedTicket && (
-              <TicketPreview ticket={selectedTicket} canvasElements={canvasElements} copiesPerPage={copiesPerPage} canvasWidth={canvasWidth} canvasHeight={canvasHeight} />
+              <TicketPreview ticket={selectedTicket} canvasElements={canvasElements} emailElements={emailElements} copiesPerPage={copiesPerPage} canvasWidth={canvasWidth} canvasHeight={canvasHeight} />
             )}
           </>
         )}

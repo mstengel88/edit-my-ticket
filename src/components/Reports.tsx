@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { TicketData } from "@/types/ticket";
-import { ReportField, DEFAULT_REPORT_FIELDS } from "@/types/template";
+import { ReportField, DEFAULT_REPORT_FIELDS, ReportEmailConfig } from "@/types/template";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -21,6 +21,7 @@ type TimePeriod = "today" | "yesterday" | "weekly" | "monthly" | "yearly" | "cus
 interface ReportsProps {
   tickets: TicketData[];
   reportFields?: ReportField[];
+  reportEmailConfig?: ReportEmailConfig;
 }
 
 function parseTicketDate(dateTime: string): Date | null {
@@ -29,7 +30,7 @@ function parseTicketDate(dateTime: string): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
-export function Reports({ tickets, reportFields }: ReportsProps) {
+export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsProps) {
   const [period, setPeriod] = useState<TimePeriod>("today");
   const [customFrom, setCustomFrom] = useState<Date | undefined>();
   const [customTo, setCustomTo] = useState<Date | undefined>();
@@ -192,6 +193,7 @@ export function Reports({ tickets, reportFields }: ReportsProps) {
           to: emailTo.trim(),
           subject: `Report: ${periodLabel[period]} - ${format(dateRange.from, "MM/dd/yyyy")}`,
           report,
+          reportEmailConfig: reportEmailConfig || undefined,
         },
       });
       if (error) throw error;
