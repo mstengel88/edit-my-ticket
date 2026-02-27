@@ -106,9 +106,12 @@ const Settings = () => {
   }
 
   const headerExtra = (
-    <Button onClick={handleSave} disabled={!dirty} size="sm" className="gap-1.5">
-      <Save className="h-4 w-4" /> Save Template
-    </Button>
+    <div className="flex items-center gap-2">
+      <VersionHistory templateId={templateId} onRestore={handleRestore} />
+      <Button onClick={handleSave} disabled={!dirty} size="sm" className="gap-1.5">
+        <Save className="h-4 w-4" /> Save Template
+      </Button>
+    </div>
   );
 
   return (
