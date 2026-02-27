@@ -21,7 +21,7 @@ type View = "list" | "editor" | "preview";
 const Index = () => {
   const { tickets, loading, error, fetchData, loadFromDb } = useLoadriteData();
   const { signOut, session } = useAuth();
-  const { isAdminOrManager } = useUserRole();
+  const { isAdminOrManager, isDeveloper } = useUserRole();
   const { fields: templateFields, canvasElements, reportFields, copiesPerPage, canvasWidth, canvasHeight, emailElements, reportEmailConfig } = useTicketTemplate();
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [view, setView] = useState<View>("list");
@@ -172,10 +172,12 @@ const Index = () => {
       )}
       {view === "list" && activeTab === "tickets" && (
         <>
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="gap-1.5">
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            Sync
-          </Button>
+          {isDeveloper && (
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="gap-1.5">
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              Sync
+            </Button>
+          )}
           <Button onClick={handleNewTicket} size="sm" className="gap-1.5">
             <Plus className="h-4 w-4" />
             New Ticket

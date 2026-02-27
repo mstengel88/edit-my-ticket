@@ -96,6 +96,15 @@ const Customers = () => {
 
   const handleDelete = async (c: Customer) => {
     if (!confirm(`Delete "${c.name}"?`)) return;
+    // Check if customer has any tickets
+    const { count } = await supabase
+      .from("tickets")
+      .select("id", { count: "exact", head: true })
+      .eq("customer", c.name);
+    if (count && count > 0) {
+      toast.error(`Cannot delete "${c.name}" — they have ${count} ticket(s) in the system`);
+      return;
+    }
     await supabase.from("customers").delete().eq("id", c.id);
     toast.success("Customer deleted");
     load();
