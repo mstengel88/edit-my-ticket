@@ -188,7 +188,7 @@ export function CanvasEditor({ elements, onChange, sampleTicket, canvasWidth = C
               backgroundImage: showGrid
                 ? `linear-gradient(to right, rgba(0,0,0,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.06) 1px, transparent 1px)`
                 : undefined,
-              backgroundSize: showGrid ? `${GRID_SIZE}px ${GRID_SIZE}px` : undefined,
+              backgroundSize: showGrid ? `${gridSize}px ${gridSize}px` : undefined,
             }}
             onClick={handleCanvasClick}
           >
