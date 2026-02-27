@@ -20,7 +20,7 @@ interface Props {
 export function CanvasEditor({ elements, onChange, sampleTicket, canvasWidth = CANVAS_WIDTH, canvasHeight = CANVAS_HEIGHT, onCanvasSizeChange }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showGrid, setShowGrid] = useState(false);
-  const GRID_SIZE = 20;
+  const [gridSize, setGridSize] = useState(20);
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
@@ -40,8 +40,8 @@ export function CanvasEditor({ elements, onChange, sampleTicket, canvasWidth = C
   }, [canvasWidth]);
 
   const snapToGrid = useCallback(
-    (val: number) => (showGrid ? Math.round(val / GRID_SIZE) * GRID_SIZE : val),
-    [showGrid]
+    (val: number) => (showGrid ? Math.round(val / gridSize) * gridSize : val),
+    [showGrid, gridSize]
   );
 
   const handleMove = useCallback(
@@ -100,15 +100,29 @@ export function CanvasEditor({ elements, onChange, sampleTicket, canvasWidth = C
       {/* Toolbar */}
       <div className="flex items-center gap-3 flex-wrap">
         <ElementToolbar elements={elements} onAdd={handleAdd} />
-        <label className="flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer select-none ml-auto">
-          <input
-            type="checkbox"
-            checked={showGrid}
-            onChange={(e) => setShowGrid(e.target.checked)}
-            className="accent-primary h-4 w-4"
-          />
-          Grid
-        </label>
+        <div className="flex items-center gap-2 ml-auto">
+          <label className="flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={showGrid}
+              onChange={(e) => setShowGrid(e.target.checked)}
+              className="accent-primary h-4 w-4"
+            />
+            Grid
+          </label>
+          {showGrid && (
+            <Input
+              type="number"
+              value={gridSize}
+              min={5}
+              max={100}
+              step={5}
+              onChange={(e) => setGridSize(Math.min(100, Math.max(5, Number(e.target.value) || 5)))}
+              className="w-16 h-7 text-xs"
+              title="Grid size (px)"
+            />
+          )}
+        </div>
       </div>
 
       {/* Canvas Size Controls */}
@@ -174,7 +188,7 @@ export function CanvasEditor({ elements, onChange, sampleTicket, canvasWidth = C
               backgroundImage: showGrid
                 ? `linear-gradient(to right, rgba(0,0,0,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.06) 1px, transparent 1px)`
                 : undefined,
-              backgroundSize: showGrid ? `${GRID_SIZE}px ${GRID_SIZE}px` : undefined,
+              backgroundSize: showGrid ? `${gridSize}px ${gridSize}px` : undefined,
             }}
             onClick={handleCanvasClick}
           >
