@@ -139,7 +139,13 @@
   }
 
   .no-print,
-  .print-hidden {
+  .print-hidden,
+  nav,
+  aside,
+  header,
+  footer,
+  [data-sidebar],
+  .sidebar {
     display: none !important;
   }
 
@@ -147,11 +153,29 @@
     display: block !important;
   }
 
-  /* Full-width print layout */
+  /* Strip all layout chrome — just show ticket content */
+  html, body, #root {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
   main, [role="main"], .container, [class*="max-w-"] {
     max-width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
+    background: transparent !important;
+  }
+
+  /* Remove tabs, cards, borders from wrapping elements */
+  [role="tabpanel"], [data-state] {
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    background: transparent !important;
   }
 
   table {
@@ -164,7 +188,7 @@
   }
 
   @page {
-    margin: 0.5in;
+    margin: 0.3in;
     size: portrait;
   }
 }
