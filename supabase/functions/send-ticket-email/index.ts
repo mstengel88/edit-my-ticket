@@ -115,16 +115,18 @@ function getTicketValue(ticket: Record<string, string>, key: string): string {
 }
 
 function buildFromCanvasElements(ticket: Record<string, string>, logoBase64: string | undefined, elements: CanvasEl[]): string {
-  // Sort elements by Y position, then X for row grouping
+  const CANVAS_W = 600; // email canvas reference width
+  const ROW_THRESHOLD = 20; // elements within this Y-distance are grouped into the same row
+
   const sorted = [...elements].sort((a, b) => a.y - b.y || a.x - b.x);
 
-  // Group elements into rows (elements within 15px vertical distance)
+  // Group elements into rows
   const rows: CanvasEl[][] = [];
   let currentRow: CanvasEl[] = [];
   let currentY = -100;
 
   for (const el of sorted) {
-    if (el.y - currentY > 15 || currentRow.length === 0) {
+    if (el.y - currentY > ROW_THRESHOLD || currentRow.length === 0) {
       if (currentRow.length > 0) rows.push(currentRow);
       currentRow = [el];
       currentY = el.y;
@@ -137,7 +139,7 @@ function buildFromCanvasElements(ticket: Record<string, string>, logoBase64: str
   const renderElement = (el: CanvasEl): string => {
     if (el.type === "logo") {
       if (logoBase64) {
-        return `<img src="${logoBase64}" alt="${ticket.companyName || ''}" style="height:${el.height}px;width:auto;max-width:${el.width}px;" />`;
+        return `<img src="${logoBase64}" alt="${ticket.companyName || ''}" style="height:${el.height}px;width:auto;max-width:100%;" />`;
       }
       return "";
     }
@@ -155,11 +157,12 @@ function buildFromCanvasElements(ticket: Record<string, string>, logoBase64: str
 
   const rowsHtml = rows.map((row) => {
     if (row.length === 1 && row[0].type === "divider") {
-      return `<tr><td colspan="4" style="padding:4px 16px;"><hr style="border:none;border-top:1px solid #ccc;margin:0;" /></td></tr>`;
+      return `<tr><td colspan="99" style="padding:4px 16px;"><hr style="border:none;border-top:1px solid #ccc;margin:0;" /></td></tr>`;
     }
     const cells = row.map((el) => {
       const align = el.textAlign || "left";
-      return `<td style="padding:2px 8px;vertical-align:top;text-align:${align};width:${el.width}px;">${renderElement(el)}</td>`;
+      const widthPct = Math.round((el.width / CANVAS_W) * 100);
+      return `<td style="padding:4px 8px;vertical-align:top;text-align:${align};width:${widthPct}%;">${renderElement(el)}</td>`;
     }).join("");
     return `<tr>${cells}</tr>`;
   }).join("");
