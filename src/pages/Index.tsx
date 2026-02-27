@@ -22,7 +22,7 @@ const Index = () => {
   const { tickets, loading, error, fetchData, loadFromDb } = useLoadriteData();
   const { signOut, session } = useAuth();
   const { isAdminOrManager } = useUserRole();
-  const { fields: templateFields, canvasElements, reportFields, copiesPerPage, canvasWidth, canvasHeight } = useTicketTemplate();
+  const { fields: templateFields, canvasElements, reportFields, copiesPerPage, canvasWidth, canvasHeight, emailElements, reportEmailConfig } = useTicketTemplate();
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [view, setView] = useState<View>("list");
   const [activeTab, setActiveTab] = useState<string>("tickets");
