@@ -4,6 +4,7 @@ import { CanvasElement, ReportField, ReportEmailConfig, EMAIL_CANVAS_WIDTH, EMAI
 import { TicketData, sampleTickets } from "@/types/ticket";
 import { TicketPreview } from "@/components/TicketPreview";
 import { CanvasEditor } from "@/components/template-editor/CanvasEditor";
+import { VersionHistory } from "@/components/template-editor/VersionHistory";
 import { ReportEmailConfigEditor } from "@/components/template-editor/ReportEmailConfigEditor";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
