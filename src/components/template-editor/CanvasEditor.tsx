@@ -40,8 +40,8 @@ export function CanvasEditor({ elements, onChange, sampleTicket, canvasWidth = C
   }, [canvasWidth]);
 
   const snapToGrid = useCallback(
-    (val: number) => (showGrid ? Math.round(val / GRID_SIZE) * GRID_SIZE : val),
-    [showGrid]
+    (val: number) => (showGrid ? Math.round(val / gridSize) * gridSize : val),
+    [showGrid, gridSize]
   );
 
   const handleMove = useCallback(
