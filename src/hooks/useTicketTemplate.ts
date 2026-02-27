@@ -129,6 +129,13 @@ export function useTicketTemplate() {
       };
 
       if (templateId) {
+        // Save version snapshot before overwriting
+        await supabase.from("template_versions").insert({
+          template_id: templateId,
+          user_id: session.user.id,
+          layout: layoutData as any,
+          label: "",
+        });
         await supabase
           .from("ticket_templates")
           .update({ layout: layoutData as any })
