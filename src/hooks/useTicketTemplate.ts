@@ -155,6 +155,6 @@ export function useTicketTemplate() {
   return {
     fields, canvasElements, reportFields, copiesPerPage, canvasWidth, canvasHeight,
     emailElements, emailCanvasWidth, emailCanvasHeight, reportEmailConfig,
-    loading, saveTemplate,
+    loading, saveTemplate, templateId, restoreVersion,
   };
 }
