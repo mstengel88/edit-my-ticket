@@ -201,7 +201,7 @@ const Index = () => {
               <TicketList tickets={tickets} onSelect={handleSelectTicket} onDelete={handleDeleteTicket} onPreview={handlePreview} readOnly={!isAdminOrManager} />
             </TabsContent>
             <TabsContent value="reports">
-              <Reports tickets={tickets} reportFields={reportFields} />
+              <Reports tickets={tickets} reportFields={reportFields} reportEmailConfig={reportEmailConfig} />
             </TabsContent>
           </Tabs>
         ) : (
