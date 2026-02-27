@@ -49,6 +49,7 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
           subject: `Ticket - Job #${ticket.jobNumber} from ${ticket.companyName}`,
           ticket,
           logoBase64,
+          emailElements: emailElements || undefined,
         },
       });
       if (error) throw error;
