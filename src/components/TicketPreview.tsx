@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface TicketPreviewProps {
   ticket: TicketData;
   canvasElements?: CanvasElement[];
+  emailElements?: CanvasElement[];
   templateFields?: TemplateField[]; // legacy compat
   copiesPerPage?: number;
   canvasWidth?: number;
