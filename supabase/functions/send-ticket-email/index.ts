@@ -115,66 +115,105 @@ function getTicketValue(ticket: Record<string, string>, key: string): string {
 }
 
 function buildFromCanvasElements(ticket: Record<string, string>, logoBase64: string | undefined, elements: CanvasEl[]): string {
-  const CANVAS_W = 600; // email canvas reference width
-  const ROW_THRESHOLD = 8; // elements within this Y-distance are grouped into the same row
+  // Build a lookup: which elements exist and their styling
+  const elMap = new Map<string, CanvasEl>();
+  for (const el of elements) elMap.set(el.id, el);
 
-  const sorted = [...elements].sort((a, b) => a.y - b.y || a.x - b.x);
+  const has = (id: string) => elMap.has(id);
+  const val = (key: string) => ticket[key] || "";
+  const valOr = (key: string, fallback: string) => ticket[key] || fallback;
 
-  // Group elements into rows
-  const rows: CanvasEl[][] = [];
-  let currentRow: CanvasEl[] = [];
-  let currentY = -100;
-
-  for (const el of sorted) {
-    if (el.y - currentY > ROW_THRESHOLD || currentRow.length === 0) {
-      if (currentRow.length > 0) rows.push(currentRow);
-      currentRow = [el];
-      currentY = el.y;
-    } else {
-      currentRow.push(el);
-    }
-  }
-  if (currentRow.length > 0) rows.push(currentRow);
-
-  const renderElement = (el: CanvasEl): string => {
-    if (el.type === "logo") {
-      if (logoBase64) {
-        return `<img src="${logoBase64}" alt="${ticket.companyName || ''}" style="height:${el.height}px;width:auto;max-width:100%;" />`;
-      }
-      return "";
-    }
-    if (el.type === "divider") {
-      return `<hr style="border:none;border-top:1px solid #ccc;margin:0;" />`;
-    }
-    if (el.type === "label") {
-      return `<span style="font-size:${el.fontSize}px;font-weight:${el.fontWeight};display:block;text-align:${el.textAlign};color:#222;">${el.content || el.label}</span>`;
-    }
-    // field type
-    const value = getTicketValue(ticket, el.key || "");
-    const labelPrefix = el.showLabel ? `<span style="color:#666;font-weight:normal;">${el.label}: </span>` : "";
-    return `<span style="font-size:${el.fontSize}px;font-weight:${el.fontWeight};display:block;text-align:${el.textAlign};color:#222;">${labelPrefix}${value}</span>`;
+  const styledField = (el: CanvasEl | undefined, value: string, labelPrefix?: string): string => {
+    if (!el) return "";
+    const prefix = labelPrefix ? `<span style="color:#666;font-weight:normal;">${labelPrefix}: </span>` : "";
+    return `<span style="font-size:${el.fontSize}px;font-weight:${el.fontWeight};color:#222;">${prefix}${value}</span>`;
   };
 
-  const rowsHtml = rows.map((row) => {
-    if (row.length === 1 && row[0].type === "divider") {
-      return `<tr><td colspan="99" style="padding:4px 16px;"><hr style="border:none;border-top:1px solid #ccc;margin:0;" /></td></tr>`;
-    }
-    const cells = row.map((el) => {
-      const align = el.textAlign || "left";
-      const widthPct = Math.round((el.width / CANVAS_W) * 100);
-      return `<td style="padding:4px 8px;vertical-align:top;text-align:${align};width:${widthPct}%;">${renderElement(el)}</td>`;
-    }).join("");
-    return `<tr>${cells}</tr>`;
-  }).join("");
+  // Logo
+  const logoHtml = logoBase64 ? `<img src="${logoBase64}" alt="${val("companyName")}" style="height:48px;width:auto;margin-right:12px;" />` : "";
+
+  // Company info
+  const companyName = val("companyName");
+  const companyWebsite = val("companyWebsite");
+  const companyEmail = val("companyEmail");
+  const companyPhone = val("companyPhone");
+
+  // Build sections based on which elements are present
+  const headerSection = `<tr><td style="padding:16px;border-bottom:1px solid #ccc;">
+    <table width="100%"><tr>
+      <td style="vertical-align:top;">
+        <table><tr>
+          <td style="vertical-align:top;">${logoHtml}</td>
+          <td style="vertical-align:top;">
+            <strong style="font-size:16px;">${companyName}</strong><br/>
+            ${companyWebsite ? `<span style="font-size:12px;color:#666;">${companyWebsite}</span><br/>` : ""}
+            ${companyEmail ? `<span style="font-size:12px;color:#666;">${companyEmail}</span><br/>` : ""}
+            ${companyPhone ? `<span style="font-size:12px;color:#666;">${companyPhone}</span>` : ""}
+          </td>
+        </tr></table>
+      </td>
+      <td style="text-align:right;vertical-align:top;">
+        <span style="font-size:13px;">Ticket No:</span><br/>
+        <strong style="font-size:22px;">${valOr("jobNumber", "")}</strong>
+      </td>
+    </tr></table>
+  </td></tr>`;
+
+  // Details rows - only show fields that exist in the canvas
+  const detailRows: string[] = [];
+  const addDetailPair = (id1: string, key1: string, label1: string, id2: string, key2: string, label2: string) => {
+    const show1 = has(id1);
+    const show2 = has(id2);
+    if (!show1 && !show2) return;
+    const el1 = elMap.get(id1);
+    const el2 = elMap.get(id2);
+    const showLabel1 = el1?.showLabel !== false;
+    const showLabel2 = el2?.showLabel !== false;
+    detailRows.push(`<tr>
+      ${show1 ? `<td style="color:#666;width:120px;font-size:13px;">${showLabel1 ? label1 + ":" : ""}</td><td style="font-size:13px;"><strong>${valOr(key1, "—")}</strong></td>` : "<td></td><td></td>"}
+      ${show2 ? `<td style="color:#666;width:120px;font-size:13px;">${showLabel2 ? label2 + ":" : ""}</td><td style="font-size:13px;"><strong>${valOr(key2, "—")}</strong></td>` : "<td></td><td></td>"}
+    </tr>`);
+  };
+
+  addDetailPair("e-jobName", "jobName", "Job", "e-dateTime", "dateTime", "Date");
+  addDetailPair("e-customer", "customer", "Customer", "e-truck", "truck", "Truck");
+
+  const detailsSection = detailRows.length > 0 ? `<tr><td style="padding:12px 16px;border-bottom:1px solid #ccc;">
+    <table width="100%" style="font-size:13px;">${detailRows.join("")}</table>
+  </td></tr>` : "";
+
+  // Product section
+  const hasProduct = has("e-product") || has("e-totalAmount") || has("e-totalUnit");
+  const productSection = hasProduct ? `<tr><td style="padding:12px 16px;border-bottom:1px solid #ccc;">
+    <table width="100%"><tr>
+      <td style="font-size:13px;color:#666;">Product: <strong style="color:#222;">${valOr("product", "—")}</strong></td>
+      <td style="text-align:right;">
+        <strong style="font-size:20px;">${valOr("totalAmount", "0.00")}</strong>
+        <span style="font-size:13px;margin-left:8px;">${valOr("totalUnit", "Ton")}</span>
+      </td>
+    </tr></table>
+  </td></tr>` : "";
+
+  // Note
+  const noteVal = val("note");
+  const noteSection = has("e-note") && noteVal ? `<tr><td style="padding:12px 16px;border-bottom:1px solid #ccc;font-size:13px;"><span style="color:#666;">Note:</span> ${noteVal}</td></tr>` : "";
+
+  // Received
+  const receivedVal = val("customerName");
+  const receivedSection = (has("e-customerName") || has("e-receivedLabel")) && receivedVal ? `<tr><td style="padding:12px 16px;font-size:13px;"><span style="color:#666;">Received:</span> <strong>${receivedVal}</strong></td></tr>` : "";
 
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8" /></head>
 <body style="font-family:Arial,sans-serif;color:#222;max-width:600px;margin:0 auto;padding:20px;">
   <table width="100%" cellpadding="0" cellspacing="0" style="border:2px solid #333;border-collapse:collapse;">
-    ${rowsHtml}
+    ${headerSection}
+    ${detailsSection}
+    ${productSection}
+    ${noteSection}
+    ${receivedSection}
   </table>
-  <p style="font-size:11px;color:#999;margin-top:16px;">Sent from ${ticket.companyName || "Ticket Printer"}</p>
+  <p style="font-size:11px;color:#999;margin-top:16px;">Sent from ${companyName || "Ticket Printer"}</p>
 </body>
 </html>`;
 }
