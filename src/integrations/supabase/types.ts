@@ -149,6 +149,41 @@ export type Database = {
         }
         Relationships: []
       }
+      template_versions: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          layout: Json
+          template_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label?: string
+          layout: Json
+          template_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          layout?: Json
+          template_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "ticket_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ticket_templates: {
         Row: {
           created_at: string
