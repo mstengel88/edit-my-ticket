@@ -129,13 +129,32 @@
 @media print {
   * {
     box-shadow: none !important;
+    text-shadow: none !important;
   }
 
-  body {
+  /* Force light colors regardless of dark mode */
+  html, body, #root, .dark {
     background: white !important;
     color: black !important;
+    color-scheme: light !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Override CSS custom properties for dark mode */
+  :root, .dark, [data-theme="dark"] {
+    --background: 0 0% 100% !important;
+    --foreground: 0 0% 0% !important;
+    --card: 0 0% 100% !important;
+    --card-foreground: 0 0% 0% !important;
+    --muted: 0 0% 96% !important;
+    --muted-foreground: 0 0% 40% !important;
+    --border: 0 0% 80% !important;
   }
 
   .no-print,
@@ -153,21 +172,16 @@
     display: block !important;
   }
 
-  /* Strip all layout chrome — just show ticket content */
-  html, body, #root {
-    background: white !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 100% !important;
-    height: auto !important;
-    overflow: visible !important;
+  /* Strip all layout chrome */
+  main, [role="main"], .container, [class*="max-w-"],
+  div[class*="bg-"] {
+    background: transparent !important;
   }
 
   main, [role="main"], .container, [class*="max-w-"] {
     max-width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
-    background: transparent !important;
   }
 
   /* Remove tabs, cards, borders from wrapping elements */
