@@ -20,7 +20,7 @@ interface Props {
 export function CanvasEditor({ elements, onChange, sampleTicket, canvasWidth = CANVAS_WIDTH, canvasHeight = CANVAS_HEIGHT, onCanvasSizeChange }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showGrid, setShowGrid] = useState(false);
-  const GRID_SIZE = 20;
+  const [gridSize, setGridSize] = useState(20);
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
