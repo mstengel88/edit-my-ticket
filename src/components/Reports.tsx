@@ -193,6 +193,7 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
           to: emailTo.trim(),
           subject: `Report: ${periodLabel[period]} - ${format(dateRange.from, "MM/dd/yyyy")}`,
           report,
+          reportEmailConfig: reportEmailConfig || undefined,
         },
       });
       if (error) throw error;
