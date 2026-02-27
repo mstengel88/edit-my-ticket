@@ -30,7 +30,7 @@ const Settings = () => {
     canvasWidth: savedWidth, canvasHeight: savedHeight,
     emailElements, emailCanvasWidth: savedEmailW, emailCanvasHeight: savedEmailH,
     reportEmailConfig: savedReportEmailConfig,
-    loading, saveTemplate,
+    loading, saveTemplate, templateId, restoreVersion,
   } = useTicketTemplate();
 
   const [localCanvas, setLocalCanvas] = useState<CanvasElement[]>(canvasElements);
