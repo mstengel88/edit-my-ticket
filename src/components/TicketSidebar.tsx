@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Trash2, Search, Plus } from "lucide-react";
+import { Trash2, Search, Plus, Printer, Mail } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 type StatusFilter = "all" | "draft" | "pending" | "sent" | "completed";
