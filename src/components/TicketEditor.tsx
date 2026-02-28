@@ -15,7 +15,8 @@ import { useTicketLookups } from "@/hooks/useTicketLookups";
 interface TicketEditorProps {
   ticket: TicketData;
   onSave: (ticket: TicketData) => void;
-  onPreview: (ticket: TicketData) => void;
+  onPrint: (ticket: TicketData) => void;
+  onEmail: (ticket: TicketData) => void;
   templateFields?: TemplateField[];
 }
 
