@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { TicketData, createEmptyTicket } from "@/types/ticket";
 import { TicketList } from "@/components/TicketList";
+import { TicketSidebar } from "@/components/TicketSidebar";
 import { TicketEditor } from "@/components/TicketEditor";
 import { TicketPreview } from "@/components/TicketPreview";
 import { Reports } from "@/components/Reports";
 import { useLoadriteData } from "@/hooks/useLoadriteData";
 import { ArrowLeft, Plus, RefreshCw, Loader2, BarChart3 } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -23,12 +25,12 @@ const Index = () => {
   const { signOut, session } = useAuth();
   const { isAdminOrManager, isDeveloper } = useUserRole();
   const { fields: templateFields, canvasElements, reportFields, copiesPerPage, canvasWidth, canvasHeight, emailElements, reportEmailConfig } = useTicketTemplate();
+  const isMobile = useIsMobile();
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [view, setView] = useState<View>("list");
   const [activeTab, setActiveTab] = useState<string>("tickets");
 
   useEffect(() => { loadFromDb(); }, [loadFromDb]);
-
   useEffect(() => { if (error) toast.error(error); }, [error]);
 
   const handleSelectTicket = (ticket: TicketData) => {
@@ -159,6 +161,65 @@ const Index = () => {
     toast.info("Syncing from Loadrite...");
   };
 
+  // ─── Desktop split layout ───
+  if (!isMobile) {
+    const subtitle = `${tickets.length} ticket${tickets.length !== 1 ? "s" : ""}${loading ? " · syncing..." : ""}`;
+
+    const headerExtra = (
+      <>
+        {view !== "list" && (
+          <Button variant="ghost" size="icon" onClick={handleBack}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+        )}
+        {isDeveloper && (
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="gap-1.5">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Sync
+          </Button>
+        )}
+      </>
+    );
+
+    return (
+      <AppLayout title="Tickets" subtitle={subtitle} headerExtra={headerExtra}>
+        <div className="flex h-[calc(100vh-57px)]">
+          {/* Main content area */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-6">
+              {view === "list" && !selectedTicket && (
+                <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
+                  <div className="rounded-full bg-muted p-6 mb-4">
+                    <BarChart3 className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-foreground">Select a ticket</h2>
+                  <p className="text-sm text-muted-foreground mt-1">Choose a ticket from the sidebar to edit, or create a new one.</p>
+                </div>
+              )}
+              {view === "editor" && selectedTicket && (
+                <TicketEditor ticket={selectedTicket} onSave={handleSaveTicket} onPreview={handlePreview} templateFields={templateFields} />
+              )}
+              {view === "preview" && selectedTicket && (
+                <TicketPreview ticket={selectedTicket} canvasElements={canvasElements} emailElements={emailElements} copiesPerPage={copiesPerPage} canvasWidth={canvasWidth} canvasHeight={canvasHeight} />
+              )}
+            </div>
+          </div>
+
+          {/* Right sidebar with ticket list */}
+          <TicketSidebar
+            tickets={tickets}
+            selectedId={selectedTicket?.id}
+            onSelect={handleSelectTicket}
+            onDelete={handleDeleteTicket}
+            onNew={handleNewTicket}
+            readOnly={!isAdminOrManager}
+          />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // ─── Mobile layout (unchanged) ───
   const subtitle = view === "list" && activeTab === "tickets"
     ? `${tickets.length} ticket${tickets.length !== 1 ? "s" : ""}${loading ? " · syncing..." : ""}`
     : undefined;
@@ -172,10 +233,12 @@ const Index = () => {
       )}
       {view === "list" && activeTab === "tickets" && (
         <>
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="gap-1.5">
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            Sync
-          </Button>
+          {isDeveloper && (
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="gap-1.5">
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              Sync
+            </Button>
+          )}
           <Button onClick={handleNewTicket} size="sm" className="gap-1.5">
             <Plus className="h-4 w-4" />
             New Ticket
