@@ -40,6 +40,8 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
       const copy = document.createElement("div");
       copy.className = "ticket-copy";
       copy.style.height = `${ticketHeight}px`;
+      copy.style.display = "flex";
+      copy.style.justifyContent = "center";
       if (i > 0) copy.style.marginTop = "24px"; // ~0.25in spacing
 
       const inner = document.createElement("div");
@@ -48,7 +50,7 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
       inner.style.width = `${canvasWidth}px`;
       inner.style.height = `${canvasHeight}px`;
       inner.style.transform = `scale(${scale})`;
-      inner.style.transformOrigin = "top left";
+      inner.style.transformOrigin = "top center";
 
       // Clone the ticket content from the first on-screen copy
       if (printRef.current) {
