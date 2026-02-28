@@ -161,6 +161,34 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!emailTicket} onOpenChange={(open) => !open && setEmailTicket(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send email?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {emailTicket?.customerEmail
+                ? `This will send the ticket to ${emailTicket.customerEmail}. Continue?`
+                : "No customer email is set for this ticket. Please add one in the editor first."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            {emailTicket?.customerEmail && (
+              <AlertDialogAction
+                onClick={() => {
+                  if (emailTicket) {
+                    onEmail(emailTicket);
+                    setEmailTicket(null);
+                  }
+                }}
+              >
+                Send
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
