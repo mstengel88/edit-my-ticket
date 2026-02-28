@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { TicketData } from "@/types/ticket";
-import { CanvasElement, DEFAULT_CANVAS_ELEMENTS, CANVAS_WIDTH, CANVAS_HEIGHT, TemplateField } from "@/types/template";
+import { CanvasElement, DEFAULT_CANVAS_ELEMENTS, CANVAS_WIDTH, CANVAS_HEIGHT, TemplateField, PrintLayouts, DEFAULT_PRINT_LAYOUTS } from "@/types/template";
 import { Button } from "@/components/ui/button";
 import { Printer, Mail, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -15,34 +15,53 @@ interface TicketPreviewProps {
   copiesPerPage?: number;
   canvasWidth?: number;
   canvasHeight?: number;
+  printLayouts?: PrintLayouts;
 }
 
-export function TicketPreview({ ticket, canvasElements, emailElements, copiesPerPage = 2, canvasWidth = CANVAS_WIDTH, canvasHeight = CANVAS_HEIGHT }: TicketPreviewProps) {
+export function TicketPreview({ ticket, canvasElements, emailElements, copiesPerPage = 2, canvasWidth = CANVAS_WIDTH, canvasHeight = CANVAS_HEIGHT, printLayouts }: TicketPreviewProps) {
   const elements = canvasElements || DEFAULT_CANVAS_ELEMENTS;
   const [sending, setSending] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
+  const layouts = printLayouts || DEFAULT_PRINT_LAYOUTS;
+
   const handlePrint = useCallback(() => {
-    // Create a dedicated print container outside the React root
     const existing = document.getElementById("print-area");
     if (existing) existing.remove();
 
     const printArea = document.createElement("div");
     printArea.id = "print-area";
 
-    // Calculate scale: page is ~7.6in wide (letter minus margins), at 96dpi = ~730px
-    const pageWidth = 730;
-    const pageHeight = 1000; // usable height in px (letter minus margins)
-    const ticketHeight = pageHeight / (copiesPerPage || 3);
+    // Get layout config for current copies count
+    const layoutKey = String(copiesPerPage) as "1" | "2" | "3";
+    const config = layouts[layoutKey] || layouts["3"];
+
+    // Inject dynamic @page margins via a style tag
+    const styleEl = document.createElement("style");
+    styleEl.id = "print-dynamic-style";
+    const existingStyle = document.getElementById("print-dynamic-style");
+    if (existingStyle) existingStyle.remove();
+    styleEl.textContent = `@media print { @page { margin: ${config.pageMarginTop}in ${config.pageMarginRight}in ${config.pageMarginBottom}in ${config.pageMarginLeft}in; size: letter portrait; } }`;
+    document.head.appendChild(styleEl);
+
+    // Calculate available space in pixels (96dpi)
+    const pageWidth = (8.5 - config.pageMarginLeft - config.pageMarginRight) * 96;
+    const pageHeight = (11 - config.pageMarginTop - config.pageMarginBottom) * 96;
+    const ticketHeight = pageHeight / copiesPerPage;
     const scale = Math.min(pageWidth / canvasWidth, ticketHeight / canvasHeight);
 
     for (let i = 0; i < copiesPerPage; i++) {
+      const offset = config.ticketOffsets[i] || { x: 0, y: 0 };
+
       const copy = document.createElement("div");
       copy.className = "ticket-copy";
       copy.style.height = `${ticketHeight}px`;
       copy.style.display = "flex";
       copy.style.justifyContent = "center";
-      if (i > 0) copy.style.marginTop = "24px"; // ~0.25in spacing
+      copy.style.position = "relative";
+      // Apply ticket offset
+      copy.style.marginLeft = `${offset.x * 96}px`;
+      copy.style.marginTop = i === 0 ? `${offset.y * 96}px` : `${offset.y * 96}px`;
 
       const inner = document.createElement("div");
       inner.className = "ticket-copy-inner";
@@ -52,7 +71,6 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
       inner.style.transform = `scale(${scale})`;
       inner.style.transformOrigin = "top center";
 
-      // Clone the ticket content from the first on-screen copy
       if (printRef.current) {
         const source = printRef.current.querySelector(".ticket-copy-inner");
         if (source) {
@@ -66,7 +84,6 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
 
     document.body.appendChild(printArea);
 
-    // Wait for all images to load before printing
     const images = printArea.querySelectorAll("img");
     const imagePromises = Array.from(images).map(
       (img) =>
@@ -82,9 +99,11 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
       setTimeout(() => {
         const el = document.getElementById("print-area");
         if (el) el.remove();
+        const s = document.getElementById("print-dynamic-style");
+        if (s) s.remove();
       }, 1000);
     });
-  }, [copiesPerPage, canvasWidth, canvasHeight]);
+  }, [copiesPerPage, canvasWidth, canvasHeight, layouts]);
 
   useEffect(() => {
     const onPrintRequest = () => handlePrint();
@@ -164,7 +183,6 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
 
   return (
     <div className="animate-fade-in" ref={printRef}>
-      {/* Actions */}
       <div className="flex justify-center gap-3 mb-6">
         <Button onClick={handlePrint} className="gap-1.5">
           <Printer className="h-4 w-4" /> Print Ticket
@@ -175,7 +193,6 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
         </Button>
       </div>
 
-      {/* On-screen preview (single copy for reference) */}
       <div
         className="ticket-copy max-w-4xl mx-auto bg-white text-black font-sans text-sm relative border border-border"
         style={{ width: canvasWidth, height: canvasHeight }}

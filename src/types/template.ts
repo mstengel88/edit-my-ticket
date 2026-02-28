@@ -125,6 +125,31 @@ export const DEFAULT_REPORT_EMAIL_CONFIG: ReportEmailConfig = {
   accentColor: "#f5f5f5",
 };
 
+// ---- Print layout types ----
+export interface PrintLayoutConfig {
+  pageMarginTop: number;    // inches
+  pageMarginBottom: number;  // inches
+  pageMarginLeft: number;    // inches
+  pageMarginRight: number;   // inches
+  ticketOffsets: Array<{ x: number; y: number }>; // per ticket position, in inches
+}
+
+export type PrintLayouts = {
+  "1": PrintLayoutConfig;
+  "2": PrintLayoutConfig;
+  "3": PrintLayoutConfig;
+};
+
+function makeDefaultOffsets(count: number): Array<{ x: number; y: number }> {
+  return Array.from({ length: count }, () => ({ x: 0, y: 0 }));
+}
+
+export const DEFAULT_PRINT_LAYOUTS: PrintLayouts = {
+  "1": { pageMarginTop: 0.2, pageMarginBottom: 0.2, pageMarginLeft: 0.2, pageMarginRight: 0.2, ticketOffsets: makeDefaultOffsets(1) },
+  "2": { pageMarginTop: 0.2, pageMarginBottom: 0.2, pageMarginLeft: 0.2, pageMarginRight: 0.2, ticketOffsets: makeDefaultOffsets(2) },
+  "3": { pageMarginTop: 0.2, pageMarginBottom: 0.2, pageMarginLeft: 0.2, pageMarginRight: 0.2, ticketOffsets: makeDefaultOffsets(3) },
+};
+
 // ---- Legacy types kept for backward compatibility with reports ----
 export interface TemplateField {
   id: string;
