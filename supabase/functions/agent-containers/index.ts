@@ -52,11 +52,46 @@ Deno.serve(async (req) => {
 
     const r = await fetch(`${AGENT_BASE}/containers`);
     const text = await r.text();
+    const contentType = r.headers.get("content-type") || "";
 
-    return new Response(text, {
-      status: r.status,
-      headers: { ...corsHeaders, "Content-Type": r.headers.get("content-type") || "application/json" },
-    });
+    if (!r.ok) {
+      let message = text;
+      try {
+        const parsed = JSON.parse(text);
+        message = parsed?.message || parsed?.error || text;
+      } catch {
+        // keep raw text
+      }
+
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: "agent_error",
+          status: r.status,
+          message,
+        }),
+        {
+          // Return 200 so invoke() doesn't throw and UI can render the error state gracefully
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    if (contentType.includes("application/json")) {
+      return new Response(text, {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(
+      JSON.stringify({ ok: true, raw: text, containers: [] }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   } catch (e) {
     return new Response(JSON.stringify({ error: e.message }), {
       status: 500,
