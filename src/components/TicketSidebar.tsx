@@ -3,9 +3,12 @@ import { TicketData } from "@/types/ticket";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Trash2, Search, Plus } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+
+type StatusFilter = "all" | "draft" | "pending" | "sent" | "completed";
 
 interface TicketSidebarProps {
   tickets: TicketData[];
@@ -25,9 +28,11 @@ const statusDot: Record<TicketData["status"], string> = {
 
 export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, readOnly }: TicketSidebarProps) {
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const filtered = tickets.filter((t) => {
+    if (statusFilter !== "all" && t.status !== statusFilter) return false;
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     return t.jobNumber.toLowerCase().includes(q) || t.customer.toLowerCase().includes(q);
@@ -42,6 +47,18 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
             <h3 className="text-sm font-semibold text-foreground">Tickets</h3>
             <span className="text-xs text-muted-foreground">{tickets.length}</span>
           </div>
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue placeholder="All statuses" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover z-50">
+              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="sent">Sent</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+            </SelectContent>
+          </Select>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
