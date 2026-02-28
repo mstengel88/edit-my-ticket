@@ -219,6 +219,26 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
           </div>
         </div>
       )}
+      <AlertDialog open={showEmailConfirm} onOpenChange={setShowEmailConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send email?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {data.customerEmail
+                ? `This will send the ticket to ${data.customerEmail}. Continue?`
+                : "No customer email is set for this ticket. Please add one first."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            {data.customerEmail && (
+              <AlertDialogAction onClick={() => { onEmail(data); setShowEmailConfirm(false); }}>
+                Send
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
