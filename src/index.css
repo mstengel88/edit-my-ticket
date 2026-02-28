@@ -160,11 +160,15 @@
   .no-print,
   .print-hidden,
   nav,
-  aside,
   header,
   footer,
   [data-sidebar],
   .sidebar {
+    display: none !important;
+  }
+
+  /* Hide everything except ticket copies */
+  aside {
     display: none !important;
   }
 
@@ -173,15 +177,18 @@
   }
 
   /* Strip all layout chrome */
-  main, [role="main"], .container, [class*="max-w-"],
-  div[class*="bg-"] {
+  #root, #root > *, main, [role="main"], .container, [class*="max-w-"],
+  div[class*="bg-"], div[class*="flex"], div[class*="overflow"],
+  div[class*="animate-"] {
     background: transparent !important;
-  }
-
-  main, [role="main"], .container, [class*="max-w-"] {
     max-width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
+    border: none !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
   }
 
   /* Remove tabs, cards, borders from wrapping elements */
