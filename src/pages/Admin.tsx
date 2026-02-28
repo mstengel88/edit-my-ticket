@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
 import { DeployPanel } from "@/components/DeployPanel";
+import { OpsDashboard } from "@/components/OpsDashboard";
 import { useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 
@@ -28,6 +29,11 @@ const Admin = () => {
   return (
     <AppLayout title="Admin">
       <div className="container mx-auto px-4 py-6 sm:px-6 space-y-8">
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-foreground">Server Metrics</h2>
+          <OpsDashboard />
+        </section>
+
         <section className="space-y-3">
           <h2 className="text-sm font-semibold text-foreground">Service Control</h2>
           <div className="flex items-center gap-3">
