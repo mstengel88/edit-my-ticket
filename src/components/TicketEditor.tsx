@@ -48,8 +48,11 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold text-foreground">Edit Ticket</h2>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => onPreview(data)} className="gap-1.5">
-            <Eye className="h-4 w-4" /> Preview
+          <Button variant="outline" size="sm" onClick={() => onPrint(data)} className="gap-1.5">
+            <Printer className="h-4 w-4" /> Print
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setShowEmailConfirm(true)} className="gap-1.5">
+            <Mail className="h-4 w-4" /> Email
           </Button>
           <Button size="sm" onClick={handleSave} className="gap-1.5">
             <Save className="h-4 w-4" /> Save
