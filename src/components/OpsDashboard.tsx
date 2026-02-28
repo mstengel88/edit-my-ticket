@@ -277,8 +277,12 @@ export function OpsDashboard() {
               ))}
               {!containers.length && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
-                    No containers found.
+                  <TableCell colSpan={5} className="text-center py-6">
+                    {containersError ? (
+                      <span className="text-destructive text-xs">⚠ {containersError}</span>
+                    ) : (
+                      <span className="text-muted-foreground">No containers found.</span>
+                    )}
                   </TableCell>
                 </TableRow>
               )}
