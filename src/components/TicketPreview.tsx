@@ -111,7 +111,7 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
       {Array.from({ length: copiesPerPage }, (_, i) => i).map((copy) => (
         <div
           key={copy}
-          className={`max-w-4xl mx-auto bg-white text-black border-2 border-black/80 font-sans text-sm print:border print:shadow-none relative ${copy < copiesPerPage - 1 ? "mb-6" : ""}`}
+          className={`ticket-copy max-w-4xl mx-auto bg-white text-black font-sans text-sm print:shadow-none relative ${copy < copiesPerPage - 1 ? "mb-6 print:mb-0" : ""}`}
           style={{
             width: canvasWidth,
             height: canvasHeight,
