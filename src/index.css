@@ -127,13 +127,17 @@
 }
 
 @media print {
+  @page {
+    margin: 0.2in;
+    size: letter portrait;
+  }
+
   * {
     box-shadow: none !important;
     text-shadow: none !important;
   }
 
-  /* Force light colors regardless of dark mode */
-  html, body, #root, .dark {
+  html, body {
     background: white !important;
     color: black !important;
     color-scheme: light !important;
@@ -142,11 +146,10 @@
     margin: 0 !important;
     padding: 0 !important;
     width: 100% !important;
-    height: auto !important;
+    height: 100% !important;
     overflow: visible !important;
   }
 
-  /* Override CSS custom properties for dark mode */
   :root, .dark, [data-theme="dark"] {
     --background: 0 0% 100% !important;
     --foreground: 0 0% 0% !important;
@@ -157,69 +160,38 @@
     --border: 0 0% 80% !important;
   }
 
-  .no-print,
-  .print-hidden,
-  nav,
-  header,
-  footer,
-  [data-sidebar],
-  .sidebar {
+  /* Hide everything */
+  body > *, #root, #root > * {
     display: none !important;
   }
 
-  /* Hide everything except ticket copies */
-  aside {
-    display: none !important;
-  }
-
-  .print-only {
+  /* Show only the print container */
+  #print-area {
     display: block !important;
-  }
-
-  /* Strip all layout chrome */
-  #root, #root > *, main, [role="main"], .container, [class*="max-w-"],
-  div[class*="bg-"], div[class*="flex"], div[class*="overflow"],
-  div[class*="animate-"] {
-    background: transparent !important;
-    max-width: 100% !important;
-    padding: 0 !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 99999 !important;
+    background: white !important;
     margin: 0 !important;
-    border: none !important;
-    width: 100% !important;
-    height: auto !important;
-    overflow: visible !important;
-    display: block !important;
-  }
-
-  /* Remove tabs, cards, borders from wrapping elements */
-  [role="tabpanel"], [data-state] {
     padding: 0 !important;
+  }
+
+  #print-area .ticket-copy {
+    width: 100% !important;
+    height: calc(100% / 3) !important;
+    position: relative !important;
+    overflow: hidden !important;
     margin: 0 !important;
+    padding: 0 !important;
     border: none !important;
-    background: transparent !important;
+    background: white !important;
+    page-break-inside: avoid !important;
   }
 
-  table {
-    width: 100% !important;
-    font-size: 11px !important;
-  }
-
-  table th, table td {
-    padding: 4px 6px !important;
-  }
-
-  /* Ticket copies: fit 3 per page */
-  .ticket-copy {
-    width: 100% !important;
-    height: calc(100vh / 3) !important;
-    page-break-inside: avoid;
-    break-inside: avoid;
-    overflow: hidden;
-    transform-origin: top left;
-  }
-
-  @page {
-    margin: 0.25in;
-    size: portrait;
+  #print-area .ticket-copy-inner {
+    transform-origin: top left !important;
   }
 }
