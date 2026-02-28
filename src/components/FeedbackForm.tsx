@@ -26,6 +26,8 @@ interface FeedbackItem {
   description: string;
   status: string;
   created_at: string;
+  user_id: string;
+  submitted_by?: string;
 }
 
 const STATUSES = ["open", "in_progress", "done", "closed"] as const;
@@ -49,7 +51,15 @@ export function FeedbackForm() {
       .from("feedback")
       .select("*")
       .order("created_at", { ascending: false });
-    setItems((data as FeedbackItem[]) || []);
+    const rows = (data ?? []) as (FeedbackItem)[];
+    // Fetch display names for submitters
+    const userIds = [...new Set(rows.map((r) => r.user_id))];
+    const { data: profiles } = userIds.length
+      ? await supabase.from("profiles").select("user_id, display_name").in("user_id", userIds)
+      : { data: [] };
+    const nameMap = new Map((profiles ?? []).map((p: any) => [p.user_id, p.display_name]));
+    const mapped = rows.map((r) => ({ ...r, submitted_by: nameMap.get(r.user_id) || "Unknown" }));
+    setItems(mapped);
     setLoadingItems(false);
   };
 
@@ -187,7 +197,7 @@ export function FeedbackForm() {
                     <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.description}</p>
                   )}
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    {new Date(item.created_at).toLocaleDateString()}
+                    {item.submitted_by} · {new Date(item.created_at).toLocaleDateString()}
                   </p>
                 </div>
               ))}
@@ -227,9 +237,9 @@ export function FeedbackForm() {
               )}
 
               <div>
-                <Label className="text-xs text-muted-foreground">Submitted</Label>
+                <Label className="text-xs text-muted-foreground">Submitted by</Label>
                 <p className="text-sm text-foreground mt-1">
-                  {new Date(selected.created_at).toLocaleString()}
+                  {selected.submitted_by} · {new Date(selected.created_at).toLocaleString()}
                 </p>
               </div>
 

@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Plus, Pencil, Trash2, Search, Loader2, RefreshCw, Download } from "lucide-react";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface Customer {
   id: string;
@@ -18,6 +19,7 @@ interface Customer {
 
 const Customers = () => {
   const { session } = useAuth();
+  const { isDeveloper } = useUserRole();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -120,9 +122,11 @@ const Customers = () => {
       <Button size="sm" variant="outline" className="gap-1.5" onClick={handleExportCsv}>
         <Download className="h-4 w-4" /> Export CSV
       </Button>
-      <Button size="sm" variant="outline" className="gap-1.5" onClick={handleSync} disabled={syncing}>
-        {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Sync from Tickets
-      </Button>
+      {isDeveloper && (
+        <Button size="sm" variant="outline" className="gap-1.5" onClick={handleSync} disabled={syncing}>
+          {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Sync from Tickets
+        </Button>
+      )}
       <Button size="sm" className="gap-1.5" onClick={openNew}>
         <Plus className="h-4 w-4" /> Add Customer
       </Button>
