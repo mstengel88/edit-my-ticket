@@ -25,6 +25,8 @@ interface MetricsData {
 
 interface SeriesPoint { t: string; cpu: number; mem: number }
 
+type ContainersError = string | null;
+
 interface Container {
   id: string;
   name: string;
@@ -41,6 +43,7 @@ export function OpsDashboard() {
   const [selected, setSelected] = useState("");
   const [logs, setLogs] = useState("");
   const [restartBusy, setRestartBusy] = useState<Record<string, boolean>>({});
+  const [containersError, setContainersError] = useState<ContainersError>(null);
   const logRef = useRef<HTMLPreElement>(null);
 
   useEffect(() => {
@@ -76,11 +79,22 @@ export function OpsDashboard() {
     const tick = async () => {
       try {
         const { data, error } = await supabase.functions.invoke("agent-containers");
-        if (!alive || error || !data) return;
+        if (!alive) return;
+        if (error || !data) {
+          setContainersError("Failed to fetch containers");
+          return;
+        }
+        if (data.ok === false) {
+          setContainersError(data.message || data.error || "Agent error");
+          return;
+        }
+        setContainersError(null);
         const list = data.containers || [];
         setContainers(list);
         if (!selected && list.length) setSelected(list[0].name);
-      } catch { /* silent */ }
+      } catch {
+        if (alive) setContainersError("Network error");
+      }
     };
     tick();
     const id = setInterval(tick, 5000);
@@ -263,8 +277,12 @@ export function OpsDashboard() {
               ))}
               {!containers.length && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
-                    No containers found.
+                  <TableCell colSpan={5} className="text-center py-6">
+                    {containersError ? (
+                      <span className="text-destructive text-xs">⚠ {containersError}</span>
+                    ) : (
+                      <span className="text-muted-foreground">No containers found.</span>
+                    )}
                   </TableCell>
                 </TableRow>
               )}
