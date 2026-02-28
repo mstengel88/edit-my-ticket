@@ -188,6 +188,6 @@
   }
 
   #print-area .ticket-copy-inner {
-    transform-origin: top left !important;
+    transform-origin: top center !important;
   }
 }
