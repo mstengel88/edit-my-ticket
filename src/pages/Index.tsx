@@ -176,7 +176,7 @@ const Index = () => {
   const handlePrintTicket = (ticket: TicketData) => {
     setSelectedTicket(ticket);
     setView("preview");
-    setTimeout(() => window.print(), 500);
+    setPendingPrint(true);
   };
 
   const handleEmailTicket = async (ticket: TicketData) => {
