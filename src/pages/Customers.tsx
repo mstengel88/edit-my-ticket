@@ -18,6 +18,7 @@ interface Customer {
 
 const Customers = () => {
   const { session } = useAuth();
+  const { isDeveloper } = useUserRole();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
