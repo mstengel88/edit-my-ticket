@@ -40,6 +40,7 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
       const copy = document.createElement("div");
       copy.className = "ticket-copy";
       copy.style.height = `${ticketHeight}px`;
+      if (i > 0) copy.style.marginTop = "24px"; // ~0.25in spacing
 
       const inner = document.createElement("div");
       inner.className = "ticket-copy-inner";
