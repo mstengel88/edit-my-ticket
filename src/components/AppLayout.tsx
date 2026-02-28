@@ -37,6 +37,7 @@ interface AppLayoutProps {
 
 const navItems = [
   { label: "Tickets", icon: FileText, href: "/", end: true },
+  { label: "Reports", icon: BarChart3, href: "/reports" },
   { label: "Customers", icon: Users, href: "/customers" },
   { label: "Products", icon: Package, href: "/products" },
   { label: "Feedback", icon: MessageSquarePlus, href: "/feedback" },
