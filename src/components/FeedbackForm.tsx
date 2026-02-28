@@ -237,9 +237,9 @@ export function FeedbackForm() {
               )}
 
               <div>
-                <Label className="text-xs text-muted-foreground">Submitted</Label>
+                <Label className="text-xs text-muted-foreground">Submitted by</Label>
                 <p className="text-sm text-foreground mt-1">
-                  {new Date(selected.created_at).toLocaleString()}
+                  {selected.submitted_by} · {new Date(selected.created_at).toLocaleString()}
                 </p>
               </div>
 
