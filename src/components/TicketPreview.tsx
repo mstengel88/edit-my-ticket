@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { TicketData } from "@/types/ticket";
 import { CanvasElement, DEFAULT_CANVAS_ELEMENTS, CANVAS_WIDTH, CANVAS_HEIGHT, TemplateField } from "@/types/template";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ interface TicketPreviewProps {
   ticket: TicketData;
   canvasElements?: CanvasElement[];
   emailElements?: CanvasElement[];
-  templateFields?: TemplateField[]; // legacy compat
+  templateFields?: TemplateField[];
   copiesPerPage?: number;
   canvasWidth?: number;
   canvasHeight?: number;
@@ -20,8 +20,56 @@ interface TicketPreviewProps {
 export function TicketPreview({ ticket, canvasElements, emailElements, copiesPerPage = 2, canvasWidth = CANVAS_WIDTH, canvasHeight = CANVAS_HEIGHT }: TicketPreviewProps) {
   const elements = canvasElements || DEFAULT_CANVAS_ELEMENTS;
   const [sending, setSending] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
 
-  const handlePrint = () => window.print();
+  const handlePrint = useCallback(() => {
+    // Create a dedicated print container outside the React root
+    const existing = document.getElementById("print-area");
+    if (existing) existing.remove();
+
+    const printArea = document.createElement("div");
+    printArea.id = "print-area";
+
+    // Calculate scale: page is ~7.6in wide (letter minus margins), at 96dpi = ~730px
+    const pageWidth = 730;
+    const pageHeight = 1000; // usable height in px (letter minus margins)
+    const ticketHeight = pageHeight / (copiesPerPage || 3);
+    const scale = Math.min(pageWidth / canvasWidth, ticketHeight / canvasHeight);
+
+    for (let i = 0; i < copiesPerPage; i++) {
+      const copy = document.createElement("div");
+      copy.className = "ticket-copy";
+      copy.style.height = `${ticketHeight}px`;
+
+      const inner = document.createElement("div");
+      inner.className = "ticket-copy-inner";
+      inner.style.position = "relative";
+      inner.style.width = `${canvasWidth}px`;
+      inner.style.height = `${canvasHeight}px`;
+      inner.style.transform = `scale(${scale})`;
+      inner.style.transformOrigin = "top left";
+
+      // Clone the ticket content from the first on-screen copy
+      if (printRef.current) {
+        const source = printRef.current.querySelector(".ticket-copy-inner");
+        if (source) {
+          inner.innerHTML = source.innerHTML;
+        }
+      }
+
+      copy.appendChild(inner);
+      printArea.appendChild(copy);
+    }
+
+    document.body.appendChild(printArea);
+    window.print();
+
+    // Clean up after print
+    setTimeout(() => {
+      const el = document.getElementById("print-area");
+      if (el) el.remove();
+    }, 1000);
+  }, [copiesPerPage, canvasWidth, canvasHeight]);
 
   const handleEmail = async () => {
     if (!ticket.customerEmail) {
@@ -80,7 +128,6 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
         </span>
       );
     }
-    // field type
     const value = getValue(el.key || "");
     return (
       <span style={{ fontSize: el.fontSize, fontWeight: el.fontWeight, textAlign: el.textAlign, display: "block", color: "#000" }}>
@@ -95,9 +142,9 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
   };
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in" ref={printRef}>
       {/* Actions */}
-      <div className="flex justify-center gap-3 mb-6 no-print">
+      <div className="flex justify-center gap-3 mb-6">
         <Button onClick={handlePrint} className="gap-1.5">
           <Printer className="h-4 w-4" /> Print Ticket
         </Button>
@@ -107,36 +154,29 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
         </Button>
       </div>
 
-      {/* Ticket copies */}
-      {Array.from({ length: copiesPerPage }, (_, i) => i).map((copy) => (
-        <div
-          key={copy}
-          className={`ticket-copy max-w-4xl mx-auto bg-white text-black font-sans text-sm print:shadow-none relative ${copy < copiesPerPage - 1 ? "mb-6 print:mb-0" : ""}`}
-          style={{
-            width: canvasWidth,
-            height: canvasHeight,
-            // The print CSS will override these dimensions and scale to fit 1/3 page
-          }}
-        >
-          <div className="ticket-copy-inner relative w-full h-full" style={{ width: canvasWidth, height: canvasHeight }}>
-            {elements.map((el) => (
-              <div
-                key={el.id}
-                className="absolute overflow-hidden"
-                style={{
-                  left: el.x,
-                  top: el.y,
-                  width: el.width,
-                  height: el.height,
-                  textAlign: el.textAlign as any,
-                }}
-              >
-                {renderElement(el)}
-              </div>
-            ))}
-          </div>
+      {/* On-screen preview (single copy for reference) */}
+      <div
+        className="ticket-copy max-w-4xl mx-auto bg-white text-black font-sans text-sm relative border border-border"
+        style={{ width: canvasWidth, height: canvasHeight }}
+      >
+        <div className="ticket-copy-inner relative w-full h-full" style={{ width: canvasWidth, height: canvasHeight }}>
+          {elements.map((el) => (
+            <div
+              key={el.id}
+              className="absolute overflow-hidden"
+              style={{
+                left: el.x,
+                top: el.y,
+                width: el.width,
+                height: el.height,
+                textAlign: el.textAlign as any,
+              }}
+            >
+              {renderElement(el)}
+            </div>
+          ))}
         </div>
-      ))}
+      </div>
     </div>
   );
 }
