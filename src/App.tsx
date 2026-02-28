@@ -16,6 +16,7 @@ import Admin from "./pages/Admin";
 import Customers from "./pages/Customers";
 import Products from "./pages/Products";
 import Feedback from "./pages/Feedback";
+import ReportsPage from "./pages/ReportsPage";
 import UserRoles from "./pages/UserRoles";
 import { Loader2 } from "lucide-react";
 
@@ -102,6 +103,7 @@ const App = () => (
           <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
           <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
           <Route path="/feedback" element={<ProtectedRoute><Feedback /></ProtectedRoute>} />
+          <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
           <Route path="/user-roles" element={<AdminRoute><UserRoles /></AdminRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
