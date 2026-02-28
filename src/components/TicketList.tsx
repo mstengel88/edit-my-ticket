@@ -23,9 +23,11 @@ const statusColors: Record<TicketData["status"], string> = {
   completed: "bg-success text-success-foreground",
 };
 
-export function TicketList({ tickets, onSelect, onDelete, onPreview, readOnly }: TicketListProps) {
+export function TicketList({ tickets, onSelect, onDelete, onPreview, onPrint, onEmail, readOnly }: TicketListProps) {
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [emailTicket, setEmailTicket] = useState<TicketData | null>(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   const filtered = tickets.filter((t) => {
     if (!search.trim()) return true;
