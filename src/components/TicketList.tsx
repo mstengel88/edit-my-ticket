@@ -88,9 +88,19 @@ export function TicketList({ tickets, onSelect, onDelete, onPreview, onPrint, on
                 variant="ghost"
                 size="icon"
                 className="opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={(e) => { e.stopPropagation(); onPreview(ticket); }}
+                onClick={(e) => { e.stopPropagation(); onPrint(ticket); }}
+                title="Print"
               >
-                <Eye className="h-4 w-4" />
+                <Printer className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => { e.stopPropagation(); setEmailTicket(ticket); }}
+                title="Email"
+              >
+                <Mail className="h-4 w-4" />
               </Button>
               {!readOnly && (
                 <Button
