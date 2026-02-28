@@ -16,6 +16,7 @@ import Admin from "./pages/Admin";
 import Customers from "./pages/Customers";
 import Products from "./pages/Products";
 import Feedback from "./pages/Feedback";
+import ReportsPage from "./pages/ReportsPage";
 import UserRoles from "./pages/UserRoles";
 import { Loader2 } from "lucide-react";
 
