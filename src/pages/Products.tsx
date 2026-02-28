@@ -62,6 +62,36 @@ const Products = () => {
     URL.revokeObjectURL(url);
   };
 
+  const handleImportCsv = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".csv";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      const userId = session?.user?.id;
+      if (!userId) return;
+      const text = await file.text();
+      const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+      const start = lines[0]?.toLowerCase().includes("name") ? 1 : 0;
+      let added = 0;
+      for (let i = start; i < lines.length; i++) {
+        const match = lines[i].match(/^"?([^",]+)"?/);
+        if (!match) continue;
+        const name = match[1].trim();
+        if (!name) continue;
+        const { error } = await supabase.from("products").upsert(
+          { name, user_id: userId, source: "csv" },
+          { onConflict: "name" }
+        );
+        if (!error) added++;
+      }
+      toast.success(`Imported ${added} products`);
+      load();
+    };
+    input.click();
+  };
+
   const load = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase.from("products").select("id, name, source").order("name");
