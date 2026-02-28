@@ -43,6 +43,7 @@ export function OpsDashboard() {
   const [selected, setSelected] = useState("");
   const [logs, setLogs] = useState("");
   const [restartBusy, setRestartBusy] = useState<Record<string, boolean>>({});
+  const [containersError, setContainersError] = useState<ContainersError>(null);
   const logRef = useRef<HTMLPreElement>(null);
 
   useEffect(() => {
