@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useTicketTemplate } from "@/hooks/useTicketTemplate";
-import { CanvasElement, ReportField, ReportEmailConfig, EMAIL_CANVAS_WIDTH, EMAIL_CANVAS_HEIGHT } from "@/types/template";
+import { CanvasElement, ReportField, ReportEmailConfig, PrintLayouts, DEFAULT_PRINT_LAYOUTS } from "@/types/template";
 import { TicketData, sampleTickets } from "@/types/ticket";
 import { TicketPreview } from "@/components/TicketPreview";
 import { CanvasEditor } from "@/components/template-editor/CanvasEditor";
 import { VersionHistory } from "@/components/template-editor/VersionHistory";
 import { ReportEmailConfigEditor } from "@/components/template-editor/ReportEmailConfigEditor";
+import { PrintLayoutDesigner } from "@/components/template-editor/PrintLayoutDesigner";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -30,6 +31,7 @@ const Settings = () => {
     canvasWidth: savedWidth, canvasHeight: savedHeight,
     emailElements, emailCanvasWidth: savedEmailW, emailCanvasHeight: savedEmailH,
     reportEmailConfig: savedReportEmailConfig,
+    printLayouts: savedPrintLayouts,
     loading, saveTemplate, templateId, restoreVersion,
   } = useTicketTemplate();
 
@@ -45,6 +47,9 @@ const Settings = () => {
   const [localEmailH, setLocalEmailH] = useState(savedEmailH);
   const [localReportEmailConfig, setLocalReportEmailConfig] = useState<ReportEmailConfig>(savedReportEmailConfig);
 
+  // Print layout state
+  const [localPrintLayouts, setLocalPrintLayouts] = useState<PrintLayouts>(savedPrintLayouts);
+
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
@@ -57,7 +62,8 @@ const Settings = () => {
     setLocalEmailW(savedEmailW);
     setLocalEmailH(savedEmailH);
     setLocalReportEmailConfig(savedReportEmailConfig);
-  }, [canvasElements, copiesPerPage, reportFields, savedWidth, savedHeight, emailElements, savedEmailW, savedEmailH, savedReportEmailConfig]);
+    setLocalPrintLayouts(savedPrintLayouts);
+  }, [canvasElements, copiesPerPage, reportFields, savedWidth, savedHeight, emailElements, savedEmailW, savedEmailH, savedReportEmailConfig, savedPrintLayouts]);
 
   const handleCanvasChange = (elements: CanvasElement[]) => { setLocalCanvas(elements); setDirty(true); };
   const handleReportToggle = (id: string) => {
@@ -66,6 +72,7 @@ const Settings = () => {
   };
   const handleEmailCanvasChange = (elements: CanvasElement[]) => { setLocalEmailElements(elements); setDirty(true); };
   const handleReportEmailConfigChange = (config: ReportEmailConfig) => { setLocalReportEmailConfig(config); setDirty(true); };
+  const handlePrintLayoutsChange = (layouts: PrintLayouts) => { setLocalPrintLayouts(layouts); setDirty(true); };
 
   const handleRestore = (layout: any) => {
     restoreVersion(layout);
@@ -78,6 +85,7 @@ const Settings = () => {
     if (layout.emailCanvasWidth) setLocalEmailW(layout.emailCanvasWidth);
     if (layout.emailCanvasHeight) setLocalEmailH(layout.emailCanvasHeight);
     if (layout.reportEmailConfig) setLocalReportEmailConfig({ ...localReportEmailConfig, ...layout.reportEmailConfig });
+    if (layout.printLayouts) setLocalPrintLayouts({ ...DEFAULT_PRINT_LAYOUTS, ...layout.printLayouts });
     setDirty(true);
   };
 
@@ -85,6 +93,7 @@ const Settings = () => {
     await saveTemplate(
       fields, localCopies, localReportFields, localCanvas, localWidth, localHeight,
       localEmailElements, localEmailW, localEmailH, localReportEmailConfig,
+      localPrintLayouts,
     );
     setDirty(false);
     toast.success("Template saved!");
@@ -121,6 +130,7 @@ const Settings = () => {
           <TabsList className="mb-4 flex-wrap">
             <TabsTrigger value="designer">Ticket Designer</TabsTrigger>
             <TabsTrigger value="preview">Live Preview</TabsTrigger>
+            <TabsTrigger value="print-layout">Print Layout</TabsTrigger>
             <TabsTrigger value="ticket-email">Ticket Email</TabsTrigger>
             <TabsTrigger value="report-email">Report Email</TabsTrigger>
             <TabsTrigger value="reports">Reports</TabsTrigger>
@@ -150,8 +160,12 @@ const Settings = () => {
 
           <TabsContent value="preview">
             <div className="pointer-events-none">
-              <TicketPreview ticket={sampleTicket} canvasElements={localCanvas} copiesPerPage={localCopies} canvasWidth={localWidth} canvasHeight={localHeight} />
+              <TicketPreview ticket={sampleTicket} canvasElements={localCanvas} copiesPerPage={localCopies} canvasWidth={localWidth} canvasHeight={localHeight} printLayouts={localPrintLayouts} />
             </div>
+          </TabsContent>
+
+          <TabsContent value="print-layout">
+            <PrintLayoutDesigner printLayouts={localPrintLayouts} onChange={handlePrintLayoutsChange} />
           </TabsContent>
 
           <TabsContent value="ticket-email">

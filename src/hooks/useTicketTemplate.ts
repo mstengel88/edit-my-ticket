@@ -7,6 +7,7 @@ import {
   ReportField, DEFAULT_REPORT_FIELDS,
   DEFAULT_TICKET_EMAIL_ELEMENTS, EMAIL_CANVAS_WIDTH, EMAIL_CANVAS_HEIGHT,
   ReportEmailConfig, DEFAULT_REPORT_EMAIL_CONFIG,
+  PrintLayouts, DEFAULT_PRINT_LAYOUTS,
 } from "@/types/template";
 
 export function useTicketTemplate() {
@@ -19,6 +20,15 @@ export function useTicketTemplate() {
   const [canvasHeight, setCanvasHeight] = useState(CANVAS_HEIGHT);
   const [templateId, setTemplateId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Email template state
+  const [emailElements, setEmailElements] = useState<CanvasElement[]>(DEFAULT_TICKET_EMAIL_ELEMENTS);
+  const [emailCanvasWidth, setEmailCanvasWidth] = useState(EMAIL_CANVAS_WIDTH);
+  const [emailCanvasHeight, setEmailCanvasHeight] = useState(EMAIL_CANVAS_HEIGHT);
+  const [reportEmailConfig, setReportEmailConfig] = useState<ReportEmailConfig>(DEFAULT_REPORT_EMAIL_CONFIG);
+
+  // Print layout state
+  const [printLayouts, setPrintLayouts] = useState<PrintLayouts>(DEFAULT_PRINT_LAYOUTS);
 
   // Restore from a version snapshot
   const restoreVersion = (layout: any) => {
@@ -33,14 +43,9 @@ export function useTicketTemplate() {
       if (layout.emailCanvasWidth) setEmailCanvasWidth(layout.emailCanvasWidth);
       if (layout.emailCanvasHeight) setEmailCanvasHeight(layout.emailCanvasHeight);
       if (layout.reportEmailConfig) setReportEmailConfig({ ...DEFAULT_REPORT_EMAIL_CONFIG, ...layout.reportEmailConfig });
+      if (layout.printLayouts) setPrintLayouts({ ...DEFAULT_PRINT_LAYOUTS, ...layout.printLayouts });
     }
   };
-
-  // Email template state
-  const [emailElements, setEmailElements] = useState<CanvasElement[]>(DEFAULT_TICKET_EMAIL_ELEMENTS);
-  const [emailCanvasWidth, setEmailCanvasWidth] = useState(EMAIL_CANVAS_WIDTH);
-  const [emailCanvasHeight, setEmailCanvasHeight] = useState(EMAIL_CANVAS_HEIGHT);
-  const [reportEmailConfig, setReportEmailConfig] = useState<ReportEmailConfig>(DEFAULT_REPORT_EMAIL_CONFIG);
 
   const loadTemplate = useCallback(async () => {
     if (!session?.user) return;
@@ -71,13 +76,13 @@ export function useTicketTemplate() {
           const savedKeys = new Set(layout.reportFields.map((f: any) => f.id));
           setReportFields([...layout.reportFields, ...DEFAULT_REPORT_FIELDS.filter((f) => !savedKeys.has(f.id))]);
         }
-        // Email templates
         if (Array.isArray(layout.emailElements) && layout.emailElements.length > 0) {
           setEmailElements(layout.emailElements);
         }
         if (layout.emailCanvasWidth) setEmailCanvasWidth(layout.emailCanvasWidth);
         if (layout.emailCanvasHeight) setEmailCanvasHeight(layout.emailCanvasHeight);
         if (layout.reportEmailConfig) setReportEmailConfig({ ...DEFAULT_REPORT_EMAIL_CONFIG, ...layout.reportEmailConfig });
+        if (layout.printLayouts) setPrintLayouts({ ...DEFAULT_PRINT_LAYOUTS, ...layout.printLayouts });
       } else if (Array.isArray(layout)) {
         const savedKeys = new Set(layout.map((f: any) => f.id));
         setFields([...layout, ...DEFAULT_TEMPLATE_FIELDS.filter((f) => !savedKeys.has(f.id))]);
@@ -102,6 +107,7 @@ export function useTicketTemplate() {
       updatedEmailCanvasWidth?: number,
       updatedEmailCanvasHeight?: number,
       updatedReportEmailConfig?: ReportEmailConfig,
+      updatedPrintLayouts?: PrintLayouts,
     ) => {
       if (!session?.user) return;
       setFields(updatedFields);
@@ -114,6 +120,7 @@ export function useTicketTemplate() {
       if (updatedEmailCanvasWidth !== undefined) setEmailCanvasWidth(updatedEmailCanvasWidth);
       if (updatedEmailCanvasHeight !== undefined) setEmailCanvasHeight(updatedEmailCanvasHeight);
       if (updatedReportEmailConfig) setReportEmailConfig(updatedReportEmailConfig);
+      if (updatedPrintLayouts) setPrintLayouts(updatedPrintLayouts);
 
       const layoutData = {
         fields: updatedFields,
@@ -126,10 +133,10 @@ export function useTicketTemplate() {
         emailCanvasWidth: updatedEmailCanvasWidth ?? emailCanvasWidth,
         emailCanvasHeight: updatedEmailCanvasHeight ?? emailCanvasHeight,
         reportEmailConfig: updatedReportEmailConfig ?? reportEmailConfig,
+        printLayouts: updatedPrintLayouts ?? printLayouts,
       };
 
       if (templateId) {
-        // Save version snapshot before overwriting
         await supabase.from("template_versions").insert({
           template_id: templateId,
           user_id: session.user.id,
@@ -149,12 +156,13 @@ export function useTicketTemplate() {
         if (data) setTemplateId(data.id);
       }
     },
-    [session?.user, templateId, copiesPerPage, reportFields, canvasElements, canvasWidth, canvasHeight, emailElements, emailCanvasWidth, emailCanvasHeight, reportEmailConfig]
+    [session?.user, templateId, copiesPerPage, reportFields, canvasElements, canvasWidth, canvasHeight, emailElements, emailCanvasWidth, emailCanvasHeight, reportEmailConfig, printLayouts]
   );
 
   return {
     fields, canvasElements, reportFields, copiesPerPage, canvasWidth, canvasHeight,
     emailElements, emailCanvasWidth, emailCanvasHeight, reportEmailConfig,
+    printLayouts,
     loading, saveTemplate, templateId, restoreVersion,
   };
 }
