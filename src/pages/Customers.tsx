@@ -151,6 +151,9 @@ const Customers = () => {
 
   const headerExtra = (
     <div className="flex gap-2">
+      <Button size="sm" variant="outline" className="gap-1.5" onClick={handleImportCsv}>
+        <Upload className="h-4 w-4" /> Import CSV
+      </Button>
       <Button size="sm" variant="outline" className="gap-1.5" onClick={handleExportCsv}>
         <Download className="h-4 w-4" /> Export CSV
       </Button>
