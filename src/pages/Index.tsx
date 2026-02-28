@@ -172,12 +172,10 @@ const Index = () => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
         )}
-        {isDeveloper && (
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="gap-1.5">
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            Sync
-          </Button>
-        )}
+        <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="gap-1.5">
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          Sync
+        </Button>
       </>
     );
 
