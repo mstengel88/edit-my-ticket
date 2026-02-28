@@ -50,9 +50,15 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get container ID from query param
-    const url = new URL(req.url);
-    const containerId = url.searchParams.get("id");
+    // Get container ID from body or query param
+    let containerId: string | null = null;
+    try {
+      const body = await req.json();
+      containerId = body?.id || null;
+    } catch {
+      const url = new URL(req.url);
+      containerId = url.searchParams.get("id");
+    }
     if (!containerId) {
       return new Response(JSON.stringify({ error: "missing container id" }), {
         status: 400,
