@@ -83,6 +83,12 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
     });
   }, [copiesPerPage, canvasWidth, canvasHeight]);
 
+  useEffect(() => {
+    const onPrintRequest = () => handlePrint();
+    window.addEventListener("ticket-print-request", onPrintRequest);
+    return () => window.removeEventListener("ticket-print-request", onPrintRequest);
+  }, [handlePrint]);
+
   const handleEmail = async () => {
     if (!ticket.customerEmail) {
       toast.error("No customer email set. Add one in the editor first.");

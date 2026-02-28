@@ -30,9 +30,20 @@ const Index = () => {
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [view, setView] = useState<View>("list");
   const [activeTab, setActiveTab] = useState<string>("tickets");
+  const [pendingPrint, setPendingPrint] = useState(false);
 
   useEffect(() => { loadFromDb(); }, [loadFromDb]);
   useEffect(() => { if (error) toast.error(error); }, [error]);
+  useEffect(() => {
+    if (!pendingPrint || view !== "preview" || !selectedTicket) return;
+
+    const timeout = window.setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("ticket-print-request"));
+      setPendingPrint(false);
+    }, 50);
+
+    return () => window.clearTimeout(timeout);
+  }, [pendingPrint, view, selectedTicket]);
 
   const handleSelectTicket = (ticket: TicketData) => {
     setSelectedTicket({ ...ticket });
@@ -165,7 +176,7 @@ const Index = () => {
   const handlePrintTicket = (ticket: TicketData) => {
     setSelectedTicket(ticket);
     setView("preview");
-    setTimeout(() => window.print(), 500);
+    setPendingPrint(true);
   };
 
   const handleEmailTicket = async (ticket: TicketData) => {
