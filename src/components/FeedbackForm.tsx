@@ -197,7 +197,7 @@ export function FeedbackForm() {
                     <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.description}</p>
                   )}
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    {new Date(item.created_at).toLocaleDateString()}
+                    {item.submitted_by} · {new Date(item.created_at).toLocaleDateString()}
                   </p>
                 </div>
               ))}
