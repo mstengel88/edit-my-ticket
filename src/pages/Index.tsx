@@ -18,9 +18,6 @@ import { useTicketTemplate } from "@/hooks/useTicketTemplate";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AppLayout } from "@/components/AppLayout";
 import companyLogo from "@/assets/Greenhillssupply_logo.png";
-import { useTicketTemplate } from "@/hooks/useTicketTemplate";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { AppLayout } from "@/components/AppLayout";
 
 type View = "list" | "editor" | "preview";
 
