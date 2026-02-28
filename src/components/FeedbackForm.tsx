@@ -49,13 +49,17 @@ export function FeedbackForm() {
     setLoadingItems(true);
     const { data } = await supabase
       .from("feedback")
-      .select("*, profiles!inner(display_name)")
+      .select("*")
       .order("created_at", { ascending: false });
-    const mapped = (data ?? []).map((row: any) => ({
-      ...row,
-      submitted_by: row.profiles?.display_name || "Unknown",
-    }));
-    setItems(mapped as FeedbackItem[]);
+    const rows = (data ?? []) as (FeedbackItem)[];
+    // Fetch display names for submitters
+    const userIds = [...new Set(rows.map((r) => r.user_id))];
+    const { data: profiles } = userIds.length
+      ? await supabase.from("profiles").select("user_id, display_name").in("user_id", userIds)
+      : { data: [] };
+    const nameMap = new Map((profiles ?? []).map((p: any) => [p.user_id, p.display_name]));
+    const mapped = rows.map((r) => ({ ...r, submitted_by: nameMap.get(r.user_id) || "Unknown" }));
+    setItems(mapped);
     setLoadingItems(false);
   };
 
