@@ -30,7 +30,7 @@ export const MAX_CANVAS_HEIGHT = 800;
 // Available ticket data fields users can add
 export const AVAILABLE_FIELDS: { key: string; label: string }[] = [
   { key: "jobNumber", label: "Ticket No" },
-  { key: "jobName", label: "Job Name" },
+  { key: "jobName", label: "PO #" },
   { key: "dateTime", label: "Date/Time" },
   { key: "customer", label: "Customer" },
   { key: "customerEmail", label: "Customer Email" },
