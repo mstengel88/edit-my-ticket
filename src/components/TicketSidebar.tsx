@@ -47,6 +47,18 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
             <h3 className="text-sm font-semibold text-foreground">Tickets</h3>
             <span className="text-xs text-muted-foreground">{tickets.length}</span>
           </div>
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+            <SelectTrigger className="h-8 text-xs">
+              <SelectValue placeholder="All statuses" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover z-50">
+              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="sent">Sent</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+            </SelectContent>
+          </Select>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
