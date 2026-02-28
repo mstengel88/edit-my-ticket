@@ -25,6 +25,8 @@ interface MetricsData {
 
 interface SeriesPoint { t: string; cpu: number; mem: number }
 
+type ContainersError = string | null;
+
 interface Container {
   id: string;
   name: string;
