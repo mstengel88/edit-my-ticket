@@ -63,6 +63,38 @@ const Customers = () => {
     URL.revokeObjectURL(url);
   };
 
+  const handleImportCsv = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".csv";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      const userId = session?.user?.id;
+      if (!userId) return;
+      const text = await file.text();
+      const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+      // Skip header if it looks like one
+      const start = lines[0]?.toLowerCase().includes("name") ? 1 : 0;
+      let added = 0;
+      for (let i = start; i < lines.length; i++) {
+        const match = lines[i].match(/^"?([^",]+)"?\s*,?\s*"?([^"]*)"?$/);
+        if (!match) continue;
+        const name = match[1].trim();
+        const email = match[2]?.trim() || "";
+        if (!name) continue;
+        const { error } = await supabase.from("customers").upsert(
+          { name, email, user_id: userId },
+          { onConflict: "name,user_id" }
+        );
+        if (!error) added++;
+      }
+      toast.success(`Imported ${added} customers`);
+      load();
+    };
+    input.click();
+  };
+
   const load = useCallback(async () => {
     setLoading(true);
     const { data } = await supabase.from("customers").select("id, name, email").order("name");
