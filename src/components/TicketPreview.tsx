@@ -115,23 +115,26 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
           style={{
             width: canvasWidth,
             height: canvasHeight,
+            // The print CSS will override these dimensions and scale to fit 1/3 page
           }}
         >
-          {elements.map((el) => (
-            <div
-              key={el.id}
-              className="absolute overflow-hidden"
-              style={{
-                left: el.x,
-                top: el.y,
-                width: el.width,
-                height: el.height,
-                textAlign: el.textAlign as any,
-              }}
-            >
-              {renderElement(el)}
-            </div>
-          ))}
+          <div className="ticket-copy-inner relative w-full h-full" style={{ width: canvasWidth, height: canvasHeight }}>
+            {elements.map((el) => (
+              <div
+                key={el.id}
+                className="absolute overflow-hidden"
+                style={{
+                  left: el.x,
+                  top: el.y,
+                  width: el.width,
+                  height: el.height,
+                  textAlign: el.textAlign as any,
+                }}
+              >
+                {renderElement(el)}
+              </div>
+            ))}
+          </div>
         </div>
       ))}
     </div>
