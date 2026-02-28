@@ -28,10 +28,11 @@ const statusDot: Record<TicketData["status"], string> = {
   completed: "bg-success",
 };
 
-export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, readOnly }: TicketSidebarProps) {
+export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, onPrint, onEmail, readOnly }: TicketSidebarProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [emailTicket, setEmailTicket] = useState<TicketData | null>(null);
 
   const filtered = tickets.filter((t) => {
     if (statusFilter !== "all" && t.status !== statusFilter) return false;
