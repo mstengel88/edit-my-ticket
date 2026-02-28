@@ -49,9 +49,13 @@ export function FeedbackForm() {
     setLoadingItems(true);
     const { data } = await supabase
       .from("feedback")
-      .select("*")
+      .select("*, profiles!inner(display_name)")
       .order("created_at", { ascending: false });
-    setItems((data as FeedbackItem[]) || []);
+    const mapped = (data ?? []).map((row: any) => ({
+      ...row,
+      submitted_by: row.profiles?.display_name || "Unknown",
+    }));
+    setItems(mapped as FeedbackItem[]);
     setLoadingItems(false);
   };
 
