@@ -16,6 +16,8 @@ interface TicketSidebarProps {
   onSelect: (ticket: TicketData) => void;
   onDelete: (id: string) => void;
   onNew: () => void;
+  onPrint: (ticket: TicketData) => void;
+  onEmail: (ticket: TicketData) => void;
   readOnly?: boolean;
 }
 
