@@ -136,7 +136,7 @@ export interface TemplateField {
 
 export const DEFAULT_TEMPLATE_FIELDS: TemplateField[] = [
   { id: "dateTime", key: "dateTime", label: "Date", visible: true, section: "header" },
-  { id: "jobName", key: "jobName", label: "Job", visible: true, section: "header" },
+  { id: "jobName", key: "jobName", label: "PO #", visible: true, section: "header" },
   { id: "customer", key: "customer", label: "Customer", visible: true, section: "header" },
   { id: "customerEmail", key: "customerEmail", label: "Customer Email", visible: true, section: "header" },
   { id: "product", key: "product", label: "Product", visible: true, section: "product" },
