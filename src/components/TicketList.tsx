@@ -42,7 +42,7 @@ export function TicketList({ tickets, onSelect, onDelete, onPreview, onPrint, on
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
         <div className="rounded-full bg-muted p-6 mb-4">
-          <Eye className="h-8 w-8 text-muted-foreground" />
+          <Search className="h-8 w-8 text-muted-foreground" />
         </div>
         <h2 className="text-lg font-semibold text-foreground">No tickets yet</h2>
         <p className="text-sm text-muted-foreground mt-1">Create your first ticket to get started.</p>
