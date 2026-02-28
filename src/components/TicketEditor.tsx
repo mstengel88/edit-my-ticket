@@ -87,7 +87,7 @@ export function TicketEditor({ ticket, onSave, onPreview, templateFields }: Tick
           </div>
           {visible("jobName") && (
             <div>
-              <Label className="text-xs text-muted-foreground">Job Name</Label>
+              <Label className="text-xs text-muted-foreground">PO #</Label>
               <Input value={data.jobName} onChange={(e) => updateField("jobName", e.target.value)} />
             </div>
           )}

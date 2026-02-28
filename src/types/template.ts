@@ -158,7 +158,7 @@ export interface ReportField {
 
 export const DEFAULT_REPORT_FIELDS: ReportField[] = [
   { id: "jobNumber", label: "Job #", visible: true },
-  { id: "jobName", label: "Job Name", visible: true },
+  { id: "jobName", label: "PO #", visible: true },
   { id: "dateTime", label: "Date/Time", visible: true },
   { id: "customer", label: "Customer", visible: true },
   { id: "customerEmail", label: "Customer Email", visible: true },
