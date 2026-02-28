@@ -62,13 +62,25 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
     }
 
     document.body.appendChild(printArea);
-    window.print();
 
-    // Clean up after print
-    setTimeout(() => {
-      const el = document.getElementById("print-area");
-      if (el) el.remove();
-    }, 1000);
+    // Wait for all images to load before printing
+    const images = printArea.querySelectorAll("img");
+    const imagePromises = Array.from(images).map(
+      (img) =>
+        new Promise<void>((resolve) => {
+          if (img.complete) return resolve();
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+        })
+    );
+
+    Promise.all(imagePromises).then(() => {
+      window.print();
+      setTimeout(() => {
+        const el = document.getElementById("print-area");
+        if (el) el.remove();
+      }, 1000);
+    });
   }, [copiesPerPage, canvasWidth, canvasHeight]);
 
   const handleEmail = async () => {
