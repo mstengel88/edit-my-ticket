@@ -4,13 +4,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Eye, Pencil, Trash2, Search } from "lucide-react";
+import { Printer, Mail, Pencil, Trash2, Search, Loader2 } from "lucide-react";
 
 interface TicketListProps {
   tickets: TicketData[];
   onSelect: (ticket: TicketData) => void;
   onDelete: (id: string) => void;
   onPreview: (ticket: TicketData) => void;
+  onPrint: (ticket: TicketData) => void;
+  onEmail: (ticket: TicketData) => void;
   readOnly?: boolean;
 }
 
