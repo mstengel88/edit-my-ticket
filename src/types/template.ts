@@ -59,7 +59,7 @@ export const DEFAULT_CANVAS_ELEMENTS: CanvasElement[] = [
   { id: "jobNumber", type: "field", key: "jobNumber", label: "Ticket No", x: 620, y: 35, width: 160, height: 35, fontSize: 24, fontWeight: "bold", textAlign: "right", showLabel: false },
   { id: "divider1", type: "divider", label: "Divider", x: 20, y: 95, width: 760, height: 2, fontSize: 14, fontWeight: "normal", textAlign: "left", showLabel: false },
   { id: "dateTime", type: "field", key: "dateTime", label: "Date", x: 20, y: 108, width: 370, height: 22, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: true },
-  { id: "jobName", type: "field", key: "jobName", label: "Job", x: 400, y: 108, width: 380, height: 22, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: true },
+  { id: "jobName", type: "field", key: "jobName", label: "PO #", x: 400, y: 108, width: 380, height: 22, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: true },
   { id: "customer", type: "field", key: "customer", label: "Customer", x: 20, y: 135, width: 370, height: 22, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: true },
   { id: "truck", type: "field", key: "truck", label: "Truck", x: 400, y: 135, width: 380, height: 22, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: true },
   { id: "divider2", type: "divider", label: "Divider", x: 20, y: 165, width: 760, height: 2, fontSize: 14, fontWeight: "normal", textAlign: "left", showLabel: false },
