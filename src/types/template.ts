@@ -30,7 +30,7 @@ export const MAX_CANVAS_HEIGHT = 800;
 // Available ticket data fields users can add
 export const AVAILABLE_FIELDS: { key: string; label: string }[] = [
   { key: "jobNumber", label: "Ticket No" },
-  { key: "jobName", label: "Job Name" },
+  { key: "jobName", label: "PO #" },
   { key: "dateTime", label: "Date/Time" },
   { key: "customer", label: "Customer" },
   { key: "customerEmail", label: "Customer Email" },
@@ -59,7 +59,7 @@ export const DEFAULT_CANVAS_ELEMENTS: CanvasElement[] = [
   { id: "jobNumber", type: "field", key: "jobNumber", label: "Ticket No", x: 620, y: 35, width: 160, height: 35, fontSize: 24, fontWeight: "bold", textAlign: "right", showLabel: false },
   { id: "divider1", type: "divider", label: "Divider", x: 20, y: 95, width: 760, height: 2, fontSize: 14, fontWeight: "normal", textAlign: "left", showLabel: false },
   { id: "dateTime", type: "field", key: "dateTime", label: "Date", x: 20, y: 108, width: 370, height: 22, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: true },
-  { id: "jobName", type: "field", key: "jobName", label: "Job", x: 400, y: 108, width: 380, height: 22, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: true },
+  { id: "jobName", type: "field", key: "jobName", label: "PO #", x: 400, y: 108, width: 380, height: 22, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: true },
   { id: "customer", type: "field", key: "customer", label: "Customer", x: 20, y: 135, width: 370, height: 22, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: true },
   { id: "truck", type: "field", key: "truck", label: "Truck", x: 400, y: 135, width: 380, height: 22, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: true },
   { id: "divider2", type: "divider", label: "Divider", x: 20, y: 165, width: 760, height: 2, fontSize: 14, fontWeight: "normal", textAlign: "left", showLabel: false },
@@ -89,7 +89,7 @@ export const DEFAULT_TICKET_EMAIL_ELEMENTS: CanvasElement[] = [
   { id: "e-ticketLabel", type: "label", label: "Ticket No:", content: "Ticket No:", x: 480, y: 12, width: 110, height: 18, fontSize: 13, fontWeight: "normal", textAlign: "right", showLabel: false },
   { id: "e-jobNumber", type: "field", key: "jobNumber", label: "Ticket No", x: 480, y: 30, width: 110, height: 30, fontSize: 22, fontWeight: "bold", textAlign: "right", showLabel: false },
   { id: "e-div1", type: "divider", label: "Divider", x: 16, y: 88, width: 568, height: 2, fontSize: 14, fontWeight: "normal", textAlign: "left", showLabel: false },
-  { id: "e-jobName", type: "field", key: "jobName", label: "Job", x: 16, y: 98, width: 280, height: 20, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: true },
+  { id: "e-jobName", type: "field", key: "jobName", label: "PO #", x: 16, y: 98, width: 280, height: 20, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: true },
   { id: "e-dateTime", type: "field", key: "dateTime", label: "Date", x: 300, y: 98, width: 290, height: 20, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: true },
   { id: "e-customer", type: "field", key: "customer", label: "Customer", x: 16, y: 122, width: 280, height: 20, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: true },
   { id: "e-truck", type: "field", key: "truck", label: "Truck", x: 300, y: 122, width: 290, height: 20, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: true },
@@ -136,7 +136,7 @@ export interface TemplateField {
 
 export const DEFAULT_TEMPLATE_FIELDS: TemplateField[] = [
   { id: "dateTime", key: "dateTime", label: "Date", visible: true, section: "header" },
-  { id: "jobName", key: "jobName", label: "Job", visible: true, section: "header" },
+  { id: "jobName", key: "jobName", label: "PO #", visible: true, section: "header" },
   { id: "customer", key: "customer", label: "Customer", visible: true, section: "header" },
   { id: "customerEmail", key: "customerEmail", label: "Customer Email", visible: true, section: "header" },
   { id: "product", key: "product", label: "Product", visible: true, section: "product" },
@@ -158,7 +158,7 @@ export interface ReportField {
 
 export const DEFAULT_REPORT_FIELDS: ReportField[] = [
   { id: "jobNumber", label: "Job #", visible: true },
-  { id: "jobName", label: "Job Name", visible: true },
+  { id: "jobName", label: "PO #", visible: true },
   { id: "dateTime", label: "Date/Time", visible: true },
   { id: "customer", label: "Customer", visible: true },
   { id: "customerEmail", label: "Customer Email", visible: true },
