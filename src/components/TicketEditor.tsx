@@ -20,8 +20,9 @@ interface TicketEditorProps {
   templateFields?: TemplateField[];
 }
 
-export function TicketEditor({ ticket, onSave, onPreview, templateFields }: TicketEditorProps) {
+export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields }: TicketEditorProps) {
   const [data, setData] = useState<TicketData>(ticket);
+  const [showEmailConfirm, setShowEmailConfirm] = useState(false);
   const { products, customers, customerEmails, trucks } = useTicketLookups();
   const fields = templateFields || DEFAULT_TEMPLATE_FIELDS;
   // customerEmail is always editable in the editor even if hidden from preview
