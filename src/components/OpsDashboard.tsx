@@ -231,7 +231,7 @@ export function OpsDashboard() {
                 <SelectValue placeholder="Select container" />
               </SelectTrigger>
               <SelectContent>
-                {containers.map((c) => (
+                {containers.filter((c) => c.name).map((c) => (
                   <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
                 ))}
               </SelectContent>
