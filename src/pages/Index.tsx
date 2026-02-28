@@ -165,6 +165,46 @@ const Index = () => {
     toast.info("Syncing from Loadrite...");
   };
 
+  const handlePrintTicket = (ticket: TicketData) => {
+    setSelectedTicket(ticket);
+    setView("preview");
+    setTimeout(() => window.print(), 500);
+  };
+
+  const handleEmailTicket = async (ticket: TicketData) => {
+    if (!ticket.customerEmail) {
+      toast.error("No customer email set.");
+      return;
+    }
+    try {
+      let logoBase64 = "";
+      try {
+        const response = await fetch(companyLogo);
+        const blob = await response.blob();
+        logoBase64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        });
+      } catch (e) { console.warn("Could not convert logo:", e); }
+
+      const { error } = await supabase.functions.invoke("send-ticket-email", {
+        body: {
+          to: ticket.customerEmail,
+          subject: `Ticket - Job #${ticket.jobNumber} from ${ticket.companyName}`,
+          ticket,
+          logoBase64,
+          emailElements: emailElements || undefined,
+        },
+      });
+      if (error) throw error;
+      toast.success(`Email sent to ${ticket.customerEmail}!`);
+    } catch (err: any) {
+      console.error("Email send error:", err);
+      toast.error(err?.message || "Failed to send email");
+    }
+  };
+
   // ─── Desktop split layout ───
   if (!isMobile) {
     const subtitle = `${tickets.length} ticket${tickets.length !== 1 ? "s" : ""}${loading ? " · syncing..." : ""}`;
