@@ -26,6 +26,8 @@ interface FeedbackItem {
   description: string;
   status: string;
   created_at: string;
+  user_id: string;
+  submitted_by?: string;
 }
 
 const STATUSES = ["open", "in_progress", "done", "closed"] as const;
