@@ -4,13 +4,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Eye, Pencil, Trash2, Search } from "lucide-react";
+import { Printer, Mail, Pencil, Trash2, Search, Loader2 } from "lucide-react";
 
 interface TicketListProps {
   tickets: TicketData[];
   onSelect: (ticket: TicketData) => void;
   onDelete: (id: string) => void;
   onPreview: (ticket: TicketData) => void;
+  onPrint: (ticket: TicketData) => void;
+  onEmail: (ticket: TicketData) => void;
   readOnly?: boolean;
 }
 
@@ -21,9 +23,11 @@ const statusColors: Record<TicketData["status"], string> = {
   completed: "bg-success text-success-foreground",
 };
 
-export function TicketList({ tickets, onSelect, onDelete, onPreview, readOnly }: TicketListProps) {
+export function TicketList({ tickets, onSelect, onDelete, onPreview, onPrint, onEmail, readOnly }: TicketListProps) {
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [emailTicket, setEmailTicket] = useState<TicketData | null>(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   const filtered = tickets.filter((t) => {
     if (!search.trim()) return true;
@@ -38,7 +42,7 @@ export function TicketList({ tickets, onSelect, onDelete, onPreview, readOnly }:
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
         <div className="rounded-full bg-muted p-6 mb-4">
-          <Eye className="h-8 w-8 text-muted-foreground" />
+          <Search className="h-8 w-8 text-muted-foreground" />
         </div>
         <h2 className="text-lg font-semibold text-foreground">No tickets yet</h2>
         <p className="text-sm text-muted-foreground mt-1">Create your first ticket to get started.</p>
@@ -84,9 +88,19 @@ export function TicketList({ tickets, onSelect, onDelete, onPreview, readOnly }:
                 variant="ghost"
                 size="icon"
                 className="opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={(e) => { e.stopPropagation(); onPreview(ticket); }}
+                onClick={(e) => { e.stopPropagation(); onPrint(ticket); }}
+                title="Print"
               >
-                <Eye className="h-4 w-4" />
+                <Printer className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => { e.stopPropagation(); setEmailTicket(ticket); }}
+                title="Email"
+              >
+                <Mail className="h-4 w-4" />
               </Button>
               {!readOnly && (
                 <Button
@@ -130,6 +144,34 @@ export function TicketList({ tickets, onSelect, onDelete, onPreview, readOnly }:
             <AlertDialogAction onClick={() => { if (deleteId) { onDelete(deleteId); setDeleteId(null); } }}>
               Delete
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!emailTicket} onOpenChange={(open) => !open && setEmailTicket(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send email?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {emailTicket?.customerEmail
+                ? `This will send the ticket to ${emailTicket.customerEmail}. Continue?`
+                : "No customer email is set for this ticket. Please add one in the editor first."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            {emailTicket?.customerEmail && (
+              <AlertDialogAction
+                onClick={() => {
+                  if (emailTicket) {
+                    onEmail(emailTicket);
+                    setEmailTicket(null);
+                  }
+                }}
+              >
+                Send
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

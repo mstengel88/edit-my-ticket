@@ -17,6 +17,7 @@ import { logAudit } from "@/lib/auditLog";
 import { useTicketTemplate } from "@/hooks/useTicketTemplate";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AppLayout } from "@/components/AppLayout";
+import companyLogo from "@/assets/Greenhillssupply_logo.png";
 
 type View = "list" | "editor" | "preview";
 
@@ -161,6 +162,46 @@ const Index = () => {
     toast.info("Syncing from Loadrite...");
   };
 
+  const handlePrintTicket = (ticket: TicketData) => {
+    setSelectedTicket(ticket);
+    setView("preview");
+    setTimeout(() => window.print(), 500);
+  };
+
+  const handleEmailTicket = async (ticket: TicketData) => {
+    if (!ticket.customerEmail) {
+      toast.error("No customer email set.");
+      return;
+    }
+    try {
+      let logoBase64 = "";
+      try {
+        const response = await fetch(companyLogo);
+        const blob = await response.blob();
+        logoBase64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        });
+      } catch (e) { console.warn("Could not convert logo:", e); }
+
+      const { error } = await supabase.functions.invoke("send-ticket-email", {
+        body: {
+          to: ticket.customerEmail,
+          subject: `Ticket - Job #${ticket.jobNumber} from ${ticket.companyName}`,
+          ticket,
+          logoBase64,
+          emailElements: emailElements || undefined,
+        },
+      });
+      if (error) throw error;
+      toast.success(`Email sent to ${ticket.customerEmail}!`);
+    } catch (err: any) {
+      console.error("Email send error:", err);
+      toast.error(err?.message || "Failed to send email");
+    }
+  };
+
   // ─── Desktop split layout ───
   if (!isMobile) {
     const subtitle = `${tickets.length} ticket${tickets.length !== 1 ? "s" : ""}${loading ? " · syncing..." : ""}`;
@@ -210,6 +251,8 @@ const Index = () => {
             onSelect={handleSelectTicket}
             onDelete={handleDeleteTicket}
             onNew={handleNewTicket}
+            onPrint={handlePrintTicket}
+            onEmail={handleEmailTicket}
             readOnly={!isAdminOrManager}
           />
         </div>
@@ -257,7 +300,7 @@ const Index = () => {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="tickets">
-              <TicketList tickets={tickets} onSelect={handleSelectTicket} onDelete={handleDeleteTicket} onPreview={handlePreview} readOnly={!isAdminOrManager} />
+              <TicketList tickets={tickets} onSelect={handleSelectTicket} onDelete={handleDeleteTicket} onPreview={handlePreview} onPrint={handlePrintTicket} onEmail={handleEmailTicket} readOnly={!isAdminOrManager} />
             </TabsContent>
             <TabsContent value="reports">
               <Reports tickets={tickets} reportFields={reportFields} reportEmailConfig={reportEmailConfig} />
