@@ -187,6 +187,10 @@
     page-break-inside: avoid !important;
   }
 
+  #print-area .ticket-copy + .ticket-copy {
+    margin-top: 0.5in !important;
+  }
+
   #print-area .ticket-copy-inner {
     transform-origin: top left !important;
   }
