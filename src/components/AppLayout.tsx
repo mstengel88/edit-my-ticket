@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  BarChart3,
   ClipboardList,
   LogOut,
   Menu,
