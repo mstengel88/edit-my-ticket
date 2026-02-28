@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Eye, Save } from "lucide-react";
+import { Printer, Mail, Save } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { ComboInput } from "@/components/ComboInput";
 import { useTicketLookups } from "@/hooks/useTicketLookups";
@@ -14,12 +15,14 @@ import { useTicketLookups } from "@/hooks/useTicketLookups";
 interface TicketEditorProps {
   ticket: TicketData;
   onSave: (ticket: TicketData) => void;
-  onPreview: (ticket: TicketData) => void;
+  onPrint: (ticket: TicketData) => void;
+  onEmail: (ticket: TicketData) => void;
   templateFields?: TemplateField[];
 }
 
-export function TicketEditor({ ticket, onSave, onPreview, templateFields }: TicketEditorProps) {
+export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields }: TicketEditorProps) {
   const [data, setData] = useState<TicketData>(ticket);
+  const [showEmailConfirm, setShowEmailConfirm] = useState(false);
   const { products, customers, customerEmails, trucks } = useTicketLookups();
   const fields = templateFields || DEFAULT_TEMPLATE_FIELDS;
   // customerEmail is always editable in the editor even if hidden from preview
@@ -45,8 +48,11 @@ export function TicketEditor({ ticket, onSave, onPreview, templateFields }: Tick
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold text-foreground">Edit Ticket</h2>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => onPreview(data)} className="gap-1.5">
-            <Eye className="h-4 w-4" /> Preview
+          <Button variant="outline" size="sm" onClick={() => onPrint(data)} className="gap-1.5">
+            <Printer className="h-4 w-4" /> Print
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setShowEmailConfirm(true)} className="gap-1.5">
+            <Mail className="h-4 w-4" /> Email
           </Button>
           <Button size="sm" onClick={handleSave} className="gap-1.5">
             <Save className="h-4 w-4" /> Save
@@ -213,6 +219,26 @@ export function TicketEditor({ ticket, onSave, onPreview, templateFields }: Tick
           </div>
         </div>
       )}
+      <AlertDialog open={showEmailConfirm} onOpenChange={setShowEmailConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Send email?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {data.customerEmail
+                ? `This will send the ticket to ${data.customerEmail}. Continue?`
+                : "No customer email is set for this ticket. Please add one first."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            {data.customerEmail && (
+              <AlertDialogAction onClick={() => { onEmail(data); setShowEmailConfirm(false); }}>
+                Send
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
