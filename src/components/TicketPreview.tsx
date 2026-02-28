@@ -111,27 +111,30 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
       {Array.from({ length: copiesPerPage }, (_, i) => i).map((copy) => (
         <div
           key={copy}
-          className={`max-w-4xl mx-auto bg-white text-black border-2 border-black/80 font-sans text-sm print:border print:shadow-none relative ${copy < copiesPerPage - 1 ? "mb-6" : ""}`}
+          className={`ticket-copy max-w-4xl mx-auto bg-white text-black font-sans text-sm print:shadow-none relative ${copy < copiesPerPage - 1 ? "mb-6 print:mb-0" : ""}`}
           style={{
             width: canvasWidth,
             height: canvasHeight,
+            // The print CSS will override these dimensions and scale to fit 1/3 page
           }}
         >
-          {elements.map((el) => (
-            <div
-              key={el.id}
-              className="absolute overflow-hidden"
-              style={{
-                left: el.x,
-                top: el.y,
-                width: el.width,
-                height: el.height,
-                textAlign: el.textAlign as any,
-              }}
-            >
-              {renderElement(el)}
-            </div>
-          ))}
+          <div className="ticket-copy-inner relative w-full h-full" style={{ width: canvasWidth, height: canvasHeight }}>
+            {elements.map((el) => (
+              <div
+                key={el.id}
+                className="absolute overflow-hidden"
+                style={{
+                  left: el.x,
+                  top: el.y,
+                  width: el.width,
+                  height: el.height,
+                  textAlign: el.textAlign as any,
+                }}
+              >
+                {renderElement(el)}
+              </div>
+            ))}
+          </div>
         </div>
       ))}
     </div>

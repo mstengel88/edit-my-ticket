@@ -201,8 +201,18 @@
     padding: 4px 6px !important;
   }
 
+  /* Ticket copies: fit 3 per page */
+  .ticket-copy {
+    width: 100% !important;
+    height: calc(100vh / 3) !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    overflow: hidden;
+    transform-origin: top left;
+  }
+
   @page {
-    margin: 0.3in;
+    margin: 0.25in;
     size: portrait;
   }
 }
