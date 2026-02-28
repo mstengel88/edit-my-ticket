@@ -89,7 +89,7 @@ export const DEFAULT_TICKET_EMAIL_ELEMENTS: CanvasElement[] = [
   { id: "e-ticketLabel", type: "label", label: "Ticket No:", content: "Ticket No:", x: 480, y: 12, width: 110, height: 18, fontSize: 13, fontWeight: "normal", textAlign: "right", showLabel: false },
   { id: "e-jobNumber", type: "field", key: "jobNumber", label: "Ticket No", x: 480, y: 30, width: 110, height: 30, fontSize: 22, fontWeight: "bold", textAlign: "right", showLabel: false },
   { id: "e-div1", type: "divider", label: "Divider", x: 16, y: 88, width: 568, height: 2, fontSize: 14, fontWeight: "normal", textAlign: "left", showLabel: false },
-  { id: "e-jobName", type: "field", key: "jobName", label: "Job", x: 16, y: 98, width: 280, height: 20, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: true },
+  { id: "e-jobName", type: "field", key: "jobName", label: "PO #", x: 16, y: 98, width: 280, height: 20, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: true },
   { id: "e-dateTime", type: "field", key: "dateTime", label: "Date", x: 300, y: 98, width: 290, height: 20, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: true },
   { id: "e-customer", type: "field", key: "customer", label: "Customer", x: 16, y: 122, width: 280, height: 20, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: true },
   { id: "e-truck", type: "field", key: "truck", label: "Truck", x: 300, y: 122, width: 290, height: 20, fontSize: 13, fontWeight: "bold", textAlign: "left", showLabel: true },
