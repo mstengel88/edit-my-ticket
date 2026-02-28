@@ -17,3 +17,15 @@ verify_jwt = false
 
 [functions.agent-status]
 verify_jwt = false
+
+[functions.agent-metrics]
+verify_jwt = false
+
+[functions.agent-containers]
+verify_jwt = false
+
+[functions.agent-container-restart]
+verify_jwt = false
+
+[functions.agent-logs-stream]
+verify_jwt = false
