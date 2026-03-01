@@ -132,6 +132,7 @@ export interface PrintLayoutConfig {
   pageMarginLeft: number;    // inches
   pageMarginRight: number;   // inches
   ticketOffsets: Array<{ x: number; y: number }>; // per ticket position, in inches
+  ticketSizes: Array<{ width: number; height: number }>; // per ticket size, in inches
 }
 
 export type PrintLayouts = {
