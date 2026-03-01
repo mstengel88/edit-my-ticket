@@ -207,6 +207,15 @@ export function PrintLayoutDesigner({ printLayouts, onChange }: PrintLayoutDesig
     [config.ticketOffsets, updateConfig]
   );
 
+  const updateSize = useCallback(
+    (index: number, width: number, height: number) => {
+      const sizes = [...(config.ticketSizes || [])];
+      sizes[index] = { width, height };
+      updateConfig({ ticketSizes: sizes });
+    },
+    [config.ticketSizes, updateConfig]
+  );
+
   const copyCount = Number(activeTab);
 
   return (
