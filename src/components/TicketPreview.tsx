@@ -188,10 +188,6 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
         <Button onClick={handlePrint} className="gap-1.5">
           <Printer className="h-4 w-4" /> Print Ticket
         </Button>
-        <Button variant="outline" onClick={handleEmail} className="gap-1.5" disabled={sending}>
-          {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-          {sending ? "Sending…" : "Email Ticket"}
-        </Button>
       </div>
 
       <div
