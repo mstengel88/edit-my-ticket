@@ -61,7 +61,7 @@ const Index = () => {
         .order("job_number", { ascending: false })
         .limit(1);
       if (rows && rows.length > 0) {
-        const match = rows[0].job_number.match(/^TM-(\d+)$/);
+        const match = rows[0].job_number.match(/^MT-(\d+)$/);
         if (match) nextNumber = parseInt(match[1], 10) + 1;
       }
     }
