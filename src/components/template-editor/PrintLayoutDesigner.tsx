@@ -126,16 +126,25 @@ function PagePreview({
         {/* Tickets */}
         {Array.from({ length: copyCount }).map((_, i) => {
           const offset = config.ticketOffsets[i] || { x: 0, y: 0 };
+          const size = config.ticketSizes?.[i] || { width: contentW / PREVIEW_SCALE, height: ticketH / PREVIEW_SCALE };
+          const tw = size.width * PREVIEW_SCALE;
+          const th = size.height * PREVIEW_SCALE;
           const tx = ml + offset.x * PREVIEW_SCALE;
-          const ty = mt + i * ticketH + offset.y * PREVIEW_SCALE;
+          // stack tickets based on cumulative heights of previous tickets
+          let tyBase = mt;
+          for (let j = 0; j < i; j++) {
+            const prevSize = config.ticketSizes?.[j] || { width: contentW / PREVIEW_SCALE, height: ticketH / PREVIEW_SCALE };
+            tyBase += prevSize.height * PREVIEW_SCALE;
+          }
+          const ty = tyBase + offset.y * PREVIEW_SCALE;
 
           return (
             <g key={i}>
               <rect
                 x={tx}
                 y={ty}
-                width={contentW}
-                height={ticketH - 4}
+                width={tw}
+                height={th - 4}
                 rx={4}
                 fill="hsl(174 60% 96%)"
                 stroke="hsl(174 60% 40%)"
@@ -144,8 +153,8 @@ function PagePreview({
                 onMouseDown={(e) => handleMouseDown(i, e)}
               />
               <text
-                x={tx + contentW / 2}
-                y={ty + ticketH / 2 - 2}
+                x={tx + tw / 2}
+                y={ty + th / 2 - 8}
                 textAnchor="middle"
                 dominantBaseline="central"
                 className="pointer-events-none select-none"
@@ -156,15 +165,15 @@ function PagePreview({
                 Ticket {i + 1}
               </text>
               <text
-                x={tx + contentW / 2}
-                y={ty + ticketH / 2 + 14}
+                x={tx + tw / 2}
+                y={ty + th / 2 + 6}
                 textAnchor="middle"
                 dominantBaseline="central"
                 className="pointer-events-none select-none"
                 fontSize={9}
                 fill="hsl(220 10% 46%)"
               >
-                offset: {offset.x.toFixed(2)}" × {offset.y.toFixed(2)}"
+                {size.width.toFixed(2)}" × {size.height.toFixed(2)}"
               </text>
             </g>
           );
