@@ -44,6 +44,7 @@ const navItems = [
 ];
 
 const adminItems = [
+  { label: "Settings", icon: Settings, href: "/settings" },
   { label: "User Roles", icon: Users, href: "/user-roles" },
   { label: "Audit Log", icon: ClipboardList, href: "/audit-log" },
 ];
