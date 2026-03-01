@@ -57,7 +57,7 @@ const Index = () => {
       const { data: rows } = await supabase
         .from("tickets")
         .select("job_number")
-        .like("job_number", "TM-%")
+        .like("job_number", "MT-%")
         .order("job_number", { ascending: false })
         .limit(1);
       if (rows && rows.length > 0) {
