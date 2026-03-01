@@ -31,7 +31,7 @@ export interface TicketData {
 
 export const createEmptyTicket = (jobNumber?: string): TicketData => ({
   id: crypto.randomUUID(),
-  jobNumber: jobNumber ?? "TM-000001",
+  jobNumber: jobNumber ?? "MT-000001",
   jobName: "",
   dateTime: new Date().toLocaleString("en-US", {
     month: "2-digit",

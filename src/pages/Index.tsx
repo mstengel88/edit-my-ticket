@@ -65,7 +65,7 @@ const Index = () => {
         if (match) nextNumber = parseInt(match[1], 10) + 1;
       }
     }
-    const jobNumber = `TM-${String(nextNumber).padStart(6, "0")}`;
+    const jobNumber = `MT-${String(nextNumber).padStart(6, "0")}`;
     const newTicket = createEmptyTicket(jobNumber);
     if (session?.user) {
       const row = {
