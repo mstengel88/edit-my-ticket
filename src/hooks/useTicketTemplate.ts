@@ -82,7 +82,19 @@ export function useTicketTemplate() {
         if (layout.emailCanvasWidth) setEmailCanvasWidth(layout.emailCanvasWidth);
         if (layout.emailCanvasHeight) setEmailCanvasHeight(layout.emailCanvasHeight);
         if (layout.reportEmailConfig) setReportEmailConfig({ ...DEFAULT_REPORT_EMAIL_CONFIG, ...layout.reportEmailConfig });
-        if (layout.printLayouts) setPrintLayouts({ ...DEFAULT_PRINT_LAYOUTS, ...layout.printLayouts });
+        if (layout.printLayouts) {
+          const pl = { ...DEFAULT_PRINT_LAYOUTS, ...layout.printLayouts };
+          // Backfill ticketSizes for old data missing it
+          (["1","2","3"] as const).forEach(k => {
+            if (!pl[k].ticketSizes || pl[k].ticketSizes.length < Number(k)) {
+              const c = pl[k];
+              const w = 8.5 - c.pageMarginLeft - c.pageMarginRight;
+              const h = (11 - c.pageMarginTop - c.pageMarginBottom) / Number(k);
+              pl[k] = { ...c, ticketSizes: Array.from({ length: Number(k) }, () => ({ width: Math.round(w*100)/100, height: Math.round(h*100)/100 })) };
+            }
+          });
+          setPrintLayouts(pl);
+        }
       } else if (Array.isArray(layout)) {
         const savedKeys = new Set(layout.map((f: any) => f.id));
         setFields([...layout, ...DEFAULT_TEMPLATE_FIELDS.filter((f) => !savedKeys.has(f.id))]);
