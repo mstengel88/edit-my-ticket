@@ -57,15 +57,15 @@ const Index = () => {
       const { data: rows } = await supabase
         .from("tickets")
         .select("job_number")
-        .like("job_number", "TM-%")
+        .like("job_number", "MT-%")
         .order("job_number", { ascending: false })
         .limit(1);
       if (rows && rows.length > 0) {
-        const match = rows[0].job_number.match(/^TM-(\d+)$/);
+        const match = rows[0].job_number.match(/^MT-(\d+)$/);
         if (match) nextNumber = parseInt(match[1], 10) + 1;
       }
     }
-    const jobNumber = `TM-${String(nextNumber).padStart(6, "0")}`;
+    const jobNumber = `MT-${String(nextNumber).padStart(6, "0")}`;
     const newTicket = createEmptyTicket(jobNumber);
     if (session?.user) {
       const row = {
