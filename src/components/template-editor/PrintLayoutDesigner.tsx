@@ -126,16 +126,25 @@ function PagePreview({
         {/* Tickets */}
         {Array.from({ length: copyCount }).map((_, i) => {
           const offset = config.ticketOffsets[i] || { x: 0, y: 0 };
+          const size = config.ticketSizes?.[i] || { width: contentW / PREVIEW_SCALE, height: ticketH / PREVIEW_SCALE };
+          const tw = size.width * PREVIEW_SCALE;
+          const th = size.height * PREVIEW_SCALE;
           const tx = ml + offset.x * PREVIEW_SCALE;
-          const ty = mt + i * ticketH + offset.y * PREVIEW_SCALE;
+          // stack tickets based on cumulative heights of previous tickets
+          let tyBase = mt;
+          for (let j = 0; j < i; j++) {
+            const prevSize = config.ticketSizes?.[j] || { width: contentW / PREVIEW_SCALE, height: ticketH / PREVIEW_SCALE };
+            tyBase += prevSize.height * PREVIEW_SCALE;
+          }
+          const ty = tyBase + offset.y * PREVIEW_SCALE;
 
           return (
             <g key={i}>
               <rect
                 x={tx}
                 y={ty}
-                width={contentW}
-                height={ticketH - 4}
+                width={tw}
+                height={th - 4}
                 rx={4}
                 fill="hsl(174 60% 96%)"
                 stroke="hsl(174 60% 40%)"
@@ -144,8 +153,8 @@ function PagePreview({
                 onMouseDown={(e) => handleMouseDown(i, e)}
               />
               <text
-                x={tx + contentW / 2}
-                y={ty + ticketH / 2 - 2}
+                x={tx + tw / 2}
+                y={ty + th / 2 - 8}
                 textAnchor="middle"
                 dominantBaseline="central"
                 className="pointer-events-none select-none"
@@ -156,15 +165,15 @@ function PagePreview({
                 Ticket {i + 1}
               </text>
               <text
-                x={tx + contentW / 2}
-                y={ty + ticketH / 2 + 14}
+                x={tx + tw / 2}
+                y={ty + th / 2 + 6}
                 textAnchor="middle"
                 dominantBaseline="central"
                 className="pointer-events-none select-none"
                 fontSize={9}
                 fill="hsl(220 10% 46%)"
               >
-                offset: {offset.x.toFixed(2)}" × {offset.y.toFixed(2)}"
+                {size.width.toFixed(2)}" × {size.height.toFixed(2)}"
               </text>
             </g>
           );
@@ -196,6 +205,15 @@ export function PrintLayoutDesigner({ printLayouts, onChange }: PrintLayoutDesig
       updateConfig({ ticketOffsets: offsets });
     },
     [config.ticketOffsets, updateConfig]
+  );
+
+  const updateSize = useCallback(
+    (index: number, width: number, height: number) => {
+      const sizes = [...(config.ticketSizes || [])];
+      sizes[index] = { width, height };
+      updateConfig({ ticketSizes: sizes });
+    },
+    [config.ticketSizes, updateConfig]
   );
 
   const copyCount = Number(activeTab);
@@ -239,29 +257,46 @@ export function PrintLayoutDesigner({ printLayouts, onChange }: PrintLayoutDesig
                 </div>
 
                 <div>
-                  <h3 className="text-xs font-semibold text-foreground mb-2 uppercase tracking-wider">Ticket Offsets</h3>
+                  <h3 className="text-xs font-semibold text-foreground mb-2 uppercase tracking-wider">Ticket Size & Offsets</h3>
                   <div className="space-y-3">
-                    {config.ticketOffsets.map((offset, i) => (
-                      <div key={i} className="space-y-1">
-                        <span className="text-xs font-medium text-accent-foreground">Ticket {i + 1}</span>
-                        <div className="space-y-1.5 pl-2">
-                          <InchInput
-                            label="Horizontal (X)"
-                            value={offset.x}
-                            onChange={(v) => updateOffset(i, v, offset.y)}
-                            min={-3}
-                            max={3}
-                          />
-                          <InchInput
-                            label="Vertical (Y)"
-                            value={offset.y}
-                            onChange={(v) => updateOffset(i, offset.x, v)}
-                            min={-3}
-                            max={3}
-                          />
+                    {config.ticketOffsets.map((offset, i) => {
+                      const size = config.ticketSizes?.[i] || { width: 8.1, height: 3.53 };
+                      return (
+                        <div key={i} className="space-y-1">
+                          <span className="text-xs font-medium text-accent-foreground">Ticket {i + 1}</span>
+                          <div className="space-y-1.5 pl-2">
+                            <InchInput
+                              label="Width"
+                              value={size.width}
+                              onChange={(v) => updateSize(i, v, size.height)}
+                              min={1}
+                              max={8.5}
+                            />
+                            <InchInput
+                              label="Height"
+                              value={size.height}
+                              onChange={(v) => updateSize(i, size.width, v)}
+                              min={0.5}
+                              max={11}
+                            />
+                            <InchInput
+                              label="Offset X"
+                              value={offset.x}
+                              onChange={(v) => updateOffset(i, v, offset.y)}
+                              min={-3}
+                              max={3}
+                            />
+                            <InchInput
+                              label="Offset Y"
+                              value={offset.y}
+                              onChange={(v) => updateOffset(i, offset.x, v)}
+                              min={-3}
+                              max={3}
+                            />
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>
