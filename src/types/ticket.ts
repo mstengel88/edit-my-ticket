@@ -29,9 +29,9 @@ export interface TicketData {
   status: "draft" | "pending" | "sent" | "completed";
 }
 
-export const createEmptyTicket = (): TicketData => ({
+export const createEmptyTicket = (jobNumber?: string): TicketData => ({
   id: crypto.randomUUID(),
-  jobNumber: String(Math.floor(Math.random() * 9000) + 1000),
+  jobNumber: jobNumber ?? "TM-000001",
   jobName: "",
   dateTime: new Date().toLocaleString("en-US", {
     month: "2-digit",
