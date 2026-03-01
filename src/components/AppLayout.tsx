@@ -41,10 +41,10 @@ const navItems = [
   { label: "Customers", icon: Users, href: "/customers" },
   { label: "Products", icon: Package, href: "/products" },
   { label: "Feedback", icon: MessageSquarePlus, href: "/feedback" },
-  { label: "Settings", icon: Settings, href: "/settings" },
 ];
 
 const adminItems = [
+  { label: "Settings", icon: Settings, href: "/settings" },
   { label: "User Roles", icon: Users, href: "/user-roles" },
   { label: "Audit Log", icon: ClipboardList, href: "/audit-log" },
 ];
