@@ -41,7 +41,6 @@ const navItems = [
   { label: "Customers", icon: Users, href: "/customers" },
   { label: "Products", icon: Package, href: "/products" },
   { label: "Feedback", icon: MessageSquarePlus, href: "/feedback" },
-  { label: "Settings", icon: Settings, href: "/settings" },
 ];
 
 const adminItems = [
