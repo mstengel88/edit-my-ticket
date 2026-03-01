@@ -257,29 +257,46 @@ export function PrintLayoutDesigner({ printLayouts, onChange }: PrintLayoutDesig
                 </div>
 
                 <div>
-                  <h3 className="text-xs font-semibold text-foreground mb-2 uppercase tracking-wider">Ticket Offsets</h3>
+                  <h3 className="text-xs font-semibold text-foreground mb-2 uppercase tracking-wider">Ticket Size & Offsets</h3>
                   <div className="space-y-3">
-                    {config.ticketOffsets.map((offset, i) => (
-                      <div key={i} className="space-y-1">
-                        <span className="text-xs font-medium text-accent-foreground">Ticket {i + 1}</span>
-                        <div className="space-y-1.5 pl-2">
-                          <InchInput
-                            label="Horizontal (X)"
-                            value={offset.x}
-                            onChange={(v) => updateOffset(i, v, offset.y)}
-                            min={-3}
-                            max={3}
-                          />
-                          <InchInput
-                            label="Vertical (Y)"
-                            value={offset.y}
-                            onChange={(v) => updateOffset(i, offset.x, v)}
-                            min={-3}
-                            max={3}
-                          />
+                    {config.ticketOffsets.map((offset, i) => {
+                      const size = config.ticketSizes?.[i] || { width: 8.1, height: 3.53 };
+                      return (
+                        <div key={i} className="space-y-1">
+                          <span className="text-xs font-medium text-accent-foreground">Ticket {i + 1}</span>
+                          <div className="space-y-1.5 pl-2">
+                            <InchInput
+                              label="Width"
+                              value={size.width}
+                              onChange={(v) => updateSize(i, v, size.height)}
+                              min={1}
+                              max={8.5}
+                            />
+                            <InchInput
+                              label="Height"
+                              value={size.height}
+                              onChange={(v) => updateSize(i, size.width, v)}
+                              min={0.5}
+                              max={11}
+                            />
+                            <InchInput
+                              label="Offset X"
+                              value={offset.x}
+                              onChange={(v) => updateOffset(i, v, offset.y)}
+                              min={-3}
+                              max={3}
+                            />
+                            <InchInput
+                              label="Offset Y"
+                              value={offset.y}
+                              onChange={(v) => updateOffset(i, offset.x, v)}
+                              min={-3}
+                              max={3}
+                            />
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>

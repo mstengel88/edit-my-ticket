@@ -44,24 +44,25 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
     styleEl.textContent = `@media print { @page { margin: ${config.pageMarginTop}in ${config.pageMarginRight}in ${config.pageMarginBottom}in ${config.pageMarginLeft}in; size: letter portrait; } }`;
     document.head.appendChild(styleEl);
 
-    // Calculate available space in pixels (96dpi)
-    const pageWidth = (8.5 - config.pageMarginLeft - config.pageMarginRight) * 96;
-    const pageHeight = (11 - config.pageMarginTop - config.pageMarginBottom) * 96;
-    const ticketHeight = pageHeight / copiesPerPage;
-    const scale = Math.min(pageWidth / canvasWidth, ticketHeight / canvasHeight);
-
     for (let i = 0; i < copiesPerPage; i++) {
       const offset = config.ticketOffsets[i] || { x: 0, y: 0 };
+      const defaultW = (8.5 - config.pageMarginLeft - config.pageMarginRight);
+      const defaultH = (11 - config.pageMarginTop - config.pageMarginBottom) / copiesPerPage;
+      const size = config.ticketSizes?.[i] || { width: defaultW, height: defaultH };
+
+      const ticketWidthPx = size.width * 96;
+      const ticketHeightPx = size.height * 96;
+      const scale = Math.min(ticketWidthPx / canvasWidth, ticketHeightPx / canvasHeight);
 
       const copy = document.createElement("div");
       copy.className = "ticket-copy";
-      copy.style.height = `${ticketHeight}px`;
+      copy.style.height = `${ticketHeightPx}px`;
+      copy.style.width = `${ticketWidthPx}px`;
       copy.style.display = "flex";
       copy.style.justifyContent = "center";
       copy.style.position = "relative";
-      // Apply ticket offset
       copy.style.marginLeft = `${offset.x * 96}px`;
-      copy.style.marginTop = i === 0 ? `${offset.y * 96}px` : `${offset.y * 96}px`;
+      copy.style.marginTop = `${offset.y * 96}px`;
 
       const inner = document.createElement("div");
       inner.className = "ticket-copy-inner";
@@ -69,7 +70,7 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
       inner.style.width = `${canvasWidth}px`;
       inner.style.height = `${canvasHeight}px`;
       inner.style.transform = `scale(${scale})`;
-      inner.style.transformOrigin = "top center";
+      inner.style.transformOrigin = "top left";
 
       if (printRef.current) {
         const source = printRef.current.querySelector(".ticket-copy-inner");

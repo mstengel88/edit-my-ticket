@@ -145,10 +145,16 @@ function makeDefaultOffsets(count: number): Array<{ x: number; y: number }> {
   return Array.from({ length: count }, () => ({ x: 0, y: 0 }));
 }
 
+function makeDefaultSizes(count: number, pageW: number, pageH: number, ml: number, mr: number, mt: number, mb: number): Array<{ width: number; height: number }> {
+  const w = pageW - ml - mr;
+  const h = (pageH - mt - mb) / count;
+  return Array.from({ length: count }, () => ({ width: Math.round(w * 100) / 100, height: Math.round(h * 100) / 100 }));
+}
+
 export const DEFAULT_PRINT_LAYOUTS: PrintLayouts = {
-  "1": { pageMarginTop: 0.2, pageMarginBottom: 0.2, pageMarginLeft: 0.2, pageMarginRight: 0.2, ticketOffsets: makeDefaultOffsets(1) },
-  "2": { pageMarginTop: 0.2, pageMarginBottom: 0.2, pageMarginLeft: 0.2, pageMarginRight: 0.2, ticketOffsets: makeDefaultOffsets(2) },
-  "3": { pageMarginTop: 0.2, pageMarginBottom: 0.2, pageMarginLeft: 0.2, pageMarginRight: 0.2, ticketOffsets: makeDefaultOffsets(3) },
+  "1": { pageMarginTop: 0.2, pageMarginBottom: 0.2, pageMarginLeft: 0.2, pageMarginRight: 0.2, ticketOffsets: makeDefaultOffsets(1), ticketSizes: makeDefaultSizes(1, 8.5, 11, 0.2, 0.2, 0.2, 0.2) },
+  "2": { pageMarginTop: 0.2, pageMarginBottom: 0.2, pageMarginLeft: 0.2, pageMarginRight: 0.2, ticketOffsets: makeDefaultOffsets(2), ticketSizes: makeDefaultSizes(2, 8.5, 11, 0.2, 0.2, 0.2, 0.2) },
+  "3": { pageMarginTop: 0.2, pageMarginBottom: 0.2, pageMarginLeft: 0.2, pageMarginRight: 0.2, ticketOffsets: makeDefaultOffsets(3), ticketSizes: makeDefaultSizes(3, 8.5, 11, 0.2, 0.2, 0.2, 0.2) },
 };
 
 // ---- Legacy types kept for backward compatibility with reports ----
