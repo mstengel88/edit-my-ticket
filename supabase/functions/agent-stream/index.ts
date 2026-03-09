@@ -12,6 +12,7 @@ const AGENT_SECRET = Deno.env.get("AGENT_SECRET")!;
 const ALLOWED_ACTIONS: Record<string, string> = {
   winterwatch: "deploy:winterwatch",
   tickets: "deploy:tickets",
+  localdelivery: "deploy:localdelivery",
 };
 
 async function hmacSign(secret: string, message: string): Promise<string> {
