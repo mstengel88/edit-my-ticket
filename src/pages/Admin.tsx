@@ -11,20 +11,22 @@ const Admin = () => {
   const [restartMsg, setRestartMsg] = useState("");
 
   async function handleRestart() {
-    setRestartLoading(true);
-    setRestartMsg("");
-    try {
-      const { data, error } = await supabase.functions.invoke("agent-action", {
-        body: { action: "restart-winterwatch" },
-      });
-      if (error) throw error;
-      setRestartMsg("Restart sent ✅");
-    } catch (e: any) {
-      setRestartMsg(`Error: ${e.message}`);
-    } finally {
-      setRestartLoading(false);
-    }
+  setRestartLoading(true);
+  setRestartMsg("");
+  try {
+    const { data, error } = await supabase.functions.invoke("agent-proxy?path=/container/winterwatch-live/restart", {
+      method: "POST",
+      body: {},
+    });
+
+    if (error) throw error;
+    setRestartMsg("Restart sent ✅");
+  } catch (e: any) {
+    setRestartMsg(`Error: ${e.message}`);
+  } finally {
+    setRestartLoading(false);
   }
+}
 
   return (
     <AppLayout title="Admin">

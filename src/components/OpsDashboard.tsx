@@ -8,22 +8,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RotateCcw, Trash2 } from "lucide-react";
 
-function fmtPct(n: number) { return `${Math.round(n)}%`; }
+function fmtPct(n: number) {
+  return `${Math.round(n)}%`;
+}
 
 function fmtBytes(n: number) {
   const units = ["B", "KB", "MB", "GB", "TB"];
   let v = n, i = 0;
-  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i++;
+  }
   return `${v.toFixed(1)} ${units[i]}`;
 }
 
 interface MetricsData {
-  ts?: string;
+  ts?: number;
   cpu: { pct: number };
   mem: { pct: number; used: number; total: number };
 }
 
-interface SeriesPoint { t: string; cpu: number; mem: number }
+interface SeriesPoint {
+  t: string;
+  cpu: number;
+  mem: number;
+}
 
 type ContainersError = string | null;
 
@@ -37,7 +46,10 @@ interface Container {
 
 export function OpsDashboard() {
   const { session } = useAuth();
-  const [metrics, setMetrics] = useState<MetricsData>({ cpu: { pct: 0 }, mem: { pct: 0, used: 0, total: 0 } });
+  const [metrics, setMetrics] = useState<MetricsData>({
+    cpu: { pct: 0 },
+    mem: { pct: 0, used: 0, total: 0 },
+  });
   const [series, setSeries] = useState<SeriesPoint[]>([]);
   const [containers, setContainers] = useState<Container[]>([]);
   const [selected, setSelected] = useState("");
@@ -46,147 +58,231 @@ export function OpsDashboard() {
   const [containersError, setContainersError] = useState<ContainersError>(null);
   const logRef = useRef<HTMLPreElement>(null);
 
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  const supabaseUrl = `https://${projectId}.supabase.co`;
+
   useEffect(() => {
-    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
+    if (logRef.current) {
+      logRef.current.scrollTop = logRef.current.scrollHeight;
+    }
   }, [logs]);
+
+  const authedFetch = useCallback(
+    async (path: string, init?: RequestInit) => {
+      return fetch(`${supabaseUrl}/functions/v1/agent-proxy?path=${encodeURIComponent(path)}`, {
+        ...init,
+        headers: {
+          Authorization: `Bearer ${session?.access_token ?? ""}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          ...(init?.headers || {}),
+        },
+      });
+    },
+    [session?.access_token, supabaseUrl],
+  );
 
   // Metrics polling
   useEffect(() => {
+    if (!session?.access_token) return;
+
     let alive = true;
     const tick = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke("agent-metrics");
-        if (!alive || error || !data) return;
+        const res = await authedFetch("/metrics");
+        const data = await res.json().catch(() => null);
+        if (!alive || !res.ok || !data) return;
+
         setMetrics(data);
         setSeries((prev) => {
-          const next = [...prev, {
-            t: new Date(data.ts).toLocaleTimeString(),
-            cpu: data.cpu.pct,
-            mem: data.mem.pct,
-          }];
+          const next = [
+            ...prev,
+            {
+              t: new Date(data.ts).toLocaleTimeString(),
+              cpu: data.cpu.pct,
+              mem: data.mem.pct,
+            },
+          ];
           return next.slice(-60);
         });
-      } catch { /* silent */ }
+      } catch {
+        // silent
+      }
     };
+
     tick();
     const id = setInterval(tick, 2000);
-    return () => { alive = false; clearInterval(id); };
-  }, []);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, [session?.access_token, authedFetch]);
 
   // Containers polling
   useEffect(() => {
+    if (!session?.access_token) return;
+
     let alive = true;
     const tick = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke("agent-containers");
+        const res = await authedFetch("/containers");
+        const data = await res.json().catch(() => null);
+
         if (!alive) return;
-        if (error || !data) {
+
+        if (!res.ok || !data) {
           setContainersError("Failed to fetch containers");
           return;
         }
+
         if (data.ok === false) {
           setContainersError(data.message || data.error || "Agent error");
           return;
         }
+
         setContainersError(null);
         const list = data.containers || [];
         setContainers(list);
-        if (!selected && list.length) setSelected(list[0].name);
+
+        setSelected((prev) => {
+          if (prev && list.some((c: Container) => c.name === prev)) return prev;
+          return list.length ? list[0].name : "";
+        });
       } catch {
         if (alive) setContainersError("Network error");
       }
     };
+
     tick();
     const id = setInterval(tick, 5000);
-    return () => { alive = false; clearInterval(id); };
-  }, [selected]);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, [session?.access_token, authedFetch]);
 
-  // Live logs stream via SSE (needs raw fetch for streaming)
+  // Live logs stream
   useEffect(() => {
     if (!selected || !session?.access_token) return;
+
     setLogs("");
-
-    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-    const url = `https://${projectId}.supabase.co/functions/v1/agent-logs-stream?container=${encodeURIComponent(selected)}`;
-
     const controller = new AbortController();
 
-    fetch(url, {
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    fetch(
+      `${supabaseUrl}/functions/v1/agent-logs?container=${encodeURIComponent(selected)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        signal: controller.signal,
       },
-      signal: controller.signal,
-    }).then(async (res) => {
-      if (!res.ok || !res.body) {
-        const txt = await res.text().catch(() => "");
-        setLogs(`[ERROR] ${res.status} ${txt}\n`);
-        return;
-      }
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
+    )
+      .then(async (res) => {
+        if (!res.ok || !res.body) {
+          const txt = await res.text().catch(() => "");
+          setLogs(`[ERROR] ${res.status} ${txt}\n`);
+          return;
+        }
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
 
-        const parts = buffer.split("\n\n");
-        buffer = parts.pop() ?? "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        for (const part of parts) {
-          const sseLines = part.split("\n");
-          let eventType = "message";
-          let eventData = "";
-          for (const line of sseLines) {
-            if (line.startsWith("event: ")) eventType = line.slice(7);
-            else if (line.startsWith("data: ")) eventData = line.slice(6);
-          }
-          if (eventType === "log") {
-            try {
-              const { chunk } = JSON.parse(eventData);
-              setLogs((prev) => {
-                const next = prev + chunk;
-                return next.length > 200_000 ? next.slice(next.length - 200_000) : next;
-              });
-            } catch {
-              setLogs((prev) => prev + eventData);
+          buffer += decoder.decode(value, { stream: true });
+
+          const parts = buffer.split("\n\n");
+          buffer = parts.pop() ?? "";
+
+          for (const part of parts) {
+            const sseLines = part.split("\n");
+            let eventType = "message";
+            let eventData = "";
+
+            for (const line of sseLines) {
+              if (line.startsWith("event: ")) eventType = line.slice(7);
+              else if (line.startsWith("data: ")) eventData += line.slice(6);
             }
-          } else if (eventType === "error") {
-            setLogs((prev) => prev + `\n[ERROR] ${eventData}\n`);
+
+            if (eventType === "log") {
+              try {
+                const { chunk } = JSON.parse(eventData);
+                setLogs((prev) => {
+                  const next = prev + chunk;
+                  return next.length > 200_000 ? next.slice(next.length - 200_000) : next;
+                });
+              } catch {
+                setLogs((prev) => prev + eventData);
+              }
+            } else if (eventType === "error") {
+              try {
+                const parsed = JSON.parse(eventData);
+                setLogs((prev) => prev + `\n[ERROR] ${parsed.message}\n`);
+              } catch {
+                setLogs((prev) => prev + `\n[ERROR] ${eventData}\n`);
+              }
+            }
           }
         }
-      }
-    }).catch((err) => {
-      if (err.name !== "AbortError") {
-        setLogs((prev) => prev + `\n[ERROR] ${err.message}\n`);
-      }
-    });
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          setLogs((prev) => prev + `\n[ERROR] ${err.message}\n`);
+        }
+      });
 
     return () => controller.abort();
-  }, [selected, session?.access_token]);
+  }, [selected, session?.access_token, supabaseUrl]);
 
-  const restartContainer = useCallback(async (name: string) => {
-    setRestartBusy((p) => ({ ...p, [name]: true }));
-    try {
-      const { data, error } = await supabase.functions.invoke("agent-container-restart", {
-        body: { id: name },
-      });
-      if (error) alert(error.message || "Restart failed");
-    } finally {
-      setRestartBusy((p) => ({ ...p, [name]: false }));
-    }
-  }, []);
+  const restartContainer = useCallback(
+    async (name: string) => {
+      setRestartBusy((p) => ({ ...p, [name]: true }));
+      try {
+        const res = await authedFetch(`/container/${name}/restart`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({}),
+        });
+
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+          alert(data?.error || "Restart failed");
+          return;
+        }
+
+        // refresh list shortly after restart
+        setTimeout(async () => {
+          try {
+            const r = await authedFetch("/containers");
+            const d = await r.json().catch(() => null);
+            if (r.ok && d?.containers) {
+              setContainers(d.containers);
+            }
+          } catch {
+            // silent
+          }
+        }, 1500);
+      } finally {
+        setRestartBusy((p) => ({ ...p, [name]: false }));
+      }
+    },
+    [authedFetch],
+  );
 
   return (
     <div className="space-y-4">
-      {/* CPU & RAM charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="border border-border rounded-xl p-4">
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-semibold text-foreground">CPU</span>
-            <span className="text-sm text-muted-foreground">{fmtPct(metrics.cpu?.pct ?? 0)}</span>
+            <span className="text-sm text-muted-foreground">
+              {fmtPct(metrics.cpu?.pct ?? 0)}
+            </span>
           </div>
           <div className="h-44">
             <ResponsiveContainer width="100%" height="100%">
@@ -194,7 +290,13 @@ export function OpsDashboard() {
                 <XAxis dataKey="t" hide />
                 <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} width={40} />
                 <Tooltip formatter={(v: number) => `${v.toFixed(1)}%`} />
-                <Line type="monotone" dataKey="cpu" dot={false} stroke="hsl(var(--primary))" strokeWidth={2} />
+                <Line
+                  type="monotone"
+                  dataKey="cpu"
+                  dot={false}
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -213,14 +315,19 @@ export function OpsDashboard() {
                 <XAxis dataKey="t" hide />
                 <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} width={40} />
                 <Tooltip formatter={(v: number) => `${v.toFixed(1)}%`} />
-                <Line type="monotone" dataKey="mem" dot={false} stroke="hsl(var(--accent))" strokeWidth={2} />
+                <Line
+                  type="monotone"
+                  dataKey="mem"
+                  dot={false}
+                  stroke="hsl(var(--accent))"
+                  strokeWidth={2}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
       </div>
 
-      {/* Containers table */}
       <div className="border border-border rounded-xl p-4 space-y-3">
         <div className="flex flex-wrap justify-between items-center gap-3">
           <span className="text-sm font-semibold text-foreground">Containers</span>
@@ -232,7 +339,9 @@ export function OpsDashboard() {
               </SelectTrigger>
               <SelectContent>
                 {containers.filter((c) => c.name).map((c) => (
-                  <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                  <SelectItem key={c.id} value={c.name}>
+                    {c.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -260,7 +369,9 @@ export function OpsDashboard() {
                       {c.state}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{c.status}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {c.status}
+                  </TableCell>
                   <TableCell className="text-right">
                     <Button
                       size="sm"
@@ -275,6 +386,7 @@ export function OpsDashboard() {
                   </TableCell>
                 </TableRow>
               ))}
+
               {!containers.length && (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-6">
@@ -291,16 +403,21 @@ export function OpsDashboard() {
         </div>
       </div>
 
-      {/* Live logs */}
       <div className="border border-border rounded-xl p-4 space-y-3">
         <div className="flex justify-between items-center">
           <span className="text-sm font-semibold text-foreground">
             Live Logs: {selected || "—"}
           </span>
-          <Button size="sm" variant="ghost" className="gap-1 h-7 text-xs" onClick={() => setLogs("")}>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="gap-1 h-7 text-xs"
+            onClick={() => setLogs("")}
+          >
             <Trash2 className="h-3 w-3" /> Clear
           </Button>
         </div>
+
         <pre
           ref={logRef}
           className="bg-muted text-foreground p-4 rounded-lg h-80 overflow-auto whitespace-pre-wrap font-mono text-xs border border-border"

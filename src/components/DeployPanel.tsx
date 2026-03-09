@@ -14,19 +14,24 @@ function fmtTime(iso: string | undefined) {
   }
 }
 
-interface DeployStatus {
-  running: Record<string, string>;
-  deployed: Record<string, { revision?: string; deployedAt?: string }>;
+interface DeployApp {
+  key: string;
+  label: string;
+  repoDir: string;
 }
 
 export function DeployPanel() {
   const { session } = useAuth();
+  const [deployApps, setDeployApps] = useState<DeployApp[]>([]);
   const [lines, setLines] = useState<string[]>([]);
-  const [running, setRunning] = useState<Record<string, string>>({});
+  const [running, setRunning] = useState<Record<string, string | number | null>>({});
   const [deployed, setDeployed] = useState<Record<string, { revision?: string; deployedAt?: string }>>({});
   const [lastResult, setLastResult] = useState<{ app: string; ok: boolean; code: number | null } | null>(null);
   const [busyApp, setBusyApp] = useState<string | null>(null);
   const logRef = useRef<HTMLPreElement>(null);
+
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  const supabaseUrl = `https://${projectId}.supabase.co`;
 
   useEffect(() => {
     if (logRef.current) {
@@ -34,31 +39,59 @@ export function DeployPanel() {
     }
   }, [lines]);
 
+  const authedFetch = useCallback(
+    async (path: string, init?: RequestInit) => {
+      return fetch(`${supabaseUrl}/functions/v1/agent-proxy?path=${encodeURIComponent(path)}`, {
+        ...init,
+        headers: {
+          Authorization: `Bearer ${session?.access_token ?? ""}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          ...(init?.headers || {}),
+        },
+      });
+    },
+    [session?.access_token, supabaseUrl],
+  );
+
+  const refreshDeploys = useCallback(async () => {
+    try {
+      const res = await authedFetch("/deploys");
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setDeployApps(data.deploys || []);
+      }
+    } catch {
+      // silent
+    }
+  }, [authedFetch]);
+
   const refreshStatus = useCallback(async () => {
     try {
-      const { data, error } = await supabase.functions.invoke("agent-status");
-      if (!error && data) {
+      const res = await authedFetch("/status");
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
         setRunning(data.running || {});
         setDeployed(data.deployed || {});
       }
     } catch {
       // silent
     }
-  }, []);
+  }, [authedFetch]);
 
   useEffect(() => {
+    if (!session?.access_token) return;
+    refreshDeploys();
     refreshStatus();
     const t = setInterval(refreshStatus, 10_000);
     return () => clearInterval(t);
-  }, [refreshStatus]);
+  }, [session?.access_token, refreshDeploys, refreshStatus]);
 
   function startStream(which: string) {
     setLines([]);
     setLastResult(null);
     setBusyApp(which);
 
-    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-    const url = `https://${projectId}.supabase.co/functions/v1/agent-stream?target=${which}`;
+    const url = `${supabaseUrl}/functions/v1/agent-stream?target=${encodeURIComponent(which)}`;
 
     const controller = new AbortController();
 
@@ -134,7 +167,12 @@ export function DeployPanel() {
               setBusyApp(null);
               refreshStatus();
             } else if (eventType === "error") {
-              setLines((p) => [...p, `\n[ERROR] ${eventData}\n`]);
+              try {
+                const d = JSON.parse(eventData);
+                setLines((p) => [...p, `\n[ERROR] ${d.message}\n`]);
+              } catch {
+                setLines((p) => [...p, `\n[ERROR] ${eventData}\n`]);
+              }
               setLastResult({ app: which, ok: false, code: null });
               setBusyApp(null);
               refreshStatus();
@@ -151,31 +189,29 @@ export function DeployPanel() {
         setBusyApp(null);
         refreshStatus();
       });
-  }
 
-  const winterLocked = Boolean(running.winterwatch);
-  const ticketsLocked = Boolean(running.tickets);
+    return () => controller.abort();
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <Button
-          disabled={winterLocked || !!busyApp}
-          onClick={() => startStream("winterwatch")}
-          className="gap-1.5"
-        >
-          <Rocket className="h-4 w-4" />
-          {winterLocked ? "Winterwatch Deploy Running…" : "Deploy Winterwatch"}
-        </Button>
-        <Button
-          disabled={ticketsLocked || !!busyApp}
-          onClick={() => startStream("tickets")}
-          variant="secondary"
-          className="gap-1.5"
-        >
-          <Rocket className="h-4 w-4" />
-          {ticketsLocked ? "Tickets Deploy Running…" : "Deploy Tickets"}
-        </Button>
+        {deployApps.map((app, index) => {
+          const locked = Boolean(running[app.key]);
+          return (
+            <Button
+              key={app.key}
+              disabled={locked || !!busyApp}
+              onClick={() => startStream(app.key)}
+              variant={index === 0 ? "default" : "secondary"}
+              className="gap-1.5"
+            >
+              <Rocket className="h-4 w-4" />
+              {locked ? `${app.label} Deploy Running…` : `Deploy ${app.label}`}
+            </Button>
+          );
+        })}
+
         {lastResult && (
           <Badge variant={lastResult.ok ? "default" : "destructive"}>
             {lastResult.ok ? "Success" : "Failed"} {lastResult.app}
@@ -184,18 +220,19 @@ export function DeployPanel() {
       </div>
 
       <div className="space-y-1 text-sm">
-        <div>
-          <strong>Winterwatch deployed:</strong>{" "}
-          {deployed.winterwatch?.revision || "—"}{" "}
-          <span className="text-muted-foreground">({fmtTime(deployed.winterwatch?.deployedAt)})</span>{" "}
-          {winterLocked && <Badge variant="secondary">Deploying…</Badge>}
-        </div>
-        <div>
-          <strong>Tickets deployed:</strong>{" "}
-          {deployed.tickets?.revision || "—"}{" "}
-          <span className="text-muted-foreground">({fmtTime(deployed.tickets?.deployedAt)})</span>{" "}
-          {ticketsLocked && <Badge variant="secondary">Deploying…</Badge>}
-        </div>
+        {deployApps.map((app) => {
+          const locked = Boolean(running[app.key]);
+          return (
+            <div key={app.key}>
+              <strong>{app.label} deployed:</strong>{" "}
+              {deployed[app.key]?.revision || "—"}{" "}
+              <span className="text-muted-foreground">
+                ({fmtTime(deployed[app.key]?.deployedAt)})
+              </span>{" "}
+              {locked && <Badge variant="secondary">Deploying…</Badge>}
+            </div>
+          );
+        })}
       </div>
 
       <pre
