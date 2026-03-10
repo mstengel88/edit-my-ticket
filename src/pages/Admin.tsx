@@ -4,7 +4,7 @@ import { RotateCcw } from "lucide-react";
 import { DeployPanel } from "@/components/DeployPanel";
 import { OpsDashboard } from "@/components/OpsDashboard";
 import { AppLayout } from "@/components/AppLayout";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 
 const Admin = () => {
   const [restartLoading, setRestartLoading] = useState(false);
@@ -23,13 +23,12 @@ const Admin = () => {
       }
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const url = `${supabaseUrl}/functions/v1/agent-proxy?path=${encodeURIComponent("/container/winterwatch-live/restart")}`;
-
+const url = `${SUPABASE_URL}/functions/v1/agent-proxy?path=${encodeURIComponent("/container/winterwatch-live/restart")}`;
       const res = await fetch(url, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          apikey: SUPABASE_PUBLISHABLE_KEY,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({}),

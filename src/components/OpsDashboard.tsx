@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Button } from "@/components/ui/button";
@@ -58,7 +58,7 @@ export function OpsDashboard() {
   const [containersError, setContainersError] = useState<ContainersError>(null);
   const logRef = useRef<HTMLPreElement>(null);
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseUrl = SUPABASE_URL;
 
   useEffect(() => {
     if (logRef.current) {
@@ -79,7 +79,7 @@ export function OpsDashboard() {
       ...init,
       headers: {
         Authorization: `Bearer ${token}`,
-        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        apikey: SUPABASE_PUBLISHABLE_KEY,
         ...(init?.headers || {}),
       },
     });
