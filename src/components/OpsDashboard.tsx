@@ -117,20 +117,38 @@ export function OpsDashboard() {
     };
   }, [session?.access_token, authedFetch]);
 
-  // Containers polling
+    // Containers polling
   useEffect(() => {
     if (!session?.access_token) return;
 
     let alive = true;
+
     const tick = async () => {
       try {
         const res = await authedFetch("/containers");
-        const data = await res.json().catch(() => null);
+        const text = await res.text();
+
+        let data: any = null;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = null;
+        }
 
         if (!alive) return;
 
-        if (!res.ok || !data) {
-          setContainersError("Failed to fetch containers");
+        if (!res.ok) {
+          setContainersError(
+            data?.error ||
+            data?.message ||
+            text ||
+            `Failed to fetch containers (${res.status})`
+          );
+          return;
+        }
+
+        if (!data) {
+          setContainersError("Invalid response from agent");
           return;
         }
 
@@ -147,13 +165,16 @@ export function OpsDashboard() {
           if (prev && list.some((c: Container) => c.name === prev)) return prev;
           return list.length ? list[0].name : "";
         });
-      } catch {
-        if (alive) setContainersError("Network error");
+      } catch (err: any) {
+        if (alive) {
+          setContainersError(err?.message || "Network error");
+        }
       }
     };
 
     tick();
     const id = setInterval(tick, 5000);
+
     return () => {
       alive = false;
       clearInterval(id);
