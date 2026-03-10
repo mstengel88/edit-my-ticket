@@ -26,30 +26,54 @@ async function hmacSign(secret: string, message: string): Promise<string> {
 
 async function requireDeveloper(req: Request) {
   const authHeader = req.headers.get("Authorization");
+
   if (!authHeader?.startsWith("Bearer ")) {
-    return { ok: false, status: 401, message: "Unauthorized" };
+    return { ok: false, status: 401, message: "Missing bearer token" };
+  }
+
+  const token = authHeader.replace("Bearer ", "").trim();
+  if (!token) {
+    return { ok: false, status: 401, message: "Empty bearer token" };
   }
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_ANON_KEY")!,
-    { global: { headers: { Authorization: authHeader } } },
+    {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    },
   );
 
-  const token = authHeader.replace("Bearer ", "");
-  const { data: userData, error: userErr } = await supabase.auth.getUser(token);
+  const { data: userData, error: userErr } = await supabase.auth.getUser();
 
   if (userErr || !userData?.user) {
-    return { ok: false, status: 401, message: "Unauthorized" };
+    return {
+      ok: false,
+      status: 401,
+      message: userErr?.message || "Unauthorized",
+    };
   }
 
   const userId = userData.user.id;
+
   const { data: isDev, error: roleErr } = await supabase.rpc("has_role", {
     _user_id: userId,
     _role: "developer",
   });
 
-  if (roleErr || !isDev) {
+  if (roleErr) {
+    return {
+      ok: false,
+      status: 500,
+      message: roleErr.message,
+    };
+  }
+
+  if (!isDev) {
     return { ok: false, status: 403, message: "Forbidden" };
   }
 
@@ -88,8 +112,7 @@ Deno.serve(async (req) => {
     }
 
     const ts = Date.now().toString();
-    const sig = await hmacSign(AGENT_SECRET, `${ts}.{}`
-    );
+    const sig = await hmacSign(AGENT_SECRET, `${ts}.{}`);
 
     const upstream = await fetch(
       `${AGENT_BASE}/logs/stream?container=${encodeURIComponent(container)}`,
