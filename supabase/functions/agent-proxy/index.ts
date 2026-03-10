@@ -80,6 +80,22 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Optional hardening: only allow the agent paths your UI needs
+    const allowedPrefixes = [
+      "/deploys",
+      "/status",
+      "/metrics",
+      "/containers",
+      "/container/",
+    ];
+
+    if (!allowedPrefixes.some((prefix) => path.startsWith(prefix))) {
+      return new Response(JSON.stringify({ error: "Path not allowed" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const bodyObj = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const ts = Date.now().toString();
     const body = JSON.stringify(bodyObj);
@@ -104,8 +120,9 @@ Deno.serve(async (req) => {
         "Content-Type": upstream.headers.get("content-type") || "application/json",
       },
     });
-  } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), {
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e);
+    return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Rocket } from "lucide-react";
@@ -20,12 +19,16 @@ interface DeployApp {
   repoDir: string;
 }
 
+interface DeployRecord {
+  revision?: string;
+  deployedAt?: string;
+}
+
 export function DeployPanel() {
-  const { session } = useAuth();
   const [deployApps, setDeployApps] = useState<DeployApp[]>([]);
   const [lines, setLines] = useState<string[]>([]);
   const [running, setRunning] = useState<Record<string, string | number | null>>({});
-  const [deployed, setDeployed] = useState<Record<string, { revision?: string; deployedAt?: string }>>({});
+  const [deployed, setDeployed] = useState<Record<string, DeployRecord>>({});
   const [lastResult, setLastResult] = useState<{ app: string; ok: boolean; code: number | null } | null>(null);
   const [busyApp, setBusyApp] = useState<string | null>(null);
   const logRef = useRef<HTMLPreElement>(null);
@@ -39,158 +42,186 @@ export function DeployPanel() {
     }
   }, [lines]);
 
+  const getAccessToken = useCallback(async () => {
+    const { data, error } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+
+    if (error || !token) {
+      throw new Error("No valid session");
+    }
+
+    return token;
+  }, []);
+
   const authedFetch = useCallback(
     async (path: string, init?: RequestInit) => {
+      const token = await getAccessToken();
+
       return fetch(`${supabaseUrl}/functions/v1/agent-proxy?path=${encodeURIComponent(path)}`, {
         ...init,
         headers: {
-          Authorization: `Bearer ${session?.access_token ?? ""}`,
+          Authorization: `Bearer ${token}`,
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           ...(init?.headers || {}),
         },
       });
     },
-    [session?.access_token, supabaseUrl],
+    [getAccessToken, supabaseUrl],
   );
 
   const refreshDeploys = useCallback(async () => {
     try {
       const res = await authedFetch("/deploys");
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
-        setDeployApps(data.deploys || []);
+      const text = await res.text();
+
+      let data: any = null;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = null;
       }
-    } catch {
-      // silent
+
+      if (!res.ok) {
+        setLines((prev) => [...prev, `[ERROR] ${data?.error || data?.message || text || "Failed to fetch deploys"}\n`]);
+        return;
+      }
+
+      setDeployApps(data?.deploys || []);
+    } catch (e: any) {
+      setLines((prev) => [...prev, `[ERROR] ${e?.message || "Failed to fetch deploys"}\n`]);
     }
   }, [authedFetch]);
 
   const refreshStatus = useCallback(async () => {
     try {
       const res = await authedFetch("/status");
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
-        setRunning(data.running || {});
-        setDeployed(data.deployed || {});
+      const text = await res.text();
+
+      let data: any = null;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = null;
       }
+
+      if (!res.ok) return;
+
+      setRunning(data?.running || {});
+      setDeployed(data?.deployed || {});
     } catch {
       // silent
     }
   }, [authedFetch]);
 
   useEffect(() => {
-    if (!session?.access_token) return;
     refreshDeploys();
     refreshStatus();
     const t = setInterval(refreshStatus, 10_000);
     return () => clearInterval(t);
-  }, [session?.access_token, refreshDeploys, refreshStatus]);
+  }, [refreshDeploys, refreshStatus]);
 
-  function startStream(which: string) {
+  async function startStream(which: string) {
     setLines([]);
     setLastResult(null);
     setBusyApp(which);
 
-    const url = `${supabaseUrl}/functions/v1/agent-stream?target=${encodeURIComponent(which)}`;
+    try {
+      const token = await getAccessToken();
+      const url = `${supabaseUrl}/functions/v1/agent-stream?target=${encodeURIComponent(which)}`;
 
-    const controller = new AbortController();
+      const controller = new AbortController();
 
-    fetch(url, {
-      headers: {
-        Authorization: `Bearer ${session?.access_token ?? ""}`,
-        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-      },
-      signal: controller.signal,
-    })
-      .then(async (res) => {
-        if (!res.ok || !res.body) {
-          const txt = await res.text().catch(() => "");
-          setLines((p) => [...p, `[ERROR] ${res.status} ${txt}\n`]);
-          setBusyApp(null);
-          return;
-        }
-
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-
-          const parts = buffer.split("\n\n");
-          buffer = parts.pop() ?? "";
-
-          for (const part of parts) {
-            const sseLines = part.split("\n");
-            let eventType = "message";
-            let eventData = "";
-
-            for (const line of sseLines) {
-              if (line.startsWith("event: ")) eventType = line.slice(7);
-              else if (line.startsWith("data: ")) eventData = line.slice(6);
-            }
-
-            if (eventType === "start") {
-              try {
-                const d = JSON.parse(eventData);
-                setLines((p) => [...p, `[START] ${d.action}\n`]);
-              } catch {
-                setLines((p) => [...p, `[START]\n`]);
-              }
-            } else if (eventType === "stdout" || eventType === "stderr") {
-              try {
-                const d = JSON.parse(eventData);
-                setLines((p) => [...p, d.chunk]);
-              } catch {
-                setLines((p) => [...p, eventData]);
-              }
-            } else if (eventType === "status") {
-              try {
-                const d = JSON.parse(eventData);
-                if (d.running) setRunning(d.running);
-                if (d.deployed) setDeployed(d.deployed);
-              } catch {
-                // ignore
-              }
-            } else if (eventType === "end") {
-              try {
-                const d = JSON.parse(eventData);
-                const ok = d.code === 0;
-                setLines((p) => [...p, `\n[END] code=${d.code} signal=${d.signal}\n`]);
-                setLastResult({ app: which, ok, code: d.code });
-              } catch {
-                setLines((p) => [...p, `\n[END]\n`]);
-                setLastResult({ app: which, ok: false, code: null });
-              }
-              setBusyApp(null);
-              refreshStatus();
-            } else if (eventType === "error") {
-              try {
-                const d = JSON.parse(eventData);
-                setLines((p) => [...p, `\n[ERROR] ${d.message}\n`]);
-              } catch {
-                setLines((p) => [...p, `\n[ERROR] ${eventData}\n`]);
-              }
-              setLastResult({ app: which, ok: false, code: null });
-              setBusyApp(null);
-              refreshStatus();
-            }
-          }
-        }
-
-        setBusyApp(null);
-      })
-      .catch((err) => {
-        if (err.name !== "AbortError") {
-          setLines((p) => [...p, `\n[ERROR] ${err.message}\n`]);
-        }
-        setBusyApp(null);
-        refreshStatus();
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        signal: controller.signal,
       });
 
-    return () => controller.abort();
+      if (!res.ok || !res.body) {
+        const txt = await res.text().catch(() => "");
+        setLines((p) => [...p, `[ERROR] ${res.status} ${txt}\n`]);
+        setBusyApp(null);
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() ?? "";
+
+        for (const part of parts) {
+          const sseLines = part.split("\n");
+          let eventType = "message";
+          let eventData = "";
+
+          for (const line of sseLines) {
+            if (line.startsWith("event: ")) eventType = line.slice(7);
+            else if (line.startsWith("data: ")) eventData += line.slice(6);
+          }
+
+          if (eventType === "start") {
+            try {
+              const d = JSON.parse(eventData);
+              setLines((p) => [...p, `[START] ${d.action}\n`]);
+            } catch {
+              setLines((p) => [...p, `[START]\n`]);
+            }
+          } else if (eventType === "stdout" || eventType === "stderr") {
+            try {
+              const d = JSON.parse(eventData);
+              setLines((p) => [...p, d.chunk]);
+            } catch {
+              setLines((p) => [...p, eventData]);
+            }
+          } else if (eventType === "status") {
+            try {
+              const d = JSON.parse(eventData);
+              if (d.running) setRunning(d.running);
+              if (d.deployed) setDeployed(d.deployed);
+            } catch {
+              // ignore
+            }
+          } else if (eventType === "end") {
+            try {
+              const d = JSON.parse(eventData);
+              const ok = d.code === 0;
+              setLines((p) => [...p, `\n[END] code=${d.code} signal=${d.signal}\n`]);
+              setLastResult({ app: which, ok, code: d.code });
+            } catch {
+              setLines((p) => [...p, `\n[END]\n`]);
+              setLastResult({ app: which, ok: false, code: null });
+            }
+            setBusyApp(null);
+            refreshStatus();
+          } else if (eventType === "error") {
+            try {
+              const d = JSON.parse(eventData);
+              setLines((p) => [...p, `\n[ERROR] ${d.message}\n`]);
+            } catch {
+              setLines((p) => [...p, `\n[ERROR] ${eventData}\n`]);
+            }
+            setLastResult({ app: which, ok: false, code: null });
+            setBusyApp(null);
+            refreshStatus();
+          }
+        }
+      }
+
+      setBusyApp(null);
+    } catch (err: any) {
+      setLines((p) => [...p, `\n[ERROR] ${err?.message || "Deploy stream failed"}\n`]);
+      setBusyApp(null);
+      refreshStatus();
+    }
   }
 
   return (
@@ -198,6 +229,7 @@ export function DeployPanel() {
       <div className="flex flex-wrap items-center gap-3">
         {deployApps.map((app, index) => {
           const locked = Boolean(running[app.key]);
+
           return (
             <Button
               key={app.key}
@@ -222,6 +254,7 @@ export function DeployPanel() {
       <div className="space-y-1 text-sm">
         {deployApps.map((app) => {
           const locked = Boolean(running[app.key]);
+
           return (
             <div key={app.key}>
               <strong>{app.label} deployed:</strong>{" "}

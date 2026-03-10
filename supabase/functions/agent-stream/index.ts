@@ -6,7 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const AGENT_BASE = Deno.env.get("AGENT_URL")!; // reuse existing secret
+const AGENT_BASE = Deno.env.get("AGENT_URL")!;
 const AGENT_SECRET = Deno.env.get("AGENT_SECRET")!;
 
 const ALLOWED_ACTIONS: Record<string, string> = {
@@ -43,10 +43,9 @@ Deno.serve(async (req) => {
   };
 
   try {
-    // Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response("event: error\ndata: {\"message\":\"Unauthorized\"}\n\n", {
+      return new Response(`event: error\ndata: {"message":"Unauthorized"}\n\n`, {
         status: 401,
         headers: sseHeaders,
       });
@@ -60,8 +59,9 @@ Deno.serve(async (req) => {
 
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
+
     if (claimsErr || !claimsData?.claims) {
-      return new Response("event: error\ndata: {\"message\":\"Unauthorized\"}\n\n", {
+      return new Response(`event: error\ndata: {"message":"Unauthorized"}\n\n`, {
         status: 401,
         headers: sseHeaders,
       });
@@ -74,13 +74,12 @@ Deno.serve(async (req) => {
     });
 
     if (!isDev) {
-      return new Response("event: error\ndata: {\"message\":\"Forbidden\"}\n\n", {
+      return new Response(`event: error\ndata: {"message":"Forbidden"}\n\n`, {
         status: 403,
         headers: sseHeaders,
       });
     }
 
-    // Parse action from query param
     const url = new URL(req.url);
     const target = url.searchParams.get("target");
     const agentAction = target ? ALLOWED_ACTIONS[target] : undefined;
@@ -92,15 +91,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Sign request
     const ts = Date.now().toString();
-    const body = "{}";
-    const sig = await hmacSign(AGENT_SECRET, `${ts}.${body}`);
+    const sig = await hmacSign(AGENT_SECRET, `${ts}.{} `);
+    
 
     const agentUrl = `${AGENT_BASE}/stream?action=${encodeURIComponent(agentAction)}`;
     const upstream = await fetch(agentUrl, {
       method: "GET",
-      headers: { "x-ts": ts, "x-sig": sig },
+      headers: { "x-ts": ts, "x-sig": fixedSig },
     });
 
     if (!upstream.ok || !upstream.body) {
@@ -111,11 +109,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Pipe upstream SSE → browser
     return new Response(upstream.body, { status: 200, headers: sseHeaders });
-  } catch (e) {
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e);
     return new Response(
-      `event: error\ndata: ${JSON.stringify({ message: e.message })}\n\n`,
+      `event: error\ndata: ${JSON.stringify({ message })}\n\n`,
       { status: 500, headers: sseHeaders },
     );
   }

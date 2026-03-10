@@ -68,18 +68,25 @@ export function OpsDashboard() {
   }, [logs]);
 
   const authedFetch = useCallback(
-    async (path: string, init?: RequestInit) => {
-      return fetch(`${supabaseUrl}/functions/v1/agent-proxy?path=${encodeURIComponent(path)}`, {
-        ...init,
-        headers: {
-          Authorization: `Bearer ${session?.access_token ?? ""}`,
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          ...(init?.headers || {}),
-        },
-      });
-    },
-    [session?.access_token, supabaseUrl],
-  );
+  async (path: string, init?: RequestInit) => {
+    const { data, error } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+
+    if (error || !token) {
+      throw new Error("No valid session");
+    }
+
+    return fetch(`${supabaseUrl}/functions/v1/agent-proxy?path=${encodeURIComponent(path)}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        ...(init?.headers || {}),
+      },
+    });
+  },
+  [supabaseUrl],
+);
 
   // Metrics polling
   useEffect(() => {
@@ -196,7 +203,7 @@ export function OpsDashboard() {
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
         signal: controller.signal,
-      },
+      }, 
     )
       .then(async (res) => {
         if (!res.ok || !res.body) {
