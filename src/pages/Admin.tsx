@@ -1,29 +1,42 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
 import { DeployPanel } from "@/components/DeployPanel";
 import { OpsDashboard } from "@/components/OpsDashboard";
 import { AppLayout } from "@/components/AppLayout";
-import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/integrations/supabase/client";
+import { getAccessToken } from "@/lib/getAccessToken";
 
 const Admin = () => {
+  const [authReady, setAuthReady] = useState(false);
   const [restartLoading, setRestartLoading] = useState(false);
   const [restartMsg, setRestartMsg] = useState("");
+
+  useEffect(() => {
+    let mounted = true;
+
+    supabase.auth.getSession().then(() => {
+      if (mounted) setAuthReady(true);
+    });
+
+    (window as any).__dbg_get_session = () => supabase.auth.getSession();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   async function handleRestart() {
     setRestartLoading(true);
     setRestartMsg("");
 
     try {
-      const { data, error } = await supabase.auth.getSession();
-      const token = data.session?.access_token;
+      const token = await getAccessToken();
 
-      if (error || !token) {
-        throw new Error("No valid session");
-      }
+      const url = `${SUPABASE_URL}/functions/v1/agent-proxy?path=${encodeURIComponent(
+        "/container/winterwatch-live/restart",
+      )}`;
 
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const url = `${SUPABASE_URL}/functions/v1/agent-proxy?path=${encodeURIComponent("/container/winterwatch-live/restart")}`;
       const res = await fetch(url, {
         method: "POST",
         headers: {
@@ -53,6 +66,16 @@ const url = `${SUPABASE_URL}/functions/v1/agent-proxy?path=${encodeURIComponent(
     } finally {
       setRestartLoading(false);
     }
+  }
+
+  if (!authReady) {
+    return (
+      <AppLayout title="Admin">
+        <div className="container mx-auto px-4 py-6 sm:px-6">
+          <p className="text-sm text-muted-foreground">Loading admin session…</p>
+        </div>
+      </AppLayout>
+    );
   }
 
   return (

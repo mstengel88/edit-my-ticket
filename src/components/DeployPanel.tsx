@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/integrations/supabase/client";
+import { getAccessToken } from "@/lib/getAccessToken";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Rocket } from "lucide-react";
@@ -41,17 +42,6 @@ export function DeployPanel() {
     }
   }, [lines]);
 
-  const getAccessToken = useCallback(async () => {
-    const { data, error } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-
-    if (error || !token) {
-      throw new Error("No valid session");
-    }
-
-    return token;
-  }, []);
-
   const authedFetch = useCallback(
     async (path: string, init?: RequestInit) => {
       const token = await getAccessToken();
@@ -65,7 +55,7 @@ export function DeployPanel() {
         },
       });
     },
-    [getAccessToken, supabaseUrl],
+    [supabaseUrl],
   );
 
   const refreshDeploys = useCallback(async () => {
@@ -81,7 +71,10 @@ export function DeployPanel() {
       }
 
       if (!res.ok) {
-        setLines((prev) => [...prev, `[ERROR] ${data?.error || data?.message || text || "Failed to fetch deploys"}\n`]);
+        setLines((prev) => [
+          ...prev,
+          `[ERROR] ${data?.error || data?.message || text || "Failed to fetch deploys"}\n`,
+        ]);
         return;
       }
 
@@ -115,6 +108,7 @@ export function DeployPanel() {
   useEffect(() => {
     refreshDeploys();
     refreshStatus();
+
     const t = setInterval(refreshStatus, 10_000);
     return () => clearInterval(t);
   }, [refreshDeploys, refreshStatus]);
@@ -128,14 +122,11 @@ export function DeployPanel() {
       const token = await getAccessToken();
       const url = `${supabaseUrl}/functions/v1/agent-stream?target=${encodeURIComponent(which)}`;
 
-      const controller = new AbortController();
-
       const res = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          apikey: SUPABASE_PUBLISHABLE_KEY,
         },
-        signal: controller.signal,
       });
 
       if (!res.ok || !res.body) {

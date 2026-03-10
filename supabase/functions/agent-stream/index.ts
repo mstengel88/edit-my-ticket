@@ -54,7 +54,7 @@ async function requireDeveloper(req: Request) {
     },
   );
 
-  const { data: userData, error: userErr } = await supabase.auth.getUser();
+  const { data: userData, error: userErr } = await supabase.auth.getUser(token);
 
   if (userErr || !userData?.user) {
     return {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/integrations/supabase/client";
+import { getAccessToken } from "@/lib/getAccessToken";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,7 +45,6 @@ interface Container {
 }
 
 export function OpsDashboard() {
-  const { session } = useAuth();
   const [metrics, setMetrics] = useState<MetricsData>({
     cpu: { pct: 0 },
     mem: { pct: 0, used: 0, total: 0 },
@@ -67,35 +66,29 @@ export function OpsDashboard() {
   }, [logs]);
 
   const authedFetch = useCallback(
-  async (path: string, init?: RequestInit) => {
-    const { data, error } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
+    async (path: string, init?: RequestInit) => {
+      const token = await getAccessToken();
 
-    if (error || !token) {
-      throw new Error("No valid session");
-    }
+      return fetch(`${supabaseUrl}/functions/v1/agent-proxy?path=${encodeURIComponent(path)}`, {
+        ...init,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+          ...(init?.headers || {}),
+        },
+      });
+    },
+    [supabaseUrl],
+  );
 
-    return fetch(`${supabaseUrl}/functions/v1/agent-proxy?path=${encodeURIComponent(path)}`, {
-      ...init,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        apikey: SUPABASE_PUBLISHABLE_KEY,
-        ...(init?.headers || {}),
-      },
-    });
-  },
-  [supabaseUrl],
-);
-
-  // Metrics polling
   useEffect(() => {
-    if (!session?.access_token) return;
-
     let alive = true;
+
     const tick = async () => {
       try {
         const res = await authedFetch("/metrics");
         const data = await res.json().catch(() => null);
+
         if (!alive || !res.ok || !data) return;
 
         setMetrics(data);
@@ -117,16 +110,14 @@ export function OpsDashboard() {
 
     tick();
     const id = setInterval(tick, 2000);
+
     return () => {
       alive = false;
       clearInterval(id);
     };
-  }, [session?.access_token, authedFetch]);
+  }, [authedFetch]);
 
-    // Containers polling
   useEffect(() => {
-    if (!session?.access_token) return;
-
     let alive = true;
 
     const tick = async () => {
@@ -146,9 +137,9 @@ export function OpsDashboard() {
         if (!res.ok) {
           setContainersError(
             data?.error ||
-            data?.message ||
-            text ||
-            `Failed to fetch containers (${res.status})`
+              data?.message ||
+              text ||
+              `Failed to fetch containers (${res.status})`,
           );
           return;
         }
@@ -185,26 +176,29 @@ export function OpsDashboard() {
       alive = false;
       clearInterval(id);
     };
-  }, [session?.access_token, authedFetch]);
+  }, [authedFetch]);
 
-  // Live logs stream
   useEffect(() => {
-    if (!selected || !session?.access_token) return;
+    if (!selected) return;
 
     setLogs("");
     const controller = new AbortController();
 
-    fetch(
-      `${supabaseUrl}/functions/v1/agent-logs?container=${encodeURIComponent(selected)}`,
-      {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        },
-        signal: controller.signal,
-      }, 
-    )
-      .then(async (res) => {
+    const start = async () => {
+      try {
+        const token = await getAccessToken();
+
+        const res = await fetch(
+          `${supabaseUrl}/functions/v1/agent-logs?container=${encodeURIComponent(selected)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              apikey: SUPABASE_PUBLISHABLE_KEY,
+            },
+            signal: controller.signal,
+          },
+        );
+
         if (!res.ok || !res.body) {
           const txt = await res.text().catch(() => "");
           setLogs(`[ERROR] ${res.status} ${txt}\n`);
@@ -220,7 +214,6 @@ export function OpsDashboard() {
           if (done) break;
 
           buffer += decoder.decode(value, { stream: true });
-
           const parts = buffer.split("\n\n");
           buffer = parts.pop() ?? "";
 
@@ -254,19 +247,22 @@ export function OpsDashboard() {
             }
           }
         }
-      })
-      .catch((err) => {
-        if (err.name !== "AbortError") {
-          setLogs((prev) => prev + `\n[ERROR] ${err.message}\n`);
+      } catch (err: any) {
+        if (err?.name !== "AbortError") {
+          setLogs((prev) => prev + `\n[ERROR] ${err?.message || "Log stream failed"}\n`);
         }
-      });
+      }
+    };
+
+    start();
 
     return () => controller.abort();
-  }, [selected, session?.access_token, supabaseUrl]);
+  }, [selected, supabaseUrl]);
 
   const restartContainer = useCallback(
     async (name: string) => {
       setRestartBusy((p) => ({ ...p, [name]: true }));
+
       try {
         const res = await authedFetch(`/container/${name}/restart`, {
           method: "POST",
@@ -276,17 +272,32 @@ export function OpsDashboard() {
           body: JSON.stringify({}),
         });
 
-        const data = await res.json().catch(() => null);
+        const text = await res.text();
+        let data: any = null;
+
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = null;
+        }
+
         if (!res.ok) {
-          alert(data?.error || "Restart failed");
+          alert(data?.error || data?.message || text || "Restart failed");
           return;
         }
 
-        // refresh list shortly after restart
         setTimeout(async () => {
           try {
             const r = await authedFetch("/containers");
-            const d = await r.json().catch(() => null);
+            const t = await r.text();
+            let d: any = null;
+
+            try {
+              d = JSON.parse(t);
+            } catch {
+              d = null;
+            }
+
             if (r.ok && d?.containers) {
               setContainers(d.containers);
             }
