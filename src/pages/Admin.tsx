@@ -22,8 +22,8 @@ const Admin = () => {
         throw new Error("No valid session");
       }
 
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const url = `https://${projectId}.supabase.co/functions/v1/agent-proxy?path=${encodeURIComponent("/container/winterwatch-live/restart")}`;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const url = `${supabaseUrl}/functions/v1/agent-proxy?path=${encodeURIComponent("/container/winterwatch-live/restart")}`;
 
       const res = await fetch(url, {
         method: "POST",

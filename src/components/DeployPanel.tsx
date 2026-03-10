@@ -33,8 +33,7 @@ export function DeployPanel() {
   const [busyApp, setBusyApp] = useState<string | null>(null);
   const logRef = useRef<HTMLPreElement>(null);
 
-  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-  const supabaseUrl = `https://${projectId}.supabase.co`;
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
   useEffect(() => {
     if (logRef.current) {
