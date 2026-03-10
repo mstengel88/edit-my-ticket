@@ -37,19 +37,19 @@ async function requireDeveloper(req: Request) {
   );
 
   const token = authHeader.replace("Bearer ", "");
-  const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
+  const { data: userData, error: userErr } = await supabase.auth.getUser(token);
 
-  if (claimsErr || !claimsData?.claims) {
+  if (userErr || !userData?.user) {
     return { ok: false, status: 401, message: "Unauthorized" };
   }
 
-  const userId = claimsData.claims.sub;
-  const { data: isDev } = await supabase.rpc("has_role", {
+  const userId = userData.user.id;
+  const { data: isDev, error: roleErr } = await supabase.rpc("has_role", {
     _user_id: userId,
     _role: "developer",
   });
 
-  if (!isDev) {
+  if (roleErr || !isDev) {
     return { ok: false, status: 403, message: "Forbidden" };
   }
 
@@ -80,7 +80,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Optional hardening: only allow the agent paths your UI needs
     const allowedPrefixes = [
       "/deploys",
       "/status",

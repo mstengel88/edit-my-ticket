@@ -24,6 +24,38 @@ async function hmacSign(secret: string, message: string): Promise<string> {
     .join("");
 }
 
+async function requireDeveloper(req: Request) {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return { ok: false, status: 401, message: "Unauthorized" };
+  }
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    { global: { headers: { Authorization: authHeader } } },
+  );
+
+  const token = authHeader.replace("Bearer ", "");
+  const { data: userData, error: userErr } = await supabase.auth.getUser(token);
+
+  if (userErr || !userData?.user) {
+    return { ok: false, status: 401, message: "Unauthorized" };
+  }
+
+  const userId = userData.user.id;
+  const { data: isDev, error: roleErr } = await supabase.rpc("has_role", {
+    _user_id: userId,
+    _role: "developer",
+  });
+
+  if (roleErr || !isDev) {
+    return { ok: false, status: 403, message: "Forbidden" };
+  }
+
+  return { ok: true };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -37,60 +69,36 @@ Deno.serve(async (req) => {
   };
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(`event: error\ndata: {"message":"Unauthorized"}\n\n`, {
-        status: 401,
-        headers: sseHeaders,
-      });
-    }
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
-    );
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
-
-    if (claimsErr || !claimsData?.claims) {
-      return new Response(`event: error\ndata: {"message":"Unauthorized"}\n\n`, {
-        status: 401,
-        headers: sseHeaders,
-      });
-    }
-
-    const userId = claimsData.claims.sub;
-    const { data: isDev } = await supabase.rpc("has_role", {
-      _user_id: userId,
-      _role: "developer",
-    });
-
-    if (!isDev) {
-      return new Response(`event: error\ndata: {"message":"Forbidden"}\n\n`, {
-        status: 403,
-        headers: sseHeaders,
-      });
+    const auth = await requireDeveloper(req);
+    if (!auth.ok) {
+      return new Response(
+        `event: error\ndata: ${JSON.stringify({ message: auth.message })}\n\n`,
+        { status: auth.status, headers: sseHeaders },
+      );
     }
 
     const url = new URL(req.url);
     const container = url.searchParams.get("container");
+
     if (!container) {
-      return new Response(`event: error\ndata: {"message":"Missing container"}\n\n`, {
-        status: 400,
-        headers: sseHeaders,
-      });
+      return new Response(
+        `event: error\ndata: {"message":"Missing container"}\n\n`,
+        { status: 400, headers: sseHeaders },
+      );
     }
 
     const ts = Date.now().toString();
-    const sig = await hmacSign(AGENT_SECRET, `${ts}.{}`);
+    const sig = await hmacSign(AGENT_SECRET, `${ts}.{}`
+    );
 
     const upstream = await fetch(
       `${AGENT_BASE}/logs/stream?container=${encodeURIComponent(container)}`,
       {
         method: "GET",
-        headers: { "x-ts": ts, "x-sig": sig },
+        headers: {
+          "x-ts": ts,
+          "x-sig": sig,
+        },
       },
     );
 
@@ -103,9 +111,10 @@ Deno.serve(async (req) => {
     }
 
     return new Response(upstream.body, { status: 200, headers: sseHeaders });
-  } catch (e) {
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : String(e);
     return new Response(
-      `event: error\ndata: ${JSON.stringify({ message: e.message })}\n\n`,
+      `event: error\ndata: ${JSON.stringify({ message })}\n\n`,
       { status: 500, headers: sseHeaders },
     );
   }
