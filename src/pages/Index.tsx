@@ -188,6 +188,22 @@ const Index = () => {
     toast.info("Syncing from Loadrite...");
   };
 
+  const handleStatusChange = async (ticket: TicketData, status: TicketData["status"]) => {
+    const { error: err } = await supabase
+      .from("tickets")
+      .update({ status })
+      .eq("id", ticket.id);
+    if (err) {
+      toast.error("Failed to update status");
+      return;
+    }
+    toast.success(`Ticket marked as ${status}`);
+    if (selectedTicket?.id === ticket.id) {
+      setSelectedTicket({ ...ticket, status });
+    }
+    await loadFromDb();
+  };
+
   const handlePrintTicket = (ticket: TicketData) => {
     setSelectedTicket(ticket);
     setView("preview");
