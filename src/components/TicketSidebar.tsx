@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Trash2, Search, Plus, Printer, Mail } from "lucide-react";
+import { Trash2, Search, Plus, Printer, Mail, CheckCircle2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 type StatusFilter = "all" | "draft" | "pending" | "sent" | "completed";
@@ -18,6 +18,7 @@ interface TicketSidebarProps {
   onNew: () => void;
   onPrint: (ticket: TicketData) => void;
   onEmail: (ticket: TicketData) => void;
+  onStatusChange?: (ticket: TicketData, status: TicketData["status"]) => void;
   readOnly?: boolean;
 }
 
@@ -28,7 +29,7 @@ const statusDot: Record<TicketData["status"], string> = {
   completed: "bg-success",
 };
 
-export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, onPrint, onEmail, readOnly }: TicketSidebarProps) {
+export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, onPrint, onEmail, onStatusChange, readOnly }: TicketSidebarProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -107,36 +108,47 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
                 </div>
                 <div className="flex items-center justify-between mt-1">
                   <span className="text-muted-foreground truncate">{ticket.product}</span>
-                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5"
-                      onClick={(e) => { e.stopPropagation(); onPrint(ticket); }}
-                      title="Print"
-                    >
-                      <Printer className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5"
-                      onClick={(e) => { e.stopPropagation(); setEmailTicket(ticket); }}
-                      title="Email"
-                    >
-                      <Mail className="h-3 w-3" />
-                    </Button>
-                    {!readOnly && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-5 w-5 text-destructive"
-                        onClick={(e) => { e.stopPropagation(); setDeleteId(ticket.id); }}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    )}
-                  </div>
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                     {ticket.status !== "completed" && onStatusChange && (
+                       <Button
+                         variant="ghost"
+                         size="icon"
+                         className="h-5 w-5 text-success hover:text-success"
+                         onClick={(e) => { e.stopPropagation(); onStatusChange(ticket, "completed"); }}
+                         title="Mark Completed"
+                       >
+                         <CheckCircle2 className="h-3 w-3" />
+                       </Button>
+                     )}
+                     <Button
+                       variant="ghost"
+                       size="icon"
+                       className="h-5 w-5"
+                       onClick={(e) => { e.stopPropagation(); onPrint(ticket); }}
+                       title="Print"
+                     >
+                       <Printer className="h-3 w-3" />
+                     </Button>
+                     <Button
+                       variant="ghost"
+                       size="icon"
+                       className="h-5 w-5"
+                       onClick={(e) => { e.stopPropagation(); setEmailTicket(ticket); }}
+                       title="Email"
+                     >
+                       <Mail className="h-3 w-3" />
+                     </Button>
+                     {!readOnly && (
+                       <Button
+                         variant="ghost"
+                         size="icon"
+                         className="h-5 w-5 text-destructive"
+                         onClick={(e) => { e.stopPropagation(); setDeleteId(ticket.id); }}
+                       >
+                         <Trash2 className="h-3 w-3" />
+                       </Button>
+                     )}
+                   </div>
                 </div>
               </div>
             ))}
