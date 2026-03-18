@@ -39,7 +39,9 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
   };
 
   const handleSave = () => {
-    onSave(data);
+    const updated = { ...data, status: "pending" as TicketData["status"] };
+    setData(updated);
+    onSave(updated);
     toast.success("Ticket saved!");
   };
 
