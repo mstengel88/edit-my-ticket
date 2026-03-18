@@ -108,36 +108,47 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
                 </div>
                 <div className="flex items-center justify-between mt-1">
                   <span className="text-muted-foreground truncate">{ticket.product}</span>
-                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5"
-                      onClick={(e) => { e.stopPropagation(); onPrint(ticket); }}
-                      title="Print"
-                    >
-                      <Printer className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5"
-                      onClick={(e) => { e.stopPropagation(); setEmailTicket(ticket); }}
-                      title="Email"
-                    >
-                      <Mail className="h-3 w-3" />
-                    </Button>
-                    {!readOnly && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-5 w-5 text-destructive"
-                        onClick={(e) => { e.stopPropagation(); setDeleteId(ticket.id); }}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    )}
-                  </div>
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                     {ticket.status !== "completed" && onStatusChange && (
+                       <Button
+                         variant="ghost"
+                         size="icon"
+                         className="h-5 w-5 text-success hover:text-success"
+                         onClick={(e) => { e.stopPropagation(); onStatusChange(ticket, "completed"); }}
+                         title="Mark Completed"
+                       >
+                         <CheckCircle2 className="h-3 w-3" />
+                       </Button>
+                     )}
+                     <Button
+                       variant="ghost"
+                       size="icon"
+                       className="h-5 w-5"
+                       onClick={(e) => { e.stopPropagation(); onPrint(ticket); }}
+                       title="Print"
+                     >
+                       <Printer className="h-3 w-3" />
+                     </Button>
+                     <Button
+                       variant="ghost"
+                       size="icon"
+                       className="h-5 w-5"
+                       onClick={(e) => { e.stopPropagation(); setEmailTicket(ticket); }}
+                       title="Email"
+                     >
+                       <Mail className="h-3 w-3" />
+                     </Button>
+                     {!readOnly && (
+                       <Button
+                         variant="ghost"
+                         size="icon"
+                         className="h-5 w-5 text-destructive"
+                         onClick={(e) => { e.stopPropagation(); setDeleteId(ticket.id); }}
+                       >
+                         <Trash2 className="h-3 w-3" />
+                       </Button>
+                     )}
+                   </div>
                 </div>
               </div>
             ))}
