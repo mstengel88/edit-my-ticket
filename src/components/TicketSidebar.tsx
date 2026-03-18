@@ -18,6 +18,7 @@ interface TicketSidebarProps {
   onNew: () => void;
   onPrint: (ticket: TicketData) => void;
   onEmail: (ticket: TicketData) => void;
+  onStatusChange?: (ticket: TicketData, status: TicketData["status"]) => void;
   readOnly?: boolean;
 }
 
