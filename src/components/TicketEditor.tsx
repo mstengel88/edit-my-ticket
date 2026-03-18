@@ -38,6 +38,10 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
     setData((prev) => ({ ...prev, [key]: value }));
   };
 
+  const selectOnFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    e.target.select();
+  };
+
   const handleSave = () => {
     const updated = { ...data, status: "pending" as TicketData["status"] };
     setData(updated);
@@ -91,18 +95,18 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div>
             <Label className="text-xs text-muted-foreground">Job Number</Label>
-            <Input value={data.jobNumber} onChange={(e) => updateField("jobNumber", e.target.value)} />
+            <Input value={data.jobNumber} onChange={(e) => updateField("jobNumber", e.target.value)} onFocus={selectOnFocus} />
           </div>
           {visible("jobName") && (
             <div>
               <Label className="text-xs text-muted-foreground">PO #</Label>
-              <Input value={data.jobName} onChange={(e) => updateField("jobName", e.target.value)} />
+              <Input value={data.jobName} onChange={(e) => updateField("jobName", e.target.value)} onFocus={selectOnFocus} />
             </div>
           )}
           {visible("dateTime") && (
             <div>
               <Label className="text-xs text-muted-foreground">Date/Time</Label>
-              <Input value={data.dateTime} onChange={(e) => updateField("dateTime", e.target.value)} />
+              <Input value={data.dateTime} onChange={(e) => updateField("dateTime", e.target.value)} onFocus={selectOnFocus} />
             </div>
           )}
         </div>
@@ -121,6 +125,7 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
                 <Input
                   value={data.totalAmount}
                   onChange={(e) => updateField("totalAmount", e.target.value)}
+                  onFocus={selectOnFocus}
                   className="text-2xl font-bold h-12"
                 />
               </div>
@@ -160,7 +165,7 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
           {visible("customerEmail") && (
             <div>
               <Label className="text-xs text-muted-foreground">Customer Email</Label>
-              <Input type="email" value={data.customerEmail} onChange={(e) => updateField("customerEmail", e.target.value)} placeholder="customer@example.com" />
+              <Input type="email" value={data.customerEmail} onChange={(e) => updateField("customerEmail", e.target.value)} onFocus={selectOnFocus} placeholder="customer@example.com" />
             </div>
           )}
           {visible("product") && (
@@ -178,14 +183,14 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
           {visible("bucket") && (
             <div>
               <Label className="text-xs text-muted-foreground">Bucket</Label>
-              <Input value={data.bucket} onChange={(e) => updateField("bucket", e.target.value)} />
+              <Input value={data.bucket} onChange={(e) => updateField("bucket", e.target.value)} onFocus={selectOnFocus} />
             </div>
           )}
         </div>
         {visible("note") && (
           <div>
             <Label className="text-xs text-muted-foreground">Note</Label>
-            <Textarea rows={2} value={data.note} onChange={(e) => updateField("note", e.target.value)} />
+            <Textarea rows={2} value={data.note} onChange={(e) => updateField("note", e.target.value)} onFocus={selectOnFocus} />
           </div>
         )}
       </div>
@@ -197,13 +202,13 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
           {visible("customerName") && (
             <div>
               <Label className="text-xs text-muted-foreground">Name</Label>
-              <Input value={data.customerName} onChange={(e) => updateField("customerName", e.target.value)} />
+              <Input value={data.customerName} onChange={(e) => updateField("customerName", e.target.value)} onFocus={selectOnFocus} />
             </div>
           )}
           {visible("customerAddress") && (
             <div>
               <Label className="text-xs text-muted-foreground">Address</Label>
-              <Textarea rows={2} value={data.customerAddress} onChange={(e) => updateField("customerAddress", e.target.value)} />
+              <Textarea rows={2} value={data.customerAddress} onChange={(e) => updateField("customerAddress", e.target.value)} onFocus={selectOnFocus} />
             </div>
           )}
           <div>
