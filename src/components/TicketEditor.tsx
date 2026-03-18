@@ -125,6 +125,7 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
                 <Input
                   value={data.totalAmount}
                   onChange={(e) => updateField("totalAmount", e.target.value)}
+                  onFocus={selectOnFocus}
                   className="text-2xl font-bold h-12"
                 />
               </div>
