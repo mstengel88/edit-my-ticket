@@ -73,7 +73,7 @@ export function useTicketLookups(): LookupData {
             for (const name of uniqueCustomerNames) {
               await supabase
                 .from("customers")
-                .upsert({ name, user_id: userId }, { onConflict: "name,user_id" })
+                .upsert({ name, user_id: userId }, { onConflict: "name" })
                 .select();
             }
           }
