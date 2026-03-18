@@ -38,7 +38,7 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
     setData((prev) => ({ ...prev, [key]: value }));
   };
 
-  const selectOnFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const selectOnFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     e.target.select();
   };
 
