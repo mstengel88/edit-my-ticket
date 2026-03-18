@@ -17,9 +17,10 @@ export function ComboInput({ value, onChange, options, placeholder, className }:
   const wrapperRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const filtered = options.filter((o) =>
-    o.toLowerCase().includes((filter || value).toLowerCase())
-  );
+  const searchTerm = (filter || value).toLowerCase().slice(0, 3);
+  const filtered = searchTerm
+    ? options.filter((o) => o.toLowerCase().includes(searchTerm))
+    : options;
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
