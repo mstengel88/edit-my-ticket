@@ -165,7 +165,7 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
           {visible("customerEmail") && (
             <div>
               <Label className="text-xs text-muted-foreground">Customer Email</Label>
-              <Input type="email" value={data.customerEmail} onChange={(e) => updateField("customerEmail", e.target.value)} placeholder="customer@example.com" />
+              <Input type="email" value={data.customerEmail} onChange={(e) => updateField("customerEmail", e.target.value)} onFocus={selectOnFocus} placeholder="customer@example.com" />
             </div>
           )}
           {visible("product") && (
