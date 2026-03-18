@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { getProducts, LoadriteProduct } from "@/services/loadrite";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -41,13 +41,14 @@ function writeCache(data: Omit<CachedLookups, "timestamp">) {
   }
 }
 
+const initialCache = readCache();
+
 export function useTicketLookups(): LookupData {
-  const cached = useRef(readCache());
-  const [products, setProducts] = useState<string[]>(cached.current?.products ?? []);
-  const [customers, setCustomers] = useState<string[]>(cached.current?.customers ?? []);
-  const [customerEmails, setCustomerEmails] = useState<Record<string, string>>(cached.current?.customerEmails ?? {});
-  const [trucks, setTrucks] = useState<string[]>(cached.current?.trucks ?? []);
-  const [loading, setLoading] = useState(!cached.current);
+  const [products, setProducts] = useState<string[]>(initialCache?.products ?? []);
+  const [customers, setCustomers] = useState<string[]>(initialCache?.customers ?? []);
+  const [customerEmails, setCustomerEmails] = useState<Record<string, string>>(initialCache?.customerEmails ?? {});
+  const [trucks, setTrucks] = useState<string[]>(initialCache?.trucks ?? []);
+  const [loading, setLoading] = useState(!initialCache);
 
   useEffect(() => {
     let cancelled = false;
