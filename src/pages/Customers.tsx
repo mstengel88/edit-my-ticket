@@ -85,7 +85,7 @@ const Customers = () => {
         if (!name) continue;
         const { error } = await supabase.from("customers").upsert(
           { name, email, user_id: userId },
-          { onConflict: "name,user_id" }
+          { onConflict: "name" }
         );
         if (!error) added++;
       }

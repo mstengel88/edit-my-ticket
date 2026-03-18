@@ -134,7 +134,7 @@ const Index = () => {
           .from("customers")
           .upsert(
             { name: updated.customer, email: updated.customerEmail || "", user_id: userId },
-            { onConflict: "name,user_id" }
+            { onConflict: "name" }
           );
       }
       if (updated.product?.trim()) {
