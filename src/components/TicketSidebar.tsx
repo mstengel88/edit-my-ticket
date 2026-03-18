@@ -29,7 +29,7 @@ const statusDot: Record<TicketData["status"], string> = {
   completed: "bg-success",
 };
 
-export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, onPrint, onEmail, readOnly }: TicketSidebarProps) {
+export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, onPrint, onEmail, onStatusChange, readOnly }: TicketSidebarProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [deleteId, setDeleteId] = useState<string | null>(null);
