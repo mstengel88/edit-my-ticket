@@ -38,6 +38,10 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
     setData((prev) => ({ ...prev, [key]: value }));
   };
 
+  const selectOnFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    e.target.select();
+  };
+
   const handleSave = () => {
     const updated = { ...data, status: "pending" as TicketData["status"] };
     setData(updated);
