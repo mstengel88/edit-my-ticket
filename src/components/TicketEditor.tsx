@@ -106,7 +106,7 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
           {visible("dateTime") && (
             <div>
               <Label className="text-xs text-muted-foreground">Date/Time</Label>
-              <Input value={data.dateTime} onChange={(e) => updateField("dateTime", e.target.value)} />
+              <Input value={data.dateTime} onChange={(e) => updateField("dateTime", e.target.value)} onFocus={selectOnFocus} />
             </div>
           )}
         </div>
