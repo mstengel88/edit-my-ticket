@@ -100,7 +100,7 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
           {visible("jobName") && (
             <div>
               <Label className="text-xs text-muted-foreground">PO #</Label>
-              <Input value={data.jobName} onChange={(e) => updateField("jobName", e.target.value)} />
+              <Input value={data.jobName} onChange={(e) => updateField("jobName", e.target.value)} onFocus={selectOnFocus} />
             </div>
           )}
           {visible("dateTime") && (
