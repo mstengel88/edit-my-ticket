@@ -295,6 +295,7 @@ const Index = () => {
             onNew={handleNewTicket}
             onPrint={handlePrintTicket}
             onEmail={handleEmailTicket}
+            onStatusChange={handleStatusChange}
             readOnly={!isAdminOrManager}
           />
         </div>
