@@ -190,7 +190,7 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
         {visible("note") && (
           <div>
             <Label className="text-xs text-muted-foreground">Note</Label>
-            <Textarea rows={2} value={data.note} onChange={(e) => updateField("note", e.target.value)} />
+            <Textarea rows={2} value={data.note} onChange={(e) => updateField("note", e.target.value)} onFocus={selectOnFocus} />
           </div>
         )}
       </div>
