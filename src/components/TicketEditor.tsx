@@ -95,7 +95,7 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div>
             <Label className="text-xs text-muted-foreground">Job Number</Label>
-            <Input value={data.jobNumber} onChange={(e) => updateField("jobNumber", e.target.value)} />
+            <Input value={data.jobNumber} onChange={(e) => updateField("jobNumber", e.target.value)} onFocus={selectOnFocus} />
           </div>
           {visible("jobName") && (
             <div>
