@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getProducts, LoadriteProduct } from "@/services/loadrite";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -10,25 +10,86 @@ interface LookupData {
   loading: boolean;
 }
 
+const CACHE_KEY = "ticket-lookups-cache";
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+interface CachedLookups {
+  products: string[];
+  customers: string[];
+  customerEmails: Record<string, string>;
+  trucks: string[];
+  timestamp: number;
+}
+
+function readCache(): CachedLookups | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const cached: CachedLookups = JSON.parse(raw);
+    if (Date.now() - cached.timestamp > CACHE_TTL) return null;
+    return cached;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(data: Omit<CachedLookups, "timestamp">) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ ...data, timestamp: Date.now() }));
+  } catch {
+    // localStorage full or unavailable
+  }
+}
+
 export function useTicketLookups(): LookupData {
-  const [products, setProducts] = useState<string[]>([]);
-  const [customers, setCustomers] = useState<string[]>([]);
-  const [customerEmails, setCustomerEmails] = useState<Record<string, string>>({});
-  const [trucks, setTrucks] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cached = useRef(readCache());
+  const [products, setProducts] = useState<string[]>(cached.current?.products ?? []);
+  const [customers, setCustomers] = useState<string[]>(cached.current?.customers ?? []);
+  const [customerEmails, setCustomerEmails] = useState<Record<string, string>>(cached.current?.customerEmails ?? {});
+  const [trucks, setTrucks] = useState<string[]>(cached.current?.trucks ?? []);
+  const [loading, setLoading] = useState(!cached.current);
 
   useEffect(() => {
-    async function load() {
-      setLoading(true);
+    let cancelled = false;
 
+    async function loadFromDb() {
+      // Step 1: Load from DB immediately (fast)
+      const [
+        { data: productRows },
+        { data: customerRows },
+        { data: truckRows },
+      ] = await Promise.all([
+        supabase.from("products").select("name").order("name"),
+        supabase.from("customers").select("name, email").order("name"),
+        supabase.from("trucks").select("name").order("name"),
+      ]);
+
+      if (cancelled) return;
+
+      const prods = (productRows || []).map((r) => r.name);
+      const custs = (customerRows || []).map((r) => r.name);
+      const emailMap: Record<string, string> = {};
+      (customerRows || []).forEach((r) => { if (r.email) emailMap[r.name] = r.email; });
+      const trks = (truckRows || []).map((r) => r.name);
+
+      setProducts(prods);
+      setCustomers(custs);
+      setCustomerEmails(emailMap);
+      setTrucks(trks);
+      setLoading(false);
+
+      // Cache the fresh DB data
+      writeCache({ products: prods, customers: custs, customerEmails: emailMap, trucks: trks });
+
+      return { prods, custs, trks };
+    }
+
+    async function syncInBackground() {
       const { data: { session } } = await supabase.auth.getSession();
       const userId = session?.user?.id;
-      if (!userId) {
-        setLoading(false);
-        return;
-      }
+      if (!userId) return;
 
-      // Sync products from Loadrite API into the products table
+      // Sync products from Loadrite API (non-blocking)
       try {
         const apiProducts = await getProducts();
         const names = apiProducts
@@ -36,24 +97,23 @@ export function useTicketLookups(): LookupData {
           .filter(Boolean);
         const uniqueNames = [...new Set(names)] as string[];
 
-        // Upsert each product (ignore conflicts on unique name)
-        for (const name of uniqueNames) {
+        if (uniqueNames.length > 0) {
+          const rows = uniqueNames.map((name) => ({ name, user_id: userId, source: "loadrite" }));
           await supabase
             .from("products")
-            .upsert({ name, user_id: userId, source: "loadrite" }, { onConflict: "name" })
-            .select();
+            .upsert(rows, { onConflict: "name" });
         }
       } catch (err) {
         console.error("Failed to sync products from API:", err);
       }
 
-      // Also seed customers/trucks from existing tickets if tables are empty
+      // Seed customers/trucks from tickets if tables are empty
       const [
         { data: existingCustomers },
         { data: existingTrucks },
       ] = await Promise.all([
-        supabase.from("customers").select("name"),
-        supabase.from("trucks").select("name"),
+        supabase.from("customers").select("name").limit(1),
+        supabase.from("trucks").select("name").limit(1),
       ]);
 
       if (!existingCustomers?.length || !existingTrucks?.length) {
@@ -70,11 +130,9 @@ export function useTicketLookups(): LookupData {
                   .filter((c) => c && c.trim() && c !== "NOT SPECIFIED")
               ),
             ];
-            for (const name of uniqueCustomerNames) {
-              await supabase
-                .from("customers")
-                .upsert({ name, user_id: userId }, { onConflict: "name" })
-                .select();
+            const custRows = uniqueCustomerNames.map((name) => ({ name, user_id: userId }));
+            if (custRows.length > 0) {
+              await supabase.from("customers").upsert(custRows, { onConflict: "name" });
             }
           }
 
@@ -86,38 +144,26 @@ export function useTicketLookups(): LookupData {
                   .filter((t) => t && t.trim() && t !== "-" && t !== "NOT SPECIFIED")
               ),
             ];
-            for (const name of uniqueTruckNames) {
-              await supabase
-                .from("trucks")
-                .upsert({ name, user_id: userId }, { onConflict: "name,user_id" })
-                .select();
+            const truckRows = uniqueTruckNames.map((name) => ({ name, user_id: userId }));
+            if (truckRows.length > 0) {
+              await supabase.from("trucks").upsert(truckRows, { onConflict: "name,user_id" });
             }
           }
         }
       }
 
-      // Now read from the lookup tables
-      const [
-        { data: productRows },
-        { data: customerRows },
-        { data: truckRows },
-      ] = await Promise.all([
-        supabase.from("products").select("name").order("name"),
-        supabase.from("customers").select("name, email").order("name"),
-        supabase.from("trucks").select("name").order("name"),
-      ]);
-
-      setProducts((productRows || []).map((r) => r.name));
-      setCustomers((customerRows || []).map((r) => r.name));
-      const emailMap: Record<string, string> = {};
-      (customerRows || []).forEach((r) => { if (r.email) emailMap[r.name] = r.email; });
-      setCustomerEmails(emailMap);
-      setTrucks((truckRows || []).map((r) => r.name));
-
-      setLoading(false);
+      // Refresh from DB after sync to pick up any new data
+      if (!cancelled) {
+        await loadFromDb();
+      }
     }
 
-    load();
+    // Load DB data first, then sync in background
+    loadFromDb().then(() => {
+      syncInBackground();
+    });
+
+    return () => { cancelled = true; };
   }, []);
 
   return { products, customers, customerEmails, trucks, loading };
