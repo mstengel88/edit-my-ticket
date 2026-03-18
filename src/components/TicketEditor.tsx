@@ -183,7 +183,7 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
           {visible("bucket") && (
             <div>
               <Label className="text-xs text-muted-foreground">Bucket</Label>
-              <Input value={data.bucket} onChange={(e) => updateField("bucket", e.target.value)} />
+              <Input value={data.bucket} onChange={(e) => updateField("bucket", e.target.value)} onFocus={selectOnFocus} />
             </div>
           )}
         </div>
