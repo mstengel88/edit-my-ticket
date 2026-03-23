@@ -44,7 +44,7 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
 
   return (
     <>
-      <aside className="w-80 shrink-0 border-l bg-card flex flex-col h-full">
+      <aside className="w-96 shrink-0 border-l bg-card flex flex-col h-full">
         {/* Header */}
         <div className="px-3 py-3 border-b space-y-2">
           <div className="flex items-center justify-between">
