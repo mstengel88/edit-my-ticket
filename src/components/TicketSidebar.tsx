@@ -39,7 +39,19 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
     if (statusFilter !== "all" && t.status !== statusFilter) return false;
     if (!search.trim()) return true;
     const q = search.toLowerCase();
-    return t.jobNumber.toLowerCase().includes(q) || t.customer.toLowerCase().includes(q);
+    return (
+      t.jobNumber.toLowerCase().includes(q) ||
+      t.customer.toLowerCase().includes(q) ||
+      t.product.toLowerCase().includes(q) ||
+      t.truck.toLowerCase().includes(q) ||
+      t.jobName.toLowerCase().includes(q) ||
+      t.note.toLowerCase().includes(q) ||
+      t.totalAmount.toLowerCase().includes(q) ||
+      t.customerName.toLowerCase().includes(q) ||
+      t.customerEmail.toLowerCase().includes(q) ||
+      t.dateTime.toLowerCase().includes(q) ||
+      t.bucket.toLowerCase().includes(q)
+    );
   });
 
   return (
