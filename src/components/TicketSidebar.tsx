@@ -39,12 +39,24 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
     if (statusFilter !== "all" && t.status !== statusFilter) return false;
     if (!search.trim()) return true;
     const q = search.toLowerCase();
-    return t.jobNumber.toLowerCase().includes(q) || t.customer.toLowerCase().includes(q);
+    return (
+      t.jobNumber.toLowerCase().includes(q) ||
+      t.customer.toLowerCase().includes(q) ||
+      t.product.toLowerCase().includes(q) ||
+      t.truck.toLowerCase().includes(q) ||
+      t.jobName.toLowerCase().includes(q) ||
+      t.note.toLowerCase().includes(q) ||
+      t.totalAmount.toLowerCase().includes(q) ||
+      t.customerName.toLowerCase().includes(q) ||
+      t.customerEmail.toLowerCase().includes(q) ||
+      t.dateTime.toLowerCase().includes(q) ||
+      t.bucket.toLowerCase().includes(q)
+    );
   });
 
   return (
     <>
-      <aside className="w-80 shrink-0 border-l bg-card flex flex-col h-full">
+      <aside className="w-96 shrink-0 border-l bg-card flex flex-col h-full">
         {/* Header */}
         <div className="px-3 py-3 border-b space-y-2">
           <div className="flex items-center justify-between">
@@ -99,7 +111,12 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
                       <span className={`h-2 w-2 rounded-full shrink-0 ${statusDot[ticket.status]}`} />
                       <span className="font-semibold text-foreground truncate">#{ticket.jobNumber}</span>
                     </div>
-                    <p className="text-muted-foreground truncate mt-0.5">{ticket.customer || "No customer"}</p>
+                    <p className="text-muted-foreground truncate mt-0.5">
+                      {ticket.customer || "No customer"}
+                      {ticket.jobName && ticket.jobName !== "Job" && (
+                        <span className="text-muted-foreground/70 ml-1">· PO: {ticket.jobName}</span>
+                      )}
+                    </p>
                   </div>
                   <div className="text-right shrink-0">
                     <span className="font-bold text-foreground tabular-nums">{ticket.totalAmount}</span>
