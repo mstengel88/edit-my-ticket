@@ -111,7 +111,12 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
                       <span className={`h-2 w-2 rounded-full shrink-0 ${statusDot[ticket.status]}`} />
                       <span className="font-semibold text-foreground truncate">#{ticket.jobNumber}</span>
                     </div>
-                    <p className="text-muted-foreground truncate mt-0.5">{ticket.customer || "No customer"}</p>
+                    <p className="text-muted-foreground truncate mt-0.5">
+                      {ticket.customer || "No customer"}
+                      {ticket.jobName && ticket.jobName !== "Job" && (
+                        <span className="text-muted-foreground/70 ml-1">· PO: {ticket.jobName}</span>
+                      )}
+                    </p>
                   </div>
                   <div className="text-right shrink-0">
                     <span className="font-bold text-foreground tabular-nums">{ticket.totalAmount}</span>
