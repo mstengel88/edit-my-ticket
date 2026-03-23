@@ -158,24 +158,14 @@ export function useLoadriteData() {
       if (groups.length > 0) {
         const rows = groups.map((g) => groupToTicketRow(g, userId));
 
-        // Check which tickets already exist so we don't overwrite their status
-        const ids = rows.map((r) => r.id);
-        const { data: existing } = await supabase
+        // Use upsert with ignoreDuplicates to skip existing tickets
+        // This preserves status and other edits on tickets already in the DB
+        const { error: upsertErr } = await supabase
           .from("tickets")
-          .select("id")
-          .in("id", ids);
+          .upsert(rows, { onConflict: "id", ignoreDuplicates: true });
 
-        const existingIds = new Set((existing ?? []).map((e) => e.id));
-        const newRows = rows.filter((r) => !existingIds.has(r.id));
-
-        if (newRows.length > 0) {
-          const { error: insertErr } = await supabase
-            .from("tickets")
-            .insert(newRows);
-
-          if (insertErr) {
-            console.error("Insert error:", insertErr);
-          }
+        if (upsertErr) {
+          console.error("Upsert error:", upsertErr);
         }
       }
 
