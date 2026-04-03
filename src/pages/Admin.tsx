@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, RefreshCw } from "lucide-react";
 import { DeployPanel } from "@/components/DeployPanel";
 import { OpsDashboard } from "@/components/OpsDashboard";
 import { AppLayout } from "@/components/AppLayout";
@@ -11,6 +11,8 @@ const Admin = () => {
   const [authReady, setAuthReady] = useState(false);
   const [restartLoading, setRestartLoading] = useState(false);
   const [restartMsg, setRestartMsg] = useState("");
+  const [agentRestartLoading, setAgentRestartLoading] = useState(false);
+  const [agentRestartMsg, setAgentRestartMsg] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -26,45 +28,61 @@ const Admin = () => {
     };
   }, []);
 
+  async function postToAgentProxy(path: string) {
+    const token = await getAccessToken();
+    const url = `${SUPABASE_URL}/functions/v1/agent-proxy?path=${encodeURIComponent(path)}`;
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({}),
+    });
+
+    const bodyText = await res.text();
+    let bodyJson: any = null;
+
+    try {
+      bodyJson = JSON.parse(bodyText);
+    } catch {
+      bodyJson = null;
+    }
+
+    if (!res.ok) {
+      throw new Error(bodyJson?.error || bodyJson?.message || bodyText || "Request failed");
+    }
+
+    return bodyJson;
+  }
+
   async function handleRestart() {
     setRestartLoading(true);
     setRestartMsg("");
 
     try {
-      const token = await getAccessToken();
-
-      const url = `${SUPABASE_URL}/functions/v1/agent-proxy?path=${encodeURIComponent(
-        "/container/winterwatch-live/restart",
-      )}`;
-
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          apikey: SUPABASE_PUBLISHABLE_KEY,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({}),
-      });
-
-      const bodyText = await res.text();
-      let bodyJson: any = null;
-
-      try {
-        bodyJson = JSON.parse(bodyText);
-      } catch {
-        bodyJson = null;
-      }
-
-      if (!res.ok) {
-        throw new Error(bodyJson?.error || bodyJson?.message || bodyText || "Restart failed");
-      }
-
+      await postToAgentProxy("/container/winterwatch-live/restart");
       setRestartMsg("Restart sent ✅");
     } catch (e: any) {
       setRestartMsg(`Error: ${e?.message || "Restart failed"}`);
     } finally {
       setRestartLoading(false);
+    }
+  }
+
+  async function handleAgentRestart() {
+    setAgentRestartLoading(true);
+    setAgentRestartMsg("");
+
+    try {
+      await postToAgentProxy("/service/agent/restart");
+      setAgentRestartMsg("Agent restart scheduled ✅");
+    } catch (e: any) {
+      setAgentRestartMsg(`Error: ${e?.message || "Agent restart failed"}`);
+    } finally {
+      setAgentRestartLoading(false);
     }
   }
 
@@ -88,7 +106,8 @@ const Admin = () => {
 
         <section className="space-y-3">
           <h2 className="text-sm font-semibold text-foreground">Service Control</h2>
-          <div className="flex items-center gap-3">
+
+          <div className="flex flex-wrap items-center gap-3">
             <Button
               onClick={handleRestart}
               disabled={restartLoading}
@@ -101,6 +120,22 @@ const Admin = () => {
 
             {restartMsg && (
               <span className="text-sm text-muted-foreground">{restartMsg}</span>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              onClick={handleAgentRestart}
+              disabled={agentRestartLoading}
+              variant="secondary"
+              className="gap-1.5"
+            >
+              <RefreshCw className="h-4 w-4" />
+              {agentRestartLoading ? "Restarting agent…" : "Restart docker-agent service"}
+            </Button>
+
+            {agentRestartMsg && (
+              <span className="text-sm text-muted-foreground">{agentRestartMsg}</span>
             )}
           </div>
         </section>
