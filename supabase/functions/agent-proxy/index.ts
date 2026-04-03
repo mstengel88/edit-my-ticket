@@ -110,6 +110,7 @@ Deno.serve(async (req) => {
       "/metrics",
       "/containers",
       "/container/",
+      "/service/",
     ];
 
     if (!allowedPrefixes.some((prefix) => path.startsWith(prefix))) {
