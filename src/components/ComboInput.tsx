@@ -53,7 +53,7 @@ export function ComboInput({ value, onChange, options, placeholder, className }:
 
   useEffect(() => {
     setHighlightIndex(-1);
-  }, [filter, open]);
+  }, [value, open]);
 
   useEffect(() => {
     if (highlightIndex >= 0 && listRef.current) {
@@ -99,7 +99,6 @@ export function ComboInput({ value, onChange, options, placeholder, className }:
   const selectItem = useCallback((item: string) => {
     onChange(item);
     setOpen(false);
-    setFilter("");
   }, [onChange]);
 
   return (
@@ -108,11 +107,9 @@ export function ComboInput({ value, onChange, options, placeholder, className }:
         value={value}
         onChange={(e) => {
           onChange(e.target.value);
-          setFilter(e.target.value);
           setOpen(true);
         }}
         onFocus={() => {
-          setFilter("");
           openList();
         }}
         onClick={openList}
