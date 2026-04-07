@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { getProducts, LoadriteProduct } from "@/services/loadrite";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface LookupData {
   products: string[];
@@ -44,6 +45,7 @@ function writeCache(data: Omit<CachedLookups, "timestamp">) {
 const initialCache = readCache();
 
 export function useTicketLookups(): LookupData {
+  const { session, loading: authLoading } = useAuth();
   const [products, setProducts] = useState<string[]>(initialCache?.products ?? []);
   const [customers, setCustomers] = useState<string[]>(initialCache?.customers ?? []);
   const [customerEmails, setCustomerEmails] = useState<Record<string, string>>(initialCache?.customerEmails ?? {});
@@ -51,9 +53,23 @@ export function useTicketLookups(): LookupData {
   const [loading, setLoading] = useState(!initialCache);
 
   useEffect(() => {
+    if (authLoading) return;
+
     let cancelled = false;
+    const userId = session?.user?.id;
+
+    if (!userId) {
+      setLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
 
     async function loadFromDb() {
+      if (!initialCache) {
+        setLoading(true);
+      }
+
       // Step 1: Load from DB immediately (fast)
       const [
         { data: productRows },
@@ -86,10 +102,6 @@ export function useTicketLookups(): LookupData {
     }
 
     async function syncInBackground() {
-      const { data: { session } } = await supabase.auth.getSession();
-      const userId = session?.user?.id;
-      if (!userId) return;
-
       // Sync products from Loadrite API (non-blocking)
       try {
         const apiProducts = await getProducts();
@@ -165,7 +177,7 @@ export function useTicketLookups(): LookupData {
     });
 
     return () => { cancelled = true; };
-  }, []);
+  }, [authLoading, session?.user?.id]);
 
   return { products, customers, customerEmails, trucks, loading };
 }
