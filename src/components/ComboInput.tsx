@@ -18,7 +18,7 @@ export function ComboInput({ value, onChange, options, placeholder, className }:
   const wrapperRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const searchTerm = value.trim().toLowerCase().slice(0, 3);
+  const searchTerm = value.trim().toLowerCase();
   const matchingOptions = searchTerm
     ? options.filter((o) => o.toLowerCase().includes(searchTerm))
     : options;
