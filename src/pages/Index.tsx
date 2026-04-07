@@ -32,7 +32,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState<string>("tickets");
   const [pendingPrint, setPendingPrint] = useState(false);
 
-  useEffect(() => { loadFromDb(); }, [loadFromDb]);
+  useEffect(() => { if (session) loadFromDb(); }, [loadFromDb, session]);
   useEffect(() => { if (error) toast.error(error); }, [error]);
   useEffect(() => {
     if (!pendingPrint || view !== "preview" || !selectedTicket) return;
