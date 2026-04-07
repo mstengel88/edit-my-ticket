@@ -125,7 +125,7 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
                 </div>
                 <div className="flex items-center justify-between mt-1">
                   <span className="text-muted-foreground truncate">{ticket.product}</span>
-                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                      {ticket.status !== "completed" && onStatusChange && (
                        <Button
                          variant="ghost"
