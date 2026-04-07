@@ -87,7 +87,7 @@ export function TicketList({ tickets, onSelect, onDelete, onPreview, onPrint, on
               <Button
                 variant="ghost"
                 size="icon"
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                className="shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                 onClick={(e) => { e.stopPropagation(); onPrint(ticket); }}
                 title="Print"
               >
@@ -96,7 +96,7 @@ export function TicketList({ tickets, onSelect, onDelete, onPreview, onPrint, on
               <Button
                 variant="ghost"
                 size="icon"
-                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                className="shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                 onClick={(e) => { e.stopPropagation(); setEmailTicket(ticket); }}
                 title="Email"
               >
@@ -106,7 +106,7 @@ export function TicketList({ tickets, onSelect, onDelete, onPreview, onPrint, on
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
                   onClick={(e) => { e.stopPropagation(); onSelect(ticket); }}
                 >
                   <Pencil className="h-4 w-4" />
@@ -116,7 +116,7 @@ export function TicketList({ tickets, onSelect, onDelete, onPreview, onPrint, on
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+                  className="shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-destructive"
                   onClick={(e) => { e.stopPropagation(); setDeleteId(ticket.id); }}
                 >
                   <Trash2 className="h-4 w-4" />

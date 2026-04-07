@@ -79,9 +79,9 @@ Deno.serve(async (req) => {
 
     // Pipe upstream SSE → browser
     return new Response(upstream.body, { status: 200, headers: sseHeaders });
-  } catch (e) {
+  } catch (e: unknown) {
     return new Response(
-      `event: error\ndata: ${JSON.stringify({ message: e.message })}\n\n`,
+      `event: error\ndata: ${JSON.stringify({ message: (e as Error).message })}\n\n`,
       { status: 500, headers: sseHeaders },
     );
   }
