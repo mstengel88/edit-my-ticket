@@ -23,21 +23,23 @@ export function ComboInput({ value, onChange, options, placeholder, className }:
     : options;
 
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
+    function handleClick(e: MouseEvent | TouchEvent) {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
         setOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener("touchstart", handleClick);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("touchstart", handleClick);
+    };
   }, []);
 
-  // Reset highlight when filtered list changes
   useEffect(() => {
     setHighlightIndex(-1);
   }, [filter, open]);
 
-  // Scroll highlighted item into view
   useEffect(() => {
     if (highlightIndex >= 0 && listRef.current) {
       const items = listRef.current.querySelectorAll("[data-combo-item]");
@@ -79,6 +81,12 @@ export function ComboInput({ value, onChange, options, placeholder, className }:
     [open, filtered, highlightIndex, onChange]
   );
 
+  const selectItem = useCallback((item: string) => {
+    onChange(item);
+    setOpen(false);
+    setFilter("");
+  }, [onChange]);
+
   return (
     <div ref={wrapperRef} className="relative">
       <Input
@@ -108,14 +116,17 @@ export function ComboInput({ value, onChange, options, placeholder, className }:
               type="button"
               data-combo-item
               className={cn(
-                "w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground",
+                "w-full text-left px-3 py-2.5 text-sm hover:bg-accent hover:text-accent-foreground touch-manipulation",
                 item === value && "font-medium",
                 i === highlightIndex && "bg-accent text-accent-foreground"
               )}
               onMouseDown={(e) => {
                 e.preventDefault();
-                onChange(item);
-                setOpen(false);
+                selectItem(item);
+              }}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                selectItem(item);
               }}
             >
               {item}
