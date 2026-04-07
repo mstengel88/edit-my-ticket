@@ -22,6 +22,12 @@ interface CachedLookups {
   timestamp: number;
 }
 
+function uniqueSorted(values: string[]) {
+  return [...new Set(values.filter(Boolean).map((value) => value.trim()).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b)
+  );
+}
+
 function readCache(): CachedLookups | null {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
@@ -65,7 +71,7 @@ export function useTicketLookups(): LookupData {
       };
     }
 
-    async function loadFromDb() {
+    async function loadFromDb(extraProducts: string[] = []) {
       if (!initialCache) {
         setLoading(true);
       }
@@ -83,7 +89,7 @@ export function useTicketLookups(): LookupData {
 
       if (cancelled) return;
 
-      const prods = (productRows || []).map((r) => r.name);
+      const prods = uniqueSorted([...(productRows || []).map((r) => r.name), ...extraProducts]);
       const custs = (customerRows || []).map((r) => r.name);
       const emailMap: Record<string, string> = {};
       (customerRows || []).forEach((r) => { if (r.email) emailMap[r.name] = r.email; });
@@ -103,15 +109,18 @@ export function useTicketLookups(): LookupData {
 
     async function syncInBackground() {
       // Sync products from Loadrite API (non-blocking)
+      let apiProductNames: string[] = [];
       try {
         const apiProducts = await getProducts();
-        const names = apiProducts
+         const names = apiProducts
           .map((p: LoadriteProduct) => p.Name || p.Description)
           .filter(Boolean);
-        const uniqueNames = [...new Set(names)] as string[];
+         apiProductNames = uniqueSorted(names as string[]);
 
-        if (uniqueNames.length > 0) {
-          const rows = uniqueNames.map((name) => ({ name, user_id: userId, source: "loadrite" }));
+         if (apiProductNames.length > 0) {
+           setProducts((current) => uniqueSorted([...current, ...apiProductNames]));
+
+           const rows = apiProductNames.map((name) => ({ name, user_id: userId, source: "loadrite" }));
           await supabase
             .from("products")
             .upsert(rows, { onConflict: "name" });
@@ -167,7 +176,7 @@ export function useTicketLookups(): LookupData {
 
       // Refresh from DB after sync to pick up any new data
       if (!cancelled) {
-        await loadFromDb();
+        await loadFromDb(apiProductNames);
       }
     }
 
