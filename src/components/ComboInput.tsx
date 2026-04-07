@@ -10,6 +10,8 @@ interface ComboInputProps {
   className?: string;
 }
 
+const MAX_VISIBLE_RESULTS = 50;
+
 export function ComboInput({ value, onChange, options, placeholder, className }: ComboInputProps) {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("");
@@ -17,22 +19,36 @@ export function ComboInput({ value, onChange, options, placeholder, className }:
   const wrapperRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const searchTerm = (filter || value).toLowerCase().slice(0, 3);
-  const filtered = searchTerm
+  const searchTerm = filter.trim().toLowerCase().slice(0, 3);
+  const matchingOptions = searchTerm
     ? options.filter((o) => o.toLowerCase().includes(searchTerm))
     : options;
+  const filtered = matchingOptions.slice(0, MAX_VISIBLE_RESULTS);
+  const hasMoreMatches = matchingOptions.length > filtered.length;
+
+  const openList = useCallback(() => {
+    setOpen(true);
+  }, []);
 
   useEffect(() => {
-    function handleClick(e: MouseEvent | TouchEvent) {
+    function handlePointerDown(e: MouseEvent | TouchEvent | PointerEvent) {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
         setOpen(false);
       }
     }
-    document.addEventListener("mousedown", handleClick);
-    document.addEventListener("touchstart", handleClick);
+
+    if (typeof window !== "undefined" && "PointerEvent" in window) {
+      document.addEventListener("pointerdown", handlePointerDown);
+      return () => {
+        document.removeEventListener("pointerdown", handlePointerDown);
+      };
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
     return () => {
-      document.removeEventListener("mousedown", handleClick);
-      document.removeEventListener("touchstart", handleClick);
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
     };
   }, []);
 
@@ -98,40 +114,47 @@ export function ComboInput({ value, onChange, options, placeholder, className }:
         }}
         onFocus={() => {
           setFilter("");
-          setOpen(true);
+          openList();
         }}
+        onClick={openList}
+        onTouchStart={openList}
+        onPointerDown={openList}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         className={className}
         autoComplete="off"
       />
-      {open && filtered.length > 0 && (
+      {open && (
         <div
           ref={listRef}
           className="absolute z-50 mt-1 w-full max-h-48 overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md"
         >
-          {filtered.map((item, i) => (
-            <button
-              key={item}
-              type="button"
-              data-combo-item
-              className={cn(
-                "w-full text-left px-3 py-2.5 text-sm hover:bg-accent hover:text-accent-foreground touch-manipulation",
-                item === value && "font-medium",
-                i === highlightIndex && "bg-accent text-accent-foreground"
+          {filtered.length > 0 ? (
+            <>
+              {filtered.map((item, i) => (
+                <button
+                  key={item}
+                  type="button"
+                  data-combo-item
+                  className={cn(
+                    "w-full text-left px-3 py-2.5 text-sm hover:bg-accent hover:text-accent-foreground touch-manipulation",
+                    item === value && "font-medium",
+                    i === highlightIndex && "bg-accent text-accent-foreground"
+                  )}
+                  onClick={() => selectItem(item)}
+                >
+                  {item}
+                </button>
+              ))}
+              {hasMoreMatches && (
+                <div className="border-t px-3 py-2 text-xs text-muted-foreground">
+                  Showing first {MAX_VISIBLE_RESULTS} matches — keep typing to narrow the list.
+                </div>
               )}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                selectItem(item);
-              }}
-              onTouchEnd={(e) => {
-                e.preventDefault();
-                selectItem(item);
-              }}
-            >
-              {item}
-            </button>
-          ))}
+            </>
+          ) : (
+            <div className="px-3 py-2 text-sm text-muted-foreground">No matching products found.</div>
+          )}
         </div>
       )}
     </div>
