@@ -14,12 +14,11 @@ const MAX_VISIBLE_RESULTS = 50;
 
 export function ComboInput({ value, onChange, options, placeholder, className }: ComboInputProps) {
   const [open, setOpen] = useState(false);
-  const [filter, setFilter] = useState("");
   const [highlightIndex, setHighlightIndex] = useState(-1);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const searchTerm = filter.trim().toLowerCase().slice(0, 3);
+  const searchTerm = value.trim().toLowerCase().slice(0, 3);
   const matchingOptions = searchTerm
     ? options.filter((o) => o.toLowerCase().includes(searchTerm))
     : options;
@@ -54,7 +53,7 @@ export function ComboInput({ value, onChange, options, placeholder, className }:
 
   useEffect(() => {
     setHighlightIndex(-1);
-  }, [filter, open]);
+  }, [value, open]);
 
   useEffect(() => {
     if (highlightIndex >= 0 && listRef.current) {
@@ -100,7 +99,6 @@ export function ComboInput({ value, onChange, options, placeholder, className }:
   const selectItem = useCallback((item: string) => {
     onChange(item);
     setOpen(false);
-    setFilter("");
   }, [onChange]);
 
   return (
@@ -109,11 +107,9 @@ export function ComboInput({ value, onChange, options, placeholder, className }:
         value={value}
         onChange={(e) => {
           onChange(e.target.value);
-          setFilter(e.target.value);
           setOpen(true);
         }}
         onFocus={() => {
-          setFilter("");
           openList();
         }}
         onClick={openList}
