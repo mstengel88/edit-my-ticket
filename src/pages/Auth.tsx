@@ -108,6 +108,17 @@ const Auth = () => {
                 Back to sign in
               </Button>
             )}
+            <div className="pt-2 text-center text-xs text-muted-foreground">
+              By continuing, you agree to our{" "}
+              <a href="/privacy" className="text-primary underline underline-offset-4">
+                Privacy Policy
+              </a>
+              {" "}and can contact{" "}
+              <a href="/support" className="text-primary underline underline-offset-4">
+                Support
+              </a>
+              .
+            </div>
           </CardFooter>
         </form>
       </Card>

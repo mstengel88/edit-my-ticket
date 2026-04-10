@@ -155,7 +155,7 @@ const Products = () => {
 
   return (
     <AppLayout title="Products" headerExtra={headerExtra}>
-      <div className="container mx-auto px-4 py-6 sm:px-6">
+      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
         <div className="relative mb-4 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
@@ -170,7 +170,7 @@ const Products = () => {
             {search ? "No products match your search" : "No products yet. Add one to get started!"}
           </p>
         ) : (
-          <div className="rounded-lg border bg-card">
+          <div className="overflow-x-auto rounded-lg border bg-card">
             <Table>
               <TableHeader>
                 <TableRow>

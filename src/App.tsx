@@ -18,6 +18,8 @@ import Products from "./pages/Products";
 import Feedback from "./pages/Feedback";
 import ReportsPage from "./pages/ReportsPage";
 import UserRoles from "./pages/UserRoles";
+import Privacy from "./pages/Privacy";
+import Support from "./pages/Support";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -95,6 +97,8 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/support" element={<Support />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
           <Route path="/settings" element={<AdminRoute><Settings /></AdminRoute>} />

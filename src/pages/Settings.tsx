@@ -125,9 +125,9 @@ const Settings = () => {
 
   return (
     <AppLayout title="Settings" headerExtra={headerExtra}>
-      <div className="container mx-auto px-4 py-6 sm:px-6">
+      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
         <Tabs defaultValue="designer">
-          <TabsList className="mb-4 flex-wrap">
+          <TabsList className="mb-4 h-auto flex-wrap justify-start">
             <TabsTrigger value="designer">Ticket Designer</TabsTrigger>
             <TabsTrigger value="preview">Live Preview</TabsTrigger>
             <TabsTrigger value="print-layout">Print Layout</TabsTrigger>

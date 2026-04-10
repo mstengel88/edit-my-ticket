@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Printer, Mail, Pencil, Trash2, Search, Loader2 } from "lucide-react";
+import { useIsTablet } from "@/hooks/use-mobile";
 
 interface TicketListProps {
   tickets: TicketData[];
@@ -24,6 +25,7 @@ const statusColors: Record<TicketData["status"], string> = {
 };
 
 export function TicketList({ tickets, onSelect, onDelete, onPreview, onPrint, onEmail, readOnly }: TicketListProps) {
+  const isTablet = useIsTablet();
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [emailTicket, setEmailTicket] = useState<TicketData | null>(null);
@@ -52,8 +54,8 @@ export function TicketList({ tickets, onSelect, onDelete, onPreview, onPrint, on
 
   return (
     <>
-    <div className="space-y-3 animate-fade-in">
-      <div className="relative">
+    <div className="space-y-4 animate-fade-in">
+      <div className={`relative ${isTablet ? "max-w-md" : ""}`}>
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search by ticket # or customer..."
@@ -62,14 +64,14 @@ export function TicketList({ tickets, onSelect, onDelete, onPreview, onPrint, on
           className="pl-9"
         />
       </div>
-      <div className="grid gap-3">
+      <div className={`grid gap-3 ${isTablet ? "md:grid-cols-2" : ""}`}>
         {filtered.map((ticket) => (
           <div
             key={ticket.id}
-            className="group flex items-center justify-between rounded-lg border bg-card p-4 transition-all hover:shadow-md cursor-pointer"
+            className="group flex h-full flex-col gap-4 rounded-lg border bg-card p-4 transition-all hover:shadow-md cursor-pointer md:min-h-[148px]"
             onClick={() => readOnly ? onPreview(ticket) : onSelect(ticket)}
           >
-            <div className="flex flex-col gap-1 min-w-0">
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-semibold text-foreground">Job #{ticket.jobNumber}</span>
                 <Badge className={statusColors[ticket.status]} variant="secondary">
@@ -79,49 +81,51 @@ export function TicketList({ tickets, onSelect, onDelete, onPreview, onPrint, on
               <span className="text-sm text-foreground truncate">{ticket.customer || "No customer"}</span>
               <span className="text-xs text-muted-foreground">{ticket.product} · {ticket.dateTime}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="text-right mr-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-right">
                 <span className="text-lg font-bold text-foreground tabular-nums">{ticket.totalAmount}</span>
                 <span className="text-sm text-muted-foreground ml-1">{ticket.totalUnit}</span>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                onClick={(e) => { e.stopPropagation(); onPrint(ticket); }}
-                title="Print"
-              >
-                <Printer className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                onClick={(e) => { e.stopPropagation(); setEmailTicket(ticket); }}
-                title="Email"
-              >
-                <Mail className="h-4 w-4" />
-              </Button>
-              {!readOnly && (
+              <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
                   size="icon"
                   className="shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                  onClick={(e) => { e.stopPropagation(); onSelect(ticket); }}
+                  onClick={(e) => { e.stopPropagation(); onPrint(ticket); }}
+                  title="Print"
                 >
-                  <Pencil className="h-4 w-4" />
+                  <Printer className="h-4 w-4" />
                 </Button>
-              )}
-              {!readOnly && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-destructive"
-                  onClick={(e) => { e.stopPropagation(); setDeleteId(ticket.id); }}
+                  className="shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => { e.stopPropagation(); setEmailTicket(ticket); }}
+                  title="Email"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Mail className="h-4 w-4" />
                 </Button>
-              )}
+                {!readOnly && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => { e.stopPropagation(); onSelect(ticket); }}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                )}
+                {!readOnly && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-destructive"
+                    onClick={(e) => { e.stopPropagation(); setDeleteId(ticket.id); }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         ))}

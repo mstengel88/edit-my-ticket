@@ -8,7 +8,7 @@ import { Reports } from "@/components/Reports";
 import { useLoadriteData } from "@/hooks/useLoadriteData";
 import { ArrowLeft, Plus, RefreshCw, Loader2, BarChart3 } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile, useIsTablet } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
@@ -27,6 +27,7 @@ const Index = () => {
   const { isAdminOrManager, isDeveloper } = useUserRole();
   const { fields: templateFields, canvasElements, reportFields, copiesPerPage, canvasWidth, canvasHeight, emailElements, reportEmailConfig } = useTicketTemplate();
   const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [view, setView] = useState<View>("list");
   const [activeTab, setActiveTab] = useState<string>("tickets");
@@ -264,12 +265,12 @@ const Index = () => {
 
     return (
       <AppLayout title="Tickets" subtitle={subtitle} headerExtra={headerExtra}>
-        <div className="flex h-[calc(100vh-57px)]">
+        <div className="flex h-[calc(100dvh-57px)] min-h-0">
           {/* Main content area */}
           <div className="flex-1 overflow-y-auto">
-            <div className="p-6">
+            <div className="mx-auto w-full max-w-5xl p-4 md:p-6 xl:p-8">
               {view === "list" && !selectedTicket && (
-                <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
+                <div className="flex min-h-[60vh] flex-col items-center justify-center py-20 text-center animate-fade-in">
                   <div className="rounded-full bg-muted p-6 mb-4">
                     <BarChart3 className="h-8 w-8 text-muted-foreground" />
                   </div>
@@ -332,10 +333,10 @@ const Index = () => {
 
   return (
     <AppLayout title="Tickets" subtitle={subtitle} headerExtra={headerExtra}>
-      <div className="container mx-auto px-4 py-6 sm:px-6">
+      <div className={`mx-auto w-full px-4 py-6 sm:px-6 ${isTablet ? "max-w-6xl" : "max-w-2xl"}`}>
         {view === "list" ? (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mb-4">
+            <TabsList className={`mb-4 ${isTablet ? "h-auto w-full justify-start rounded-xl p-1" : ""}`}>
               <TabsTrigger value="tickets">Tickets</TabsTrigger>
               <TabsTrigger value="reports" className="gap-1.5">
                 <BarChart3 className="h-4 w-4" />

@@ -12,7 +12,7 @@ const ReportsPage = () => {
 
   return (
     <AppLayout title="Reports">
-      <div className="container mx-auto px-4 py-6 sm:px-6">
+      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
         <Reports tickets={tickets} reportFields={reportFields} reportEmailConfig={reportEmailConfig} />
       </div>
     </AppLayout>

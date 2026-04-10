@@ -50,10 +50,10 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
   };
 
   return (
-    <div className="max-w-2xl mx-auto animate-fade-in">
-      <div className="flex items-center justify-between mb-6">
+    <div className="mx-auto w-full max-w-4xl animate-fade-in">
+      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <h2 className="text-xl font-bold text-foreground">Edit Ticket</h2>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => onPrint(data)} className="gap-1.5">
             <Printer className="h-4 w-4" /> Print
           </Button>
@@ -69,7 +69,7 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
       {/* Company Info */}
       <div className="rounded-lg border bg-card p-4 mb-4 space-y-3">
         <h3 className="text-sm font-semibold text-foreground">Company Info</h3>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           <div>
             <Label className="text-xs text-muted-foreground">Company Name</Label>
             <Input value={data.companyName} readOnly disabled className="opacity-70" />
@@ -92,7 +92,7 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
       {/* Job Details */}
       <div className="rounded-lg border bg-card p-4 mb-4 space-y-3">
         <h3 className="text-sm font-semibold text-foreground">Job Details</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3">
           <div>
             <Label className="text-xs text-muted-foreground">Job Number</Label>
             <Input value={data.jobNumber} onChange={(e) => updateField("jobNumber", e.target.value)} onFocus={selectOnFocus} />
@@ -118,7 +118,7 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
       {(visible("totalAmount") || visible("totalUnit")) && (
         <div className="rounded-lg border bg-card p-4 mb-4">
           <h3 className="text-sm font-semibold text-foreground mb-3">Total</h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {visible("totalAmount") && (
               <div>
                 <Label className="text-xs text-muted-foreground">Amount</Label>
@@ -151,7 +151,7 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
       {/* Ticket Details */}
       <div className="rounded-lg border bg-card p-4 mb-4 space-y-3">
         <h3 className="text-sm font-semibold text-foreground">Ticket Details</h3>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {visible("customer") && (
             <div>
               <Label className="text-xs text-muted-foreground">Customer</Label>

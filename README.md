@@ -59,6 +59,47 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
+- Capacitor for native iOS packaging
+
+## Native iOS
+
+This app can now be packaged as a native iOS app with Capacitor.
+
+1. Install dependencies:
+
+```sh
+npm install
+```
+
+2. Build the web app and sync it into the native iOS project:
+
+```sh
+npm run build:ios
+```
+
+3. Open the Xcode workspace:
+
+```sh
+npm run cap:open:ios
+```
+
+Or open this file directly in Xcode:
+
+```sh
+ios/App/App.xcworkspace
+```
+
+4. In Xcode, choose a simulator or connected device and run the app.
+
+Notes:
+
+- Before the first iOS run, install CocoaPods on your Mac and initialize the native project with `npm run ios:init`.
+- The current bundle identifier is `com.ticketcreator.app` in `capacitor.config.ts`.
+- Native iOS shell defaults now include a non-overlaid status bar and iOS keyboard resize handling.
+- In Xcode, set your Apple Developer team under Signing & Capabilities before installing to a real device.
+- If you want your own production app id, update it before shipping.
+- Any time you change the React app, rerun `npm run build:ios` before opening or rebuilding in Xcode.
+- For TestFlight and App Store prep, see `docs/testflight-release.md`.
 
 ## How can I deploy this project?
 

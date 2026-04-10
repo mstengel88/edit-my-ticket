@@ -68,7 +68,7 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
   ];
 
   return (
-    <div className="min-h-screen flex w-full bg-background">
+    <div className="safe-area-min-h safe-area-x flex w-full bg-background">
       {/* Desktop Sidebar */}
       {!isMobile && (
         <aside className="sticky top-0 h-screen w-56 shrink-0 border-r bg-card flex flex-col">
@@ -152,8 +152,8 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile header */}
         {isMobile && (
-          <header className="sticky top-0 z-10 border-b bg-card/80 backdrop-blur-sm no-print">
-            <div className="flex items-center justify-between px-4 py-3">
+          <header className="safe-area-top sticky top-0 z-10 border-b bg-card/80 backdrop-blur-sm no-print">
+            <div className="flex items-center justify-between gap-3 px-4 py-3">
               <div>
                 {title && (
                   <h1 className="text-lg font-bold tracking-tight text-foreground">{title}</h1>
@@ -162,7 +162,7 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
                   <p className="text-xs text-muted-foreground">{subtitle}</p>
                 )}
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap justify-end gap-2">
                 {headerExtra}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -196,8 +196,8 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
 
         {/* Desktop header (minimal, for page-specific actions) */}
         {!isMobile && (title || headerExtra) && (
-          <header className="sticky top-0 z-10 border-b bg-card/80 backdrop-blur-sm no-print">
-            <div className="flex items-center justify-between px-6 py-3">
+          <header className="safe-area-top sticky top-0 z-10 border-b bg-card/80 backdrop-blur-sm no-print">
+            <div className="flex items-center justify-between gap-4 px-6 py-3">
               <div>
                 {title && (
                   <h1 className="text-lg font-bold tracking-tight text-foreground">{title}</h1>
@@ -206,14 +206,14 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
                   <p className="text-xs text-muted-foreground">{subtitle}</p>
                 )}
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap justify-end gap-2">
                 {headerExtra}
               </div>
             </div>
           </header>
         )}
 
-        <main className="flex-1">
+        <main className="safe-area-bottom flex-1">
           {children}
         </main>
       </div>
