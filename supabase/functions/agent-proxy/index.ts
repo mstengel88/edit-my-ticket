@@ -35,52 +35,50 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const path = url.searchParams.get("path");
     const agentKey = url.searchParams.get("agent") || "primary";
-
     const agentBase = AGENTS[agentKey];
 
-    if (!agentBase) {
-      return new Response(
-        JSON.stringify({ error: `Invalid agent: ${agentKey}` }),
-        { status: 404, headers: corsHeaders }
-      );
+    if (!path) {
+      return new Response(JSON.stringify({ error: "Missing path" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // 🔐 AUTH CHECK
+    if (!agentBase) {
+      return new Response(JSON.stringify({ error: `Invalid agent: ${agentKey}` }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(
-        JSON.stringify({ error: "Missing bearer token" }),
-        { status: 401, headers: corsHeaders }
-      );
+      return new Response(JSON.stringify({ error: "Missing bearer token" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: authHeader } } },
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData } = await supabase.auth.getClaims(token);
+    const token = authHeader.replace("Bearer ", "").trim();
+    const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
 
-    if (!claimsData?.claims?.sub) {
-      return new Response(
-        JSON.stringify({ error: "Invalid JWT" }),
-        { status: 401, headers: corsHeaders }
-      );
+    if (claimsErr || !claimsData?.claims?.sub) {
+      return new Response(JSON.stringify({ error: "Invalid JWT" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // 🔑 SIGN REQUEST TO AGENT
-    const bodyObj =
-      req.method === "POST" ? await req.json().catch(() => ({})) : {};
-
-    const ts = Date.now().toString();
+    const bodyObj = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const body = JSON.stringify(bodyObj);
-
-    const sig = await hmacSign(
-      Deno.env.get("AGENT_SECRET")!,
-      `${ts}.${body}`
-    );
+    const ts = Date.now().toString();
+    const sig = await hmacSign(Deno.env.get("AGENT_SECRET")!, `${ts}.${body}`);
 
     const upstream = await fetch(`${agentBase}${path}`, {
       method: req.method,
@@ -98,14 +96,13 @@ Deno.serve(async (req) => {
       status: upstream.status,
       headers: {
         ...corsHeaders,
-        "Content-Type":
-          upstream.headers.get("content-type") || "application/json",
+        "Content-Type": upstream.headers.get("content-type") || "application/json",
       },
     });
-  } catch (e) {
+  } catch (e: any) {
     return new Response(JSON.stringify({ error: e.message }), {
       status: 500,
-      headers: corsHeaders,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
