@@ -88,6 +88,10 @@ export function OpsDashboard({ agentKey, authReady }: OpsDashboardProps) {
 
   const authedFetch = useCallback(
     async (path: string, init?: RequestInit) => {
+      if (!authReady) {
+        throw new Error("Auth not ready");
+      }
+
       const token = await getAccessToken();
 
       return fetch(
@@ -104,7 +108,7 @@ export function OpsDashboard({ agentKey, authReady }: OpsDashboardProps) {
         },
       );
     },
-    [agentKey],
+    [agentKey, authReady],
   );
 
   useEffect(() => {
@@ -121,9 +125,20 @@ export function OpsDashboard({ agentKey, authReady }: OpsDashboardProps) {
     const tick = async () => {
       try {
         const res = await authedFetch("/metrics");
-        const data = await res.json().catch(() => null);
+        const text = await res.text();
 
-        if (!alive || !res.ok || !data) return;
+        let data: any = null;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = null;
+        }
+
+        if (!alive) return;
+
+        if (!res.ok || !data) {
+          return;
+        }
 
         setMetrics(data);
         setSeries((prev) => {
@@ -371,13 +386,7 @@ export function OpsDashboard({ agentKey, authReady }: OpsDashboardProps) {
                 <XAxis dataKey="t" hide />
                 <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} width={40} />
                 <Tooltip formatter={(v: number) => `${v.toFixed(1)}%`} />
-                <Line
-                  type="monotone"
-                  dataKey="cpu"
-                  dot={false}
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={2}
-                />
+                <Line type="monotone" dataKey="cpu" dot={false} stroke="hsl(var(--primary))" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -387,8 +396,7 @@ export function OpsDashboard({ agentKey, authReady }: OpsDashboardProps) {
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-semibold text-foreground">RAM</span>
             <span className="text-sm text-muted-foreground">
-              {fmtPct(metrics.mem?.pct ?? 0)} ({fmtBytes(metrics.mem?.used ?? 0)} /{" "}
-              {fmtBytes(metrics.mem?.total ?? 0)})
+              {fmtPct(metrics.mem?.pct ?? 0)} ({fmtBytes(metrics.mem?.used ?? 0)} / {fmtBytes(metrics.mem?.total ?? 0)})
             </span>
           </div>
           <div className="h-44">
@@ -397,13 +405,7 @@ export function OpsDashboard({ agentKey, authReady }: OpsDashboardProps) {
                 <XAxis dataKey="t" hide />
                 <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} width={40} />
                 <Tooltip formatter={(v: number) => `${v.toFixed(1)}%`} />
-                <Line
-                  type="monotone"
-                  dataKey="mem"
-                  dot={false}
-                  stroke="hsl(var(--accent))"
-                  strokeWidth={2}
-                />
+                <Line type="monotone" dataKey="mem" dot={false} stroke="hsl(var(--accent))" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -420,13 +422,11 @@ export function OpsDashboard({ agentKey, authReady }: OpsDashboardProps) {
                 <SelectValue placeholder="Select container" />
               </SelectTrigger>
               <SelectContent>
-                {containers
-                  .filter((c) => c.name)
-                  .map((c) => (
-                    <SelectItem key={c.id} value={c.name}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
+                {containers.filter((c) => c.name).map((c) => (
+                  <SelectItem key={c.id} value={c.name}>
+                    {c.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -453,9 +453,7 @@ export function OpsDashboard({ agentKey, authReady }: OpsDashboardProps) {
                       {c.state}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
-                    {c.status}
-                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{c.status}</TableCell>
                   <TableCell className="text-right">
                     <Button
                       size="sm"
@@ -492,12 +490,7 @@ export function OpsDashboard({ agentKey, authReady }: OpsDashboardProps) {
           <span className="text-sm font-semibold text-foreground">
             Live Logs: {selected || "—"}
           </span>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="gap-1 h-7 text-xs"
-            onClick={() => setLogs("")}
-          >
+          <Button size="sm" variant="ghost" className="gap-1 h-7 text-xs" onClick={() => setLogs("")}>
             <Trash2 className="h-3 w-3" /> Clear
           </Button>
         </div>
