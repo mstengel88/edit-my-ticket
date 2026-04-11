@@ -1,7 +1,8 @@
 import * as React from "react";
 
-const MOBILE_BREAKPOINT = 1024;
+const MOBILE_BREAKPOINT = 768;
 const TABLET_BREAKPOINT = 768;
+const DESKTOP_BREAKPOINT = 1280;
 
 function useMediaQuery(query: string, getValue: () => boolean) {
   const [matches, setMatches] = React.useState<boolean | undefined>(undefined);
@@ -27,7 +28,7 @@ export function useIsMobile() {
 
 export function useIsTablet() {
   return useMediaQuery(
-    `(min-width: ${TABLET_BREAKPOINT}px) and (max-width: ${MOBILE_BREAKPOINT - 1}px)`,
-    () => window.innerWidth >= TABLET_BREAKPOINT && window.innerWidth < MOBILE_BREAKPOINT,
+    `(min-width: ${TABLET_BREAKPOINT}px) and (max-width: ${DESKTOP_BREAKPOINT - 1}px)`,
+    () => window.innerWidth >= TABLET_BREAKPOINT && window.innerWidth < DESKTOP_BREAKPOINT,
   );
 }

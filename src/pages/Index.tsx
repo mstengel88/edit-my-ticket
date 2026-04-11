@@ -24,7 +24,7 @@ type View = "list" | "editor" | "preview";
 const Index = () => {
   const { tickets, loading, error, fetchData, loadFromDb } = useLoadriteData();
   const { signOut, session } = useAuth();
-  const { isAdminOrManager, isDeveloper } = useUserRole();
+  const { isAdminOrManager } = useUserRole();
   const { fields: templateFields, canvasElements, reportFields, copiesPerPage, canvasWidth, canvasHeight, emailElements, reportEmailConfig } = useTicketTemplate();
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
@@ -246,20 +246,22 @@ const Index = () => {
   };
 
   // ─── Desktop split layout ───
-  if (!isMobile) {
+  if (!isMobile && !isTablet) {
     const subtitle = `${tickets.length} ticket${tickets.length !== 1 ? "s" : ""}${loading ? " · syncing..." : ""}`;
 
     const headerExtra = (
       <>
-        {view !== "list" && (
+        {isAdminOrManager && view !== "list" && (
           <Button variant="ghost" size="icon" onClick={handleBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
         )}
-        <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="gap-1.5">
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          Sync
-        </Button>
+        {isAdminOrManager && (
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="gap-1.5">
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Sync
+          </Button>
+        )}
       </>
     );
 
@@ -275,7 +277,9 @@ const Index = () => {
                     <BarChart3 className="h-8 w-8 text-muted-foreground" />
                   </div>
                   <h2 className="text-lg font-semibold text-foreground">Select a ticket</h2>
-                  <p className="text-sm text-muted-foreground mt-1">Choose a ticket from the sidebar to edit, or create a new one.</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {isAdminOrManager ? "Choose a ticket from the sidebar to edit, or create a new one." : "Choose a ticket from the list to preview it."}
+                  </p>
                 </div>
               )}
               {view === "editor" && selectedTicket && (
@@ -291,12 +295,12 @@ const Index = () => {
           <TicketSidebar
             tickets={tickets}
             selectedId={selectedTicket?.id}
-            onSelect={handleSelectTicket}
+            onSelect={isAdminOrManager ? handleSelectTicket : handlePreview}
             onDelete={handleDeleteTicket}
             onNew={handleNewTicket}
             onPrint={handlePrintTicket}
             onEmail={handleEmailTicket}
-            onStatusChange={handleStatusChange}
+            onStatusChange={isAdminOrManager ? handleStatusChange : undefined}
             readOnly={!isAdminOrManager}
           />
         </div>
@@ -311,12 +315,12 @@ const Index = () => {
 
   const headerExtra = (
     <>
-      {view !== "list" && activeTab === "tickets" && (
+      {isAdminOrManager && view !== "list" && activeTab === "tickets" && (
         <Button variant="ghost" size="icon" onClick={handleBack}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
       )}
-      {view === "list" && activeTab === "tickets" && (
+      {isAdminOrManager && view === "list" && activeTab === "tickets" && (
         <>
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="gap-1.5">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
@@ -338,17 +342,21 @@ const Index = () => {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className={`mb-4 ${isTablet ? "h-auto w-full justify-start rounded-xl p-1" : ""}`}>
               <TabsTrigger value="tickets">Tickets</TabsTrigger>
-              <TabsTrigger value="reports" className="gap-1.5">
-                <BarChart3 className="h-4 w-4" />
-                Reports
-              </TabsTrigger>
+              {isAdminOrManager && (
+                <TabsTrigger value="reports" className="gap-1.5">
+                  <BarChart3 className="h-4 w-4" />
+                  Reports
+                </TabsTrigger>
+              )}
             </TabsList>
             <TabsContent value="tickets">
               <TicketList tickets={tickets} onSelect={handleSelectTicket} onDelete={handleDeleteTicket} onPreview={handlePreview} onPrint={handlePrintTicket} onEmail={handleEmailTicket} readOnly={!isAdminOrManager} />
             </TabsContent>
-            <TabsContent value="reports">
-              <Reports tickets={tickets} reportFields={reportFields} reportEmailConfig={reportEmailConfig} />
-            </TabsContent>
+            {isAdminOrManager && (
+              <TabsContent value="reports">
+                <Reports tickets={tickets} reportFields={reportFields} reportEmailConfig={reportEmailConfig} />
+              </TabsContent>
+            )}
           </Tabs>
         ) : (
           <>

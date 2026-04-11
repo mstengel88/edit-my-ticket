@@ -150,19 +150,19 @@ const Customers = () => {
   );
 
   const headerExtra = (
-    <div className="flex gap-2">
-      <Button size="sm" variant="outline" className="gap-1.5" onClick={handleImportCsv}>
+    <div className="flex flex-wrap items-center gap-2">
+      <Button size="sm" variant="outline" className="gap-1.5 whitespace-nowrap" onClick={handleImportCsv}>
         <Upload className="h-4 w-4" /> Import CSV
       </Button>
-      <Button size="sm" variant="outline" className="gap-1.5" onClick={handleExportCsv}>
+      <Button size="sm" variant="outline" className="gap-1.5 whitespace-nowrap" onClick={handleExportCsv}>
         <Download className="h-4 w-4" /> Export CSV
       </Button>
       {isDeveloper && (
-        <Button size="sm" variant="outline" className="gap-1.5" onClick={handleSync} disabled={syncing}>
+        <Button size="sm" variant="outline" className="gap-1.5 whitespace-nowrap" onClick={handleSync} disabled={syncing}>
           {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Sync from Tickets
         </Button>
       )}
-      <Button size="sm" className="gap-1.5" onClick={openNew}>
+      <Button size="sm" className="gap-1.5 whitespace-nowrap" onClick={openNew}>
         <Plus className="h-4 w-4" /> Add Customer
       </Button>
     </div>

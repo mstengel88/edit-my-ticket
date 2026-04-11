@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useTheme } from "next-themes";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile, useIsTablet } from "@/hooks/use-mobile";
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,8 +35,11 @@ interface AppLayoutProps {
   subtitle?: string;
 }
 
-const navItems = [
+const baseNavItems = [
   { label: "Tickets", icon: FileText, href: "/", end: true },
+];
+
+const managerNavItems = [
   { label: "Reports", icon: BarChart3, href: "/reports" },
   { label: "Customers", icon: Users, href: "/customers" },
   { label: "Products", icon: Package, href: "/products" },
@@ -58,8 +61,15 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
   const { isAdminOrManager, role } = useUserRole();
   const { theme, setTheme } = useTheme();
   const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
   const navigate = useNavigate();
   const location = useLocation();
+  const useCompactLayout = isMobile || isTablet;
+
+  const navItems = [
+    ...baseNavItems,
+    ...(isAdminOrManager ? managerNavItems : []),
+  ];
 
   const allNav = [
     ...navItems,
@@ -70,7 +80,7 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
   return (
     <div className="safe-area-min-h safe-area-x flex w-full bg-background">
       {/* Desktop Sidebar */}
-      {!isMobile && (
+      {!useCompactLayout && (
         <aside className="sticky top-0 h-screen w-56 shrink-0 border-r bg-card flex flex-col">
           <div className="px-4 py-4 border-b">
             <h2 className="text-base font-bold tracking-tight text-foreground">Ticket Manager</h2>
@@ -151,51 +161,62 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
       {/* Main content area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile header */}
-        {isMobile && (
+        {useCompactLayout && (
           <header className="safe-area-top sticky top-0 z-10 border-b bg-card/80 backdrop-blur-sm no-print">
-            <div className="flex items-center justify-between gap-3 px-4 py-3">
-              <div>
-                {title && (
-                  <h1 className="text-lg font-bold tracking-tight text-foreground">{title}</h1>
-                )}
-                {subtitle && (
-                  <p className="text-xs text-muted-foreground">{subtitle}</p>
-                )}
-              </div>
-              <div className="flex flex-wrap justify-end gap-2">
-                {headerExtra}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <Menu className="h-5 w-5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {allNav.map((item) => (
-                      <DropdownMenuItem key={item.href} onClick={() => navigate(item.href)}>
-                        <item.icon className="mr-2 h-4 w-4" />
-                        {item.label}
+            <div className="px-4 py-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  {title && (
+                    <h1 className="truncate text-lg font-bold tracking-tight text-foreground">{title}</h1>
+                  )}
+                  {subtitle && (
+                    <p className="text-xs text-muted-foreground">{subtitle}</p>
+                  )}
+                </div>
+                <div className="shrink-0">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="shrink-0">
+                        <Menu className="h-5 w-5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      align="end"
+                      sideOffset={8}
+                      collisionPadding={{ top: 8, right: 16, bottom: 8, left: 16 }}
+                      className="w-64 max-w-[calc(100vw-var(--safe-area-left)-var(--safe-area-right)-1rem)]"
+                    >
+                      {allNav.map((item) => (
+                        <DropdownMenuItem key={item.href} onClick={() => navigate(item.href)}>
+                          <item.icon className="mr-2 h-4 w-4" />
+                          {item.label}
+                        </DropdownMenuItem>
+                      ))}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+                        {theme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+                        {theme === "dark" ? "Light Mode" : "Dark Mode"}
                       </DropdownMenuItem>
-                    ))}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-                      {theme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
-                      {theme === "dark" ? "Light Mode" : "Dark Mode"}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={signOut}>
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Sign Out
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={signOut}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Sign Out
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
+              {headerExtra && (
+                <div className="-mx-1 mt-3 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  <div className="min-w-max">{headerExtra}</div>
+                </div>
+              )}
             </div>
           </header>
         )}
 
         {/* Desktop header (minimal, for page-specific actions) */}
-        {!isMobile && (title || headerExtra) && (
+        {!useCompactLayout && (title || headerExtra) && (
           <header className="safe-area-top sticky top-0 z-10 border-b bg-card/80 backdrop-blur-sm no-print">
             <div className="flex items-center justify-between gap-4 px-6 py-3">
               <div>

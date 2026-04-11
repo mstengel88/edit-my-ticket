@@ -212,11 +212,11 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
     <div className="space-y-6">
       {/* Filters */}
       <Card className="no-print">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardHeader className="flex flex-col gap-3 space-y-0 pb-2 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-base">Report Filters</CardTitle>
-          <div className="flex gap-2 items-center no-print">
+          <div className="flex flex-wrap items-center gap-2 no-print sm:justify-end">
             <Select value={printSection} onValueChange={(v) => setPrintSection(v as typeof printSection)}>
-              <SelectTrigger className="w-[160px] h-9 text-sm">
+              <SelectTrigger className="h-9 w-full text-sm sm:w-[160px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -226,10 +226,10 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
                 <SelectItem value="product">By Product</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5">
+            <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5 whitespace-nowrap">
               <Printer className="h-4 w-4" /> Print
             </Button>
-            <Button variant="outline" size="sm" onClick={handleEmail} className="gap-1.5">
+            <Button variant="outline" size="sm" onClick={handleEmail} className="gap-1.5 whitespace-nowrap">
               <Mail className="h-4 w-4" /> Email
             </Button>
           </div>
@@ -267,11 +267,11 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
           </DialogContent>
         </Dialog>
         <CardContent>
-          <div className="flex flex-wrap gap-4 items-end">
+          <div className="flex flex-wrap items-end gap-4">
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-muted-foreground">Time Period</label>
               <Select value={period} onValueChange={(v) => setPeriod(v as TimePeriod)}>
-                <SelectTrigger className="w-[160px]">
+                <SelectTrigger className="w-full sm:w-[160px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -291,7 +291,7 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
                   <label className="text-sm font-medium text-muted-foreground">From</label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal", !customFrom && "text-muted-foreground")}>
+                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal sm:w-[150px]", !customFrom && "text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {customFrom ? format(customFrom, "MM/dd/yyyy") : "Start"}
                       </Button>
@@ -305,7 +305,7 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
                   <label className="text-sm font-medium text-muted-foreground">To</label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("w-[150px] justify-start text-left font-normal", !customTo && "text-muted-foreground")}>
+                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal sm:w-[150px]", !customTo && "text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {customTo ? format(customTo, "MM/dd/yyyy") : "End"}
                       </Button>

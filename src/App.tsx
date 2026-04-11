@@ -104,10 +104,10 @@ const App = () => (
           <Route path="/settings" element={<AdminRoute><Settings /></AdminRoute>} />
           <Route path="/audit-log" element={<AdminRoute><AuditLog /></AdminRoute>} />
           <Route path="/admin" element={<DeveloperRoute><Admin /></DeveloperRoute>} />
-          <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
-          <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
-          <Route path="/feedback" element={<ProtectedRoute><Feedback /></ProtectedRoute>} />
-          <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
+          <Route path="/customers" element={<AdminRoute><Customers /></AdminRoute>} />
+          <Route path="/products" element={<AdminRoute><Products /></AdminRoute>} />
+          <Route path="/feedback" element={<AdminRoute><Feedback /></AdminRoute>} />
+          <Route path="/reports" element={<AdminRoute><ReportsPage /></AdminRoute>} />
           <Route path="/user-roles" element={<AdminRoute><UserRoles /></AdminRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>

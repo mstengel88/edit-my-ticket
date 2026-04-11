@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { SignInWithApple } from "@capacitor-community/apple-sign-in";
-import { createRandomString, getAppleSignInConfig, isNativeAppleSignInAvailable } from "@/lib/appleAuth";
+import { createRandomString, getAppleSignInConfig, isNativeAppleSignInAvailable, sha256 } from "@/lib/appleAuth";
 
 type Mode = "login" | "signup" | "forgot";
 
@@ -66,13 +66,14 @@ const Auth = () => {
 
     try {
       const nonce = createRandomString();
+      const hashedNonce = await sha256(nonce);
       const state = createRandomString(16);
 
       const result = await SignInWithApple.authorize({
         clientId,
         redirectURI,
         scopes: "email name",
-        nonce,
+        nonce: hashedNonce,
         state,
       });
 
