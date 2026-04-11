@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { SignInWithApple } from "@capacitor-community/apple-sign-in";
+import { createRandomString, getAppleSignInConfig, isNativeAppleSignInAvailable } from "@/lib/appleAuth";
 
 type Mode = "login" | "signup" | "forgot";
 
@@ -15,6 +17,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +54,52 @@ const Auth = () => {
     else toast.success("Check your email for a password reset link!");
   };
 
+  const handleAppleSignIn = async () => {
+    const { clientId, redirectURI, isConfigured } = getAppleSignInConfig();
+
+    if (!isConfigured || !clientId || !redirectURI) {
+      toast.error("Apple Sign-In is not configured yet. Set VITE_APPLE_CLIENT_ID and VITE_APPLE_REDIRECT_URI.");
+      return;
+    }
+
+    setAppleLoading(true);
+
+    try {
+      const nonce = createRandomString();
+      const state = createRandomString(16);
+
+      const result = await SignInWithApple.authorize({
+        clientId,
+        redirectURI,
+        scopes: "email name",
+        nonce,
+        state,
+      });
+
+      const { identityToken, givenName, familyName } = result.response;
+
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: "apple",
+        token: identityToken,
+        nonce,
+      });
+
+      if (error) throw error;
+
+      const appleDisplayName = [givenName, familyName].filter(Boolean).join(" ").trim();
+      if (appleDisplayName) {
+        await supabase.auth.updateUser({
+          data: { display_name: appleDisplayName },
+        });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Apple Sign-In failed";
+      toast.error(message);
+    } finally {
+      setAppleLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-sm">
@@ -66,6 +115,20 @@ const Auth = () => {
               : "We'll send you a reset link"}
           </CardDescription>
         </CardHeader>
+        {mode === "login" && isNativeAppleSignInAvailable() && (
+          <div className="px-6 pb-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={handleAppleSignIn}
+              disabled={appleLoading || loading}
+            >
+              {appleLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+              Continue with Apple
+            </Button>
+          </div>
+        )}
         <form onSubmit={mode === "login" ? handleLogin : mode === "signup" ? handleSignup : handleForgotPassword}>
           <CardContent className="space-y-4">
             {mode === "signup" && (

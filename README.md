@@ -96,6 +96,7 @@ Notes:
 - Before the first iOS run, install CocoaPods on your Mac and initialize the native project with `npm run ios:init`.
 - The current bundle identifier is `com.ticketcreator.app` in `capacitor.config.ts`.
 - Native iOS shell defaults now include a non-overlaid status bar and iOS keyboard resize handling.
+- Native Apple Sign-In expects `VITE_APPLE_CLIENT_ID` and `VITE_APPLE_REDIRECT_URI` to be set in your environment.
 - In Xcode, set your Apple Developer team under Signing & Capabilities before installing to a real device.
 - If you want your own production app id, update it before shipping.
 - Any time you change the React app, rerun `npm run build:ios` before opening or rebuilding in Xcode.
