@@ -12,9 +12,6 @@ verify_jwt = false
 [functions.agent-action]
 verify_jwt = false
 
-[functions.agent-stream]
-verify_jwt = false
-
 [functions.agent-status]
 verify_jwt = false
 
@@ -28,4 +25,10 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.agent-logs-stream]
+verify_jwt = false
+
+[functions.agent-proxy]
+verify_jwt = false
+
+[functions.agent-logs]
 verify_jwt = false
