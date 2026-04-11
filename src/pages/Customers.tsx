@@ -10,6 +10,7 @@ import { Plus, Pencil, Trash2, Search, Loader2, RefreshCw, Download, Upload } fr
 import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useIsMobile, useIsTablet } from "@/hooks/use-mobile";
 
 interface Customer {
   id: string;
@@ -20,6 +21,9 @@ interface Customer {
 const Customers = () => {
   const { session } = useAuth();
   const { isDeveloper } = useUserRole();
+  const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
+  const useCompactActions = isMobile || isTablet;
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -169,8 +173,13 @@ const Customers = () => {
   );
 
   return (
-    <AppLayout title="Customers" headerExtra={headerExtra}>
+    <AppLayout title="Customers" headerExtra={useCompactActions ? undefined : headerExtra}>
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
+        {useCompactActions && (
+          <div className="mb-4 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="min-w-max">{headerExtra}</div>
+          </div>
+        )}
         <div className="relative mb-4 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input placeholder="Search customers..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />

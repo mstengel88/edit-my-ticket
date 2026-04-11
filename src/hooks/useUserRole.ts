@@ -4,6 +4,13 @@ import { useAuth } from "@/hooks/useAuth";
 
 export type AppRole = "admin" | "manager" | "user" | "developer";
 
+const rolePriority: Record<AppRole, number> = {
+  user: 0,
+  manager: 1,
+  admin: 2,
+  developer: 3,
+};
+
 export const useUserRole = () => {
   const { session, loading: authLoading } = useAuth();
   const [role, setRole] = useState<AppRole | null>(null);
@@ -31,16 +38,19 @@ export const useUserRole = () => {
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", userId)
-        .limit(1)
-        .single();
+        .eq("user_id", userId);
 
       if (cancelled) return;
 
-      if (error || !data) {
+      const roles = (data ?? []).map((item) => item.role as AppRole);
+
+      if (error || roles.length === 0) {
         setRole("user");
       } else {
-        setRole(data.role as AppRole);
+        const highestRole = roles.reduce<AppRole>((best, current) =>
+          rolePriority[current] > rolePriority[best] ? current : best,
+        "user");
+        setRole(highestRole);
       }
       setLoading(false);
     };

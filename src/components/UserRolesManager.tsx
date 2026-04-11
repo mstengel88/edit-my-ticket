@@ -122,7 +122,7 @@ export function UserRolesManager() {
   return (
     <div className="max-w-lg space-y-3">
       <p className="text-sm text-muted-foreground mb-4">
-        Admins can see and edit everything. Managers can see and edit everything. Users can only view tickets and reports.
+        Admins and managers can see and edit everything. Users can only view tickets until you assign them a different role.
       </p>
       {users.map((user) => {
         const isSelf = user.userId === session?.user?.id;
