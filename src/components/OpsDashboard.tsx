@@ -64,9 +64,10 @@ interface Container {
 
 interface OpsDashboardProps {
   agentKey: AgentKey;
+  authReady: boolean;
 }
 
-export function OpsDashboard({ agentKey }: OpsDashboardProps) {
+export function OpsDashboard({ agentKey, authReady }: OpsDashboardProps) {
   const [metrics, setMetrics] = useState<MetricsData>({
     cpu: { pct: 0 },
     mem: { pct: 0, used: 0, total: 0 },
@@ -107,6 +108,8 @@ export function OpsDashboard({ agentKey }: OpsDashboardProps) {
   );
 
   useEffect(() => {
+    if (!authReady) return;
+
     setSeries([]);
     setMetrics({
       cpu: { pct: 0 },
@@ -146,9 +149,11 @@ export function OpsDashboard({ agentKey }: OpsDashboardProps) {
       alive = false;
       clearInterval(id);
     };
-  }, [agentKey, authedFetch]);
+  }, [agentKey, authReady, authedFetch]);
 
   useEffect(() => {
+    if (!authReady) return;
+
     setContainers([]);
     setSelected("");
     setLogs("");
@@ -212,10 +217,10 @@ export function OpsDashboard({ agentKey }: OpsDashboardProps) {
       alive = false;
       clearInterval(id);
     };
-  }, [agentKey, authedFetch]);
+  }, [agentKey, authReady, authedFetch]);
 
   useEffect(() => {
-    if (!selected) return;
+    if (!authReady || !selected) return;
 
     setLogs("");
     const controller = new AbortController();
@@ -295,7 +300,7 @@ export function OpsDashboard({ agentKey }: OpsDashboardProps) {
     start();
 
     return () => controller.abort();
-  }, [agentKey, selected]);
+  }, [agentKey, authReady, selected]);
 
   const restartContainer = useCallback(
     async (name: string) => {

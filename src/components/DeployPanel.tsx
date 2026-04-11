@@ -31,9 +31,10 @@ interface DeployRecord {
 
 interface DeployPanelProps {
   agentKey: AgentKey;
+  authReady: boolean;
 }
 
-export function DeployPanel({ agentKey }: DeployPanelProps) {
+export function DeployPanel({ agentKey, authReady }: DeployPanelProps) {
   const [deployApps, setDeployApps] = useState<DeployApp[]>([]);
   const [lines, setLines] = useState<string[]>([]);
   const [running, setRunning] = useState<Record<string, string | number | null>>({});
@@ -74,6 +75,8 @@ export function DeployPanel({ agentKey }: DeployPanelProps) {
   );
 
   const refreshDeploys = useCallback(async () => {
+    if (!authReady) return;
+
     try {
       const res = await authedFetch("/deploys");
       const text = await res.text();
@@ -100,9 +103,11 @@ export function DeployPanel({ agentKey }: DeployPanelProps) {
         `[ERROR] ${e?.message || "Failed to fetch deploys"}\n`,
       ]);
     }
-  }, [authedFetch]);
+  }, [authReady, authedFetch]);
 
   const refreshStatus = useCallback(async () => {
+    if (!authReady) return;
+
     try {
       const res = await authedFetch("/status");
       const text = await res.text();
@@ -121,9 +126,11 @@ export function DeployPanel({ agentKey }: DeployPanelProps) {
     } catch {
       // silent
     }
-  }, [authedFetch]);
+  }, [authReady, authedFetch]);
 
   useEffect(() => {
+    if (!authReady) return;
+
     setLines([]);
     setLastResult(null);
     setBusyApp(null);
@@ -132,7 +139,7 @@ export function DeployPanel({ agentKey }: DeployPanelProps) {
 
     const t = setInterval(refreshStatus, 10_000);
     return () => clearInterval(t);
-  }, [agentKey, refreshDeploys, refreshStatus]);
+  }, [agentKey, authReady, refreshDeploys, refreshStatus]);
 
   async function startStream(which: string) {
     setLines([]);
