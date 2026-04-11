@@ -6,13 +6,18 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const AGENT_BASE = Deno.env.get("AGENT_URL")!;
+const AGENTS: Record<string, string | undefined> = {
+  primary: Deno.env.get("AGENT_URL"),
+  second: Deno.env.get("AGENT2_URL"),
+};
+
 const AGENT_SECRET = Deno.env.get("AGENT_SECRET")!;
 
 const ALLOWED_ACTIONS: Record<string, string> = {
   winterwatch: "deploy:winterwatch",
   tickets: "deploy:tickets",
   localdelivery: "deploy:localdelivery",
+  shipcalc: "deploy:shipcalc",
 };
 
 async function hmacSign(secret: string, message: string): Promise<string> {
@@ -109,7 +114,16 @@ Deno.serve(async (req) => {
 
     const url = new URL(req.url);
     const target = url.searchParams.get("target");
+    const agentKey = url.searchParams.get("agent") || "primary";
+    const agentBase = AGENTS[agentKey];
     const agentAction = target ? ALLOWED_ACTIONS[target] : undefined;
+
+    if (!agentBase) {
+      return new Response(
+        `event: error\ndata: ${JSON.stringify({ message: `Unknown agent: ${agentKey}` })}\n\n`,
+        { status: 400, headers: sseHeaders },
+      );
+    }
 
     if (!agentAction) {
       return new Response(
@@ -121,19 +135,24 @@ Deno.serve(async (req) => {
     const ts = Date.now().toString();
     const sig = await hmacSign(AGENT_SECRET, `${ts}.{}`);
 
-    const agentUrl = `${AGENT_BASE}/stream?action=${encodeURIComponent(agentAction)}`;
-    const upstream = await fetch(agentUrl, {
-      method: "GET",
-      headers: {
-        "x-ts": ts,
-        "x-sig": sig,
+    const upstream = await fetch(
+      `${agentBase}/stream?action=${encodeURIComponent(agentAction)}`,
+      {
+        method: "GET",
+        headers: {
+          "x-ts": ts,
+          "x-sig": sig,
+        },
       },
-    });
+    );
 
     if (!upstream.ok || !upstream.body) {
       const txt = await upstream.text().catch(() => "");
       return new Response(
-        `event: error\ndata: ${JSON.stringify({ message: `Agent error ${upstream.status}`, body: txt })}\n\n`,
+        `event: error\ndata: ${JSON.stringify({
+          message: `Agent error ${upstream.status}`,
+          body: txt,
+        })}\n\n`,
         { status: 200, headers: sseHeaders },
       );
     }

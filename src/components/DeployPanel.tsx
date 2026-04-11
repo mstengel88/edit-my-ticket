@@ -1,9 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { supabase, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/integrations/supabase/client";
+import {
+  SUPABASE_PUBLISHABLE_KEY,
+  SUPABASE_URL,
+} from "@/integrations/supabase/client";
 import { getAccessToken } from "@/lib/getAccessToken";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Rocket } from "lucide-react";
+import type { AgentKey } from "@/pages/Admin";
 
 function fmtTime(iso: string | undefined) {
   if (!iso) return "—";
@@ -25,16 +29,22 @@ interface DeployRecord {
   deployedAt?: string;
 }
 
-export function DeployPanel() {
+interface DeployPanelProps {
+  agentKey: AgentKey;
+}
+
+export function DeployPanel({ agentKey }: DeployPanelProps) {
   const [deployApps, setDeployApps] = useState<DeployApp[]>([]);
   const [lines, setLines] = useState<string[]>([]);
   const [running, setRunning] = useState<Record<string, string | number | null>>({});
   const [deployed, setDeployed] = useState<Record<string, DeployRecord>>({});
-  const [lastResult, setLastResult] = useState<{ app: string; ok: boolean; code: number | null } | null>(null);
+  const [lastResult, setLastResult] = useState<{
+    app: string;
+    ok: boolean;
+    code: number | null;
+  } | null>(null);
   const [busyApp, setBusyApp] = useState<string | null>(null);
   const logRef = useRef<HTMLPreElement>(null);
-
-  const supabaseUrl = SUPABASE_URL;
 
   useEffect(() => {
     if (logRef.current) {
@@ -46,16 +56,21 @@ export function DeployPanel() {
     async (path: string, init?: RequestInit) => {
       const token = await getAccessToken();
 
-      return fetch(`${supabaseUrl}/functions/v1/agent-proxy?path=${encodeURIComponent(path)}`, {
-        ...init,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          apikey: SUPABASE_PUBLISHABLE_KEY,
-          ...(init?.headers || {}),
+      return fetch(
+        `${SUPABASE_URL}/functions/v1/agent-proxy?agent=${encodeURIComponent(
+          agentKey,
+        )}&path=${encodeURIComponent(path)}`,
+        {
+          ...init,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            apikey: SUPABASE_PUBLISHABLE_KEY,
+            ...(init?.headers || {}),
+          },
         },
-      });
+      );
     },
-    [supabaseUrl],
+    [agentKey],
   );
 
   const refreshDeploys = useCallback(async () => {
@@ -80,7 +95,10 @@ export function DeployPanel() {
 
       setDeployApps(data?.deploys || []);
     } catch (e: any) {
-      setLines((prev) => [...prev, `[ERROR] ${e?.message || "Failed to fetch deploys"}\n`]);
+      setLines((prev) => [
+        ...prev,
+        `[ERROR] ${e?.message || "Failed to fetch deploys"}\n`,
+      ]);
     }
   }, [authedFetch]);
 
@@ -106,12 +124,15 @@ export function DeployPanel() {
   }, [authedFetch]);
 
   useEffect(() => {
+    setLines([]);
+    setLastResult(null);
+    setBusyApp(null);
     refreshDeploys();
     refreshStatus();
 
     const t = setInterval(refreshStatus, 10_000);
     return () => clearInterval(t);
-  }, [refreshDeploys, refreshStatus]);
+  }, [agentKey, refreshDeploys, refreshStatus]);
 
   async function startStream(which: string) {
     setLines([]);
@@ -120,7 +141,10 @@ export function DeployPanel() {
 
     try {
       const token = await getAccessToken();
-      const url = `${supabaseUrl}/functions/v1/agent-stream?target=${encodeURIComponent(which)}`;
+
+      const url = `${SUPABASE_URL}/functions/v1/agent-stream?agent=${encodeURIComponent(
+        agentKey,
+      )}&target=${encodeURIComponent(which)}`;
 
       const res = await fetch(url, {
         headers: {
@@ -163,7 +187,7 @@ export function DeployPanel() {
               const d = JSON.parse(eventData);
               setLines((p) => [...p, `[START] ${d.action}\n`]);
             } catch {
-              setLines((p) => [...p, `[START]\n`]);
+              setLines((p) => [...p, "[START]\n"]);
             }
           } else if (eventType === "stdout" || eventType === "stderr") {
             try {
@@ -187,7 +211,7 @@ export function DeployPanel() {
               setLines((p) => [...p, `\n[END] code=${d.code} signal=${d.signal}\n`]);
               setLastResult({ app: which, ok, code: d.code });
             } catch {
-              setLines((p) => [...p, `\n[END]\n`]);
+              setLines((p) => [...p, "\n[END]\n"]);
               setLastResult({ app: which, ok: false, code: null });
             }
             setBusyApp(null);

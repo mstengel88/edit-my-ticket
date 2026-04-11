@@ -6,7 +6,11 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const AGENT_BASE = Deno.env.get("AGENT_URL")!;
+const AGENTS: Record<string, string | undefined> = {
+  primary: Deno.env.get("AGENT_URL"),
+  second: Deno.env.get("AGENT2_URL"),
+};
+
 const AGENT_SECRET = Deno.env.get("AGENT_SECRET")!;
 
 async function hmacSign(secret: string, message: string): Promise<string> {
@@ -96,9 +100,18 @@ Deno.serve(async (req) => {
 
     const url = new URL(req.url);
     const path = url.searchParams.get("path");
+    const agentKey = url.searchParams.get("agent") || "primary";
+    const agentBase = AGENTS[agentKey];
 
     if (!path || !path.startsWith("/")) {
       return new Response(JSON.stringify({ error: "Missing or invalid path" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!agentBase) {
+      return new Response(JSON.stringify({ error: `Unknown agent: ${agentKey}` }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -125,7 +138,7 @@ Deno.serve(async (req) => {
     const body = JSON.stringify(bodyObj);
     const sig = await hmacSign(AGENT_SECRET, `${ts}.${body}`);
 
-    const upstream = await fetch(`${AGENT_BASE}${path}`, {
+    const upstream = await fetch(`${agentBase}${path}`, {
       method: req.method,
       headers: {
         "Content-Type": "application/json",

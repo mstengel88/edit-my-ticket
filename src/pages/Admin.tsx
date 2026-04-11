@@ -4,13 +4,29 @@ import { RotateCcw, RefreshCw } from "lucide-react";
 import { DeployPanel } from "@/components/DeployPanel";
 import { OpsDashboard } from "@/components/OpsDashboard";
 import { AppLayout } from "@/components/AppLayout";
-import { supabase, SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/integrations/supabase/client";
+import {
+  supabase,
+  SUPABASE_PUBLISHABLE_KEY,
+  SUPABASE_URL,
+} from "@/integrations/supabase/client";
 import { getAccessToken } from "@/lib/getAccessToken";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+export type AgentKey = "primary" | "second";
 
 const Admin = () => {
   const [authReady, setAuthReady] = useState(false);
+  const [agentKey, setAgentKey] = useState<AgentKey>("primary");
+
   const [restartLoading, setRestartLoading] = useState(false);
   const [restartMsg, setRestartMsg] = useState("");
+
   const [agentRestartLoading, setAgentRestartLoading] = useState(false);
   const [agentRestartMsg, setAgentRestartMsg] = useState("");
 
@@ -21,8 +37,6 @@ const Admin = () => {
       if (mounted) setAuthReady(true);
     });
 
-    (window as any).__dbg_get_session = () => supabase.auth.getSession();
-
     return () => {
       mounted = false;
     };
@@ -30,7 +44,10 @@ const Admin = () => {
 
   async function postToAgentProxy(path: string) {
     const token = await getAccessToken();
-    const url = `${SUPABASE_URL}/functions/v1/agent-proxy?path=${encodeURIComponent(path)}`;
+
+    const url = `${SUPABASE_URL}/functions/v1/agent-proxy?agent=${encodeURIComponent(
+      agentKey,
+    )}&path=${encodeURIComponent(path)}`;
 
     const res = await fetch(url, {
       method: "POST",
@@ -52,7 +69,9 @@ const Admin = () => {
     }
 
     if (!res.ok) {
-      throw new Error(bodyJson?.error || bodyJson?.message || bodyText || "Request failed");
+      throw new Error(
+        bodyJson?.error || bodyJson?.message || bodyText || "Request failed",
+      );
     }
 
     return bodyJson;
@@ -100,8 +119,27 @@ const Admin = () => {
     <AppLayout title="Admin">
       <div className="container mx-auto px-4 py-6 sm:px-6 space-y-8">
         <section className="space-y-3">
-          <h2 className="text-sm font-semibold text-foreground">Server Metrics</h2>
-          <OpsDashboard />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold text-foreground">Server Metrics</h2>
+
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Server:</span>
+              <Select
+                value={agentKey}
+                onValueChange={(value) => setAgentKey(value as AgentKey)}
+              >
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Select server" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="primary">Primary</SelectItem>
+                  <SelectItem value="second">Second</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <OpsDashboard agentKey={agentKey} />
         </section>
 
         <section className="space-y-3">
@@ -142,7 +180,7 @@ const Admin = () => {
 
         <section className="space-y-3">
           <h2 className="text-sm font-semibold text-foreground">Deploy</h2>
-          <DeployPanel />
+          <DeployPanel agentKey={agentKey} />
         </section>
       </div>
     </AppLayout>

@@ -6,7 +6,11 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const AGENT_BASE = Deno.env.get("AGENT_URL")!;
+const AGENTS: Record<string, string | undefined> = {
+  primary: Deno.env.get("AGENT_URL"),
+  second: Deno.env.get("AGENT2_URL"),
+};
+
 const AGENT_SECRET = Deno.env.get("AGENT_SECRET")!;
 
 async function hmacSign(secret: string, message: string): Promise<string> {
@@ -103,6 +107,8 @@ Deno.serve(async (req) => {
 
     const url = new URL(req.url);
     const container = url.searchParams.get("container");
+    const agentKey = url.searchParams.get("agent") || "primary";
+    const agentBase = AGENTS[agentKey];
 
     if (!container) {
       return new Response(
@@ -111,11 +117,18 @@ Deno.serve(async (req) => {
       );
     }
 
+    if (!agentBase) {
+      return new Response(
+        `event: error\ndata: ${JSON.stringify({ message: `Unknown agent: ${agentKey}` })}\n\n`,
+        { status: 400, headers: sseHeaders },
+      );
+    }
+
     const ts = Date.now().toString();
     const sig = await hmacSign(AGENT_SECRET, `${ts}.{}`);
 
     const upstream = await fetch(
-      `${AGENT_BASE}/logs/stream?container=${encodeURIComponent(container)}`,
+      `${agentBase}/logs/stream?container=${encodeURIComponent(container)}`,
       {
         method: "GET",
         headers: {

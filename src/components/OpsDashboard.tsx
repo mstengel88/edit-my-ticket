@@ -1,12 +1,29 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/integrations/supabase/client";
+import {
+  SUPABASE_PUBLISHABLE_KEY,
+  SUPABASE_URL,
+} from "@/integrations/supabase/client";
 import { getAccessToken } from "@/lib/getAccessToken";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { RotateCcw, Trash2 } from "lucide-react";
+import type { AgentKey } from "@/pages/Admin";
 
 function fmtPct(n: number) {
   return `${Math.round(n)}%`;
@@ -14,7 +31,8 @@ function fmtPct(n: number) {
 
 function fmtBytes(n: number) {
   const units = ["B", "KB", "MB", "GB", "TB"];
-  let v = n, i = 0;
+  let v = n;
+  let i = 0;
   while (v >= 1024 && i < units.length - 1) {
     v /= 1024;
     i++;
@@ -44,7 +62,11 @@ interface Container {
   status: string;
 }
 
-export function OpsDashboard() {
+interface OpsDashboardProps {
+  agentKey: AgentKey;
+}
+
+export function OpsDashboard({ agentKey }: OpsDashboardProps) {
   const [metrics, setMetrics] = useState<MetricsData>({
     cpu: { pct: 0 },
     mem: { pct: 0, used: 0, total: 0 },
@@ -57,8 +79,6 @@ export function OpsDashboard() {
   const [containersError, setContainersError] = useState<ContainersError>(null);
   const logRef = useRef<HTMLPreElement>(null);
 
-  const supabaseUrl = SUPABASE_URL;
-
   useEffect(() => {
     if (logRef.current) {
       logRef.current.scrollTop = logRef.current.scrollHeight;
@@ -69,19 +89,30 @@ export function OpsDashboard() {
     async (path: string, init?: RequestInit) => {
       const token = await getAccessToken();
 
-      return fetch(`${supabaseUrl}/functions/v1/agent-proxy?path=${encodeURIComponent(path)}`, {
-        ...init,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          apikey: SUPABASE_PUBLISHABLE_KEY,
-          ...(init?.headers || {}),
+      return fetch(
+        `${SUPABASE_URL}/functions/v1/agent-proxy?agent=${encodeURIComponent(
+          agentKey,
+        )}&path=${encodeURIComponent(path)}`,
+        {
+          ...init,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            apikey: SUPABASE_PUBLISHABLE_KEY,
+            ...(init?.headers || {}),
+          },
         },
-      });
+      );
     },
-    [supabaseUrl],
+    [agentKey],
   );
 
   useEffect(() => {
+    setSeries([]);
+    setMetrics({
+      cpu: { pct: 0 },
+      mem: { pct: 0, used: 0, total: 0 },
+    });
+
     let alive = true;
 
     const tick = async () => {
@@ -115,9 +146,14 @@ export function OpsDashboard() {
       alive = false;
       clearInterval(id);
     };
-  }, [authedFetch]);
+  }, [agentKey, authedFetch]);
 
   useEffect(() => {
+    setContainers([]);
+    setSelected("");
+    setLogs("");
+    setContainersError(null);
+
     let alive = true;
 
     const tick = async () => {
@@ -176,7 +212,7 @@ export function OpsDashboard() {
       alive = false;
       clearInterval(id);
     };
-  }, [authedFetch]);
+  }, [agentKey, authedFetch]);
 
   useEffect(() => {
     if (!selected) return;
@@ -189,7 +225,9 @@ export function OpsDashboard() {
         const token = await getAccessToken();
 
         const res = await fetch(
-          `${supabaseUrl}/functions/v1/agent-logs?container=${encodeURIComponent(selected)}`,
+          `${SUPABASE_URL}/functions/v1/agent-logs?agent=${encodeURIComponent(
+            agentKey,
+          )}&container=${encodeURIComponent(selected)}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -257,7 +295,7 @@ export function OpsDashboard() {
     start();
 
     return () => controller.abort();
-  }, [selected, supabaseUrl]);
+  }, [agentKey, selected]);
 
   const restartContainer = useCallback(
     async (name: string) => {
@@ -344,7 +382,8 @@ export function OpsDashboard() {
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-semibold text-foreground">RAM</span>
             <span className="text-sm text-muted-foreground">
-              {fmtPct(metrics.mem?.pct ?? 0)} ({fmtBytes(metrics.mem?.used ?? 0)} / {fmtBytes(metrics.mem?.total ?? 0)})
+              {fmtPct(metrics.mem?.pct ?? 0)} ({fmtBytes(metrics.mem?.used ?? 0)} /{" "}
+              {fmtBytes(metrics.mem?.total ?? 0)})
             </span>
           </div>
           <div className="h-44">
@@ -376,11 +415,13 @@ export function OpsDashboard() {
                 <SelectValue placeholder="Select container" />
               </SelectTrigger>
               <SelectContent>
-                {containers.filter((c) => c.name).map((c) => (
-                  <SelectItem key={c.id} value={c.name}>
-                    {c.name}
-                  </SelectItem>
-                ))}
+                {containers
+                  .filter((c) => c.name)
+                  .map((c) => (
+                    <SelectItem key={c.id} value={c.name}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
