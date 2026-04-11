@@ -103,6 +103,11 @@ Deno.serve(async (req) => {
     const agentKey = url.searchParams.get("agent") || "primary";
     const agentBase = AGENTS[agentKey];
 
+    console.log("agentKey =", agentKey);
+    console.log("agentBase =", agentBase);
+    console.log("AGENT_URL =", Deno.env.get("AGENT_URL"));
+    console.log("AGENT2_URL =", Deno.env.get("AGENT2_URL"));
+
     if (!path || !path.startsWith("/")) {
       return new Response(JSON.stringify({ error: "Missing or invalid path" }), {
         status: 400,
@@ -124,6 +129,7 @@ Deno.serve(async (req) => {
       "/containers",
       "/container/",
       "/service/",
+      "/health",
     ];
 
     if (!allowedPrefixes.some((prefix) => path.startsWith(prefix))) {
