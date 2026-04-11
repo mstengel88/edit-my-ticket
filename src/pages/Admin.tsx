@@ -33,9 +33,17 @@ const Admin = () => {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(() => {
-      if (mounted) setAuthReady(true);
-    });
+    const init = async () => {
+      try {
+        await supabase.auth.getSession();
+        await getAccessToken();
+        if (mounted) setAuthReady(true);
+      } catch {
+        if (mounted) setAuthReady(false);
+      }
+    };
+
+    init();
 
     return () => {
       mounted = false;
@@ -139,7 +147,7 @@ const Admin = () => {
             </div>
           </div>
 
-          <OpsDashboard agentKey={agentKey} />
+          <OpsDashboard agentKey={agentKey} authReady={authReady} />
         </section>
 
         <section className="space-y-3">
@@ -180,7 +188,7 @@ const Admin = () => {
 
         <section className="space-y-3">
           <h2 className="text-sm font-semibold text-foreground">Deploy</h2>
-          <DeployPanel agentKey={agentKey} />
+          <DeployPanel agentKey={agentKey} authReady={authReady} />
         </section>
       </div>
     </AppLayout>
