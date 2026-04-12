@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,24 +7,30 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import ResetPassword from "./pages/ResetPassword";
-import NotFound from "./pages/NotFound";
-import Settings from "./pages/Settings";
-import AuditLog from "./pages/AuditLog";
-import Admin from "./pages/Admin";
-import Customers from "./pages/Customers";
-import Products from "./pages/Products";
-import Feedback from "./pages/Feedback";
-import ReportsPage from "./pages/ReportsPage";
-import UserRoles from "./pages/UserRoles";
-import Privacy from "./pages/Privacy";
-import Support from "./pages/Support";
-import MailReader from "./features/mail-reader/MailReader";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
+const Index = lazy(() => import("./pages/Index"));
+const Auth = lazy(() => import("./pages/Auth"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Settings = lazy(() => import("./pages/Settings"));
+const AuditLog = lazy(() => import("./pages/AuditLog"));
+const Admin = lazy(() => import("./pages/Admin"));
+const Customers = lazy(() => import("./pages/Customers"));
+const Products = lazy(() => import("./pages/Products"));
+const Feedback = lazy(() => import("./pages/Feedback"));
+const ReportsPage = lazy(() => import("./pages/ReportsPage"));
+const UserRoles = lazy(() => import("./pages/UserRoles"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Support = lazy(() => import("./pages/Support"));
+const MailReader = lazy(() => import("./features/mail-reader/MailReader"));
+
+const RouteLoader = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+  </div>
+);
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, loading } = useAuth();
@@ -96,23 +103,25 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/mail-reader" element={<MailReader />} />
-          <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/support" element={<Support />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-          <Route path="/settings" element={<AdminRoute><Settings /></AdminRoute>} />
-          <Route path="/audit-log" element={<AdminRoute><AuditLog /></AdminRoute>} />
-          <Route path="/admin" element={<DeveloperRoute><Admin /></DeveloperRoute>} />
-          <Route path="/customers" element={<AdminRoute><Customers /></AdminRoute>} />
-          <Route path="/products" element={<AdminRoute><Products /></AdminRoute>} />
-          <Route path="/feedback" element={<AdminRoute><Feedback /></AdminRoute>} />
-          <Route path="/reports" element={<AdminRoute><ReportsPage /></AdminRoute>} />
-          <Route path="/user-roles" element={<AdminRoute><UserRoles /></AdminRoute>} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <Suspense fallback={<RouteLoader />}>
+          <Routes>
+            <Route path="/mail-reader" element={<MailReader />} />
+            <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/support" element={<Support />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+            <Route path="/settings" element={<AdminRoute><Settings /></AdminRoute>} />
+            <Route path="/audit-log" element={<AdminRoute><AuditLog /></AdminRoute>} />
+            <Route path="/admin" element={<DeveloperRoute><Admin /></DeveloperRoute>} />
+            <Route path="/customers" element={<AdminRoute><Customers /></AdminRoute>} />
+            <Route path="/products" element={<AdminRoute><Products /></AdminRoute>} />
+            <Route path="/feedback" element={<AdminRoute><Feedback /></AdminRoute>} />
+            <Route path="/reports" element={<AdminRoute><ReportsPage /></AdminRoute>} />
+            <Route path="/user-roles" element={<AdminRoute><UserRoles /></AdminRoute>} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     </TooltipProvider>
     </ThemeProvider>
