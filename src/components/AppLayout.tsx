@@ -1,9 +1,12 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useTheme } from "next-themes";
-import { useIsMobile, useIsTablet } from "@/hooks/use-mobile";
+import { useIsMobile, useIsTablet, useIsPortrait } from "@/hooks/use-mobile";
+import { Capacitor } from "@capacitor/core";
+import { StatusBar, Style } from "@capacitor/status-bar";
+import { supabase } from "@/integrations/supabase/client";
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
 import {
@@ -57,14 +60,68 @@ const developerItems = [
 ];
 
 export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutProps) {
-  const { signOut } = useAuth();
+  const { signOut, session } = useAuth();
   const { isAdminOrManager, role } = useUserRole();
   const { theme, setTheme } = useTheme();
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
+  const isPortrait = useIsPortrait();
   const navigate = useNavigate();
   const location = useLocation();
-  const useCompactLayout = isMobile || isTablet;
+  const useCompactLayout = isMobile || (isTablet && isPortrait);
+  const currentTheme = theme === "dark" ? "dark" : "light";
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    let cancelled = false;
+
+    const loadThemePreference = async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("theme_preference")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+
+      if (cancelled || error || !data?.theme_preference) return;
+      if (data.theme_preference !== currentTheme) {
+        setTheme(data.theme_preference);
+      }
+    };
+
+    loadThemePreference();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user?.id, setTheme]);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "ios") return;
+
+    const isDark = currentTheme === "dark";
+
+    void Promise.allSettled([
+      StatusBar.setStyle({ style: isDark ? Style.Light : Style.Dark }),
+      StatusBar.setBackgroundColor({ color: isDark ? "#0f172a" : "#F2F7F5" }),
+    ]);
+  }, [currentTheme]);
+
+  const handleThemeToggle = async () => {
+    const nextTheme = currentTheme === "dark" ? "light" : "dark";
+    setTheme(nextTheme);
+
+    if (!session?.user?.id) return;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ theme_preference: nextTheme })
+      .eq("user_id", session.user.id);
+
+    if (error) {
+      console.error("Failed to save theme preference", error);
+    }
+  };
 
   const navItems = [
     ...baseNavItems,
@@ -141,11 +198,11 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
 
           <div className="border-t px-2 py-3 space-y-1">
             <button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              onClick={handleThemeToggle}
               className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
             >
-              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              {theme === "dark" ? "Light Mode" : "Dark Mode"}
+              {currentTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              {currentTheme === "dark" ? "Light Mode" : "Dark Mode"}
             </button>
             <button
               onClick={signOut}
@@ -193,9 +250,9 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
                         </DropdownMenuItem>
                       ))}
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-                        {theme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
-                        {theme === "dark" ? "Light Mode" : "Dark Mode"}
+                      <DropdownMenuItem onClick={handleThemeToggle}>
+                        {currentTheme === "dark" ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}
+                        {currentTheme === "dark" ? "Light Mode" : "Dark Mode"}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={signOut}>

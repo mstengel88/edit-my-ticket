@@ -25,7 +25,7 @@ const Index = () => {
   const { tickets, loading, error, fetchData, loadFromDb } = useLoadriteData();
   const { signOut, session } = useAuth();
   const { isAdminOrManager } = useUserRole();
-  const { fields: templateFields, canvasElements, reportFields, copiesPerPage, canvasWidth, canvasHeight, emailElements, reportEmailConfig } = useTicketTemplate();
+  const { fields: templateFields, canvasElements, reportFields, copiesPerPage, canvasWidth, canvasHeight, emailElements, reportEmailConfig, printLayouts } = useTicketTemplate();
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
@@ -286,7 +286,7 @@ const Index = () => {
                 <TicketEditor ticket={selectedTicket} onSave={handleSaveTicket} onPrint={handlePrintTicket} onEmail={handleEmailTicket} templateFields={templateFields} />
               )}
               {view === "preview" && selectedTicket && (
-                <TicketPreview ticket={selectedTicket} canvasElements={canvasElements} emailElements={emailElements} copiesPerPage={copiesPerPage} canvasWidth={canvasWidth} canvasHeight={canvasHeight} />
+                <TicketPreview ticket={selectedTicket} canvasElements={canvasElements} emailElements={emailElements} copiesPerPage={copiesPerPage} canvasWidth={canvasWidth} canvasHeight={canvasHeight} printLayouts={printLayouts} />
               )}
             </div>
           </div>
@@ -364,7 +364,7 @@ const Index = () => {
               <TicketEditor ticket={selectedTicket} onSave={handleSaveTicket} onPrint={handlePrintTicket} onEmail={handleEmailTicket} templateFields={templateFields} />
             )}
             {view === "preview" && selectedTicket && (
-              <TicketPreview ticket={selectedTicket} canvasElements={canvasElements} emailElements={emailElements} copiesPerPage={copiesPerPage} canvasWidth={canvasWidth} canvasHeight={canvasHeight} />
+              <TicketPreview ticket={selectedTicket} canvasElements={canvasElements} emailElements={emailElements} copiesPerPage={copiesPerPage} canvasWidth={canvasWidth} canvasHeight={canvasHeight} printLayouts={printLayouts} />
             )}
           </>
         )}

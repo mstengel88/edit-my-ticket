@@ -4,31 +4,54 @@ const MOBILE_BREAKPOINT = 768;
 const TABLET_BREAKPOINT = 768;
 const DESKTOP_BREAKPOINT = 1280;
 
-function useMediaQuery(query: string, getValue: () => boolean) {
-  const [matches, setMatches] = React.useState<boolean | undefined>(undefined);
+function getViewportState() {
+  if (typeof window === "undefined") {
+    return {
+      width: 0,
+      isPortrait: true,
+    };
+  }
+
+  return {
+    width: window.innerWidth,
+    isPortrait: window.matchMedia("(orientation: portrait)").matches,
+  };
+}
+
+function useViewportState() {
+  const [viewport, setViewport] = React.useState(getViewportState);
 
   React.useEffect(() => {
-    const mql = window.matchMedia(query);
-    const onChange = () => {
-      setMatches(getValue());
+    const updateViewport = () => {
+      setViewport(getViewportState());
     };
 
-    mql.addEventListener("change", onChange);
-    setMatches(getValue());
+    window.addEventListener("resize", updateViewport);
+    window.addEventListener("orientationchange", updateViewport);
+    window.visualViewport?.addEventListener("resize", updateViewport);
+    updateViewport();
 
-    return () => mql.removeEventListener("change", onChange);
-  }, [getValue, query]);
+    return () => {
+      window.removeEventListener("resize", updateViewport);
+      window.removeEventListener("orientationchange", updateViewport);
+      window.visualViewport?.removeEventListener("resize", updateViewport);
+    };
+  }, []);
 
-  return !!matches;
+  return viewport;
 }
 
 export function useIsMobile() {
-  return useMediaQuery(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`, () => window.innerWidth < MOBILE_BREAKPOINT);
+  const { width } = useViewportState();
+  return width < MOBILE_BREAKPOINT;
 }
 
 export function useIsTablet() {
-  return useMediaQuery(
-    `(min-width: ${TABLET_BREAKPOINT}px) and (max-width: ${DESKTOP_BREAKPOINT - 1}px)`,
-    () => window.innerWidth >= TABLET_BREAKPOINT && window.innerWidth < DESKTOP_BREAKPOINT,
-  );
+  const { width } = useViewportState();
+  return width >= TABLET_BREAKPOINT && width < DESKTOP_BREAKPOINT;
+}
+
+export function useIsPortrait() {
+  const { isPortrait } = useViewportState();
+  return isPortrait;
 }

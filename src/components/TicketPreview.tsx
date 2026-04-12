@@ -6,7 +6,7 @@ import { Printer, Mail, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import companyLogo from "@/assets/Greenhillssupply_logo.png";
 import { supabase } from "@/integrations/supabase/client";
-import { canUseNativePrint, printHtml as printNativeHtml } from "@/lib/nativePrint";
+import { canUseNativePrint, printTicketImage as printNativeTicketImage } from "@/lib/nativePrint";
 
 interface TicketPreviewProps {
   ticket: TicketData;
@@ -25,6 +25,61 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
   const printRef = useRef<HTMLDivElement>(null);
 
   const layouts = printLayouts || DEFAULT_PRINT_LAYOUTS;
+
+  const renderTicketToImage = useCallback(async () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Unable to create print canvas");
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    ctx.textBaseline = "top";
+
+    const getValue = (key: string): string => {
+      return (ticket as any)[key] || "—";
+    };
+
+    const logoImage = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error("Unable to load company logo"));
+      image.src = companyLogo;
+    });
+
+    for (const el of elements) {
+      if (el.type === "logo") {
+        ctx.drawImage(logoImage, el.x, el.y, el.width, el.height);
+        continue;
+      }
+
+      if (el.type === "divider") {
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
+        ctx.lineWidth = 1;
+        const y = el.y + el.height / 2;
+        ctx.beginPath();
+        ctx.moveTo(el.x, y);
+        ctx.lineTo(el.x + el.width, y);
+        ctx.stroke();
+        continue;
+      }
+
+      const align = el.textAlign || "left";
+      const value = el.type === "label" ? (el.content || el.label) : getValue(el.key || "");
+      const prefix = el.type === "field" && el.showLabel ? `${el.label}: ` : "";
+      const text = `${prefix}${value}`;
+      const x = align === "right" ? el.x + el.width : align === "center" ? el.x + el.width / 2 : el.x;
+
+      ctx.font = `${el.fontWeight === "bold" ? "700" : "400"} ${el.fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif`;
+      ctx.fillStyle = "#000000";
+      ctx.textAlign = align;
+      ctx.fillText(text, x, el.y);
+    }
+
+    return canvas.toDataURL("image/png");
+  }, [canvasHeight, canvasWidth, elements, ticket]);
 
   const handlePrint = useCallback(() => {
     const existing = document.getElementById("print-area");
@@ -47,6 +102,7 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
     styleEl.textContent = `@media print { @page { margin: ${config.pageMarginTop}in ${config.pageMarginRight}in ${config.pageMarginBottom}in ${config.pageMarginLeft}in; size: letter portrait; } }`;
     document.head.appendChild(styleEl);
 
+    let accumulatedTopPx = 0;
     for (let i = 0; i < copiesPerPage; i++) {
       const offset = config.ticketOffsets[i] || { x: 0, y: 0 };
       const defaultW = (8.5 - config.pageMarginLeft - config.pageMarginRight);
@@ -65,7 +121,7 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
       copy.style.justifyContent = "center";
       copy.style.position = "relative";
       copy.style.marginLeft = `${offset.x * printDpi}px`;
-      copy.style.marginTop = `${offset.y * printDpi}px`;
+      copy.style.marginTop = `${accumulatedTopPx + offset.y * printDpi}px`;
 
       const inner = document.createElement("div");
       inner.className = "ticket-copy-inner";
@@ -84,6 +140,7 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
 
       copy.appendChild(inner);
       printArea.appendChild(copy);
+      accumulatedTopPx += ticketHeightPx;
     }
 
     document.body.appendChild(printArea);
@@ -101,53 +158,18 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
     Promise.all(imagePromises)
       .then(async () => {
         if (nativePrint) {
-          const printableWidth = 8.5 - config.pageMarginLeft - config.pageMarginRight;
-          const printableWidthPx = printableWidth * 96;
-          const nativeHtml = `
-            <html>
-              <head>
-                <meta name="viewport" content="width=${Math.round(printableWidthPx)},initial-scale=1,maximum-scale=1,user-scalable=no" />
-                <style>
-                  html, body {
-                    margin: 0;
-                    padding: 0;
-                    background: white;
-                    width: ${printableWidthPx}px;
-                    min-width: ${printableWidthPx}px;
-                    -webkit-text-size-adjust: 100%;
-                  }
-                  @page { margin: ${config.pageMarginTop}in ${config.pageMarginRight}in ${config.pageMarginBottom}in ${config.pageMarginLeft}in; size: letter portrait; }
-                  #print-area {
-                    display: block;
-                    width: ${printableWidthPx}px;
-                    min-width: ${printableWidthPx}px;
-                    margin: 0;
-                    padding: 0;
-                  }
-                  #print-area .ticket-copy {
-                    width: 100% !important;
-                    position: relative !important;
-                    overflow: hidden !important;
-                    margin: 0 !important;
-                    padding: 0 !important;
-                    border: none !important;
-                    background: white !important;
-                    page-break-inside: avoid !important;
-                  }
-                  #print-area .ticket-copy-inner {
-                    transform-origin: top center !important;
-                  }
-                  #print-area img {
-                    max-width: 100%;
-                    height: auto;
-                  }
-                </style>
-              </head>
-              <body><div id="print-area">${printArea.innerHTML}</div></body>
-            </html>
-          `;
-
-          await printNativeHtml(nativeHtml, ticket.jobNumber);
+          const imageDataUrl = await renderTicketToImage();
+          await printNativeTicketImage({
+            imageDataUrl,
+            jobName: ticket.jobNumber,
+            copiesPerPage,
+            pageMarginTop: config.pageMarginTop,
+            pageMarginRight: config.pageMarginRight,
+            pageMarginBottom: config.pageMarginBottom,
+            pageMarginLeft: config.pageMarginLeft,
+            ticketOffsets: config.ticketOffsets,
+            ticketSizes: config.ticketSizes,
+          });
           return;
         }
 
@@ -165,7 +187,7 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
           if (s) s.remove();
         }, 300);
       });
-  }, [copiesPerPage, canvasWidth, canvasHeight, layouts, ticket.jobNumber]);
+  }, [copiesPerPage, canvasWidth, canvasHeight, layouts, renderTicketToImage, ticket.jobNumber]);
 
   useEffect(() => {
     const onPrintRequest = () => handlePrint();

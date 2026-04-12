@@ -53,7 +53,9 @@ export function useTicketTemplate() {
     const { data, error } = await supabase
       .from("ticket_templates")
       .select("*")
-      .order("created_at", { ascending: true })
+      .eq("user_id", session.user.id)
+      .order("updated_at", { ascending: false })
+      .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
@@ -148,9 +150,27 @@ export function useTicketTemplate() {
         printLayouts: updatedPrintLayouts ?? printLayouts,
       };
 
-      if (templateId) {
+      let activeTemplateId = templateId;
+
+      if (!activeTemplateId) {
+        const { data: existingTemplate } = await supabase
+          .from("ticket_templates")
+          .select("id")
+          .eq("user_id", session.user.id)
+          .order("updated_at", { ascending: false })
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (existingTemplate?.id) {
+          activeTemplateId = existingTemplate.id;
+          setTemplateId(existingTemplate.id);
+        }
+      }
+
+      if (activeTemplateId) {
         await supabase.from("template_versions").insert({
-          template_id: templateId,
+          template_id: activeTemplateId,
           user_id: session.user.id,
           layout: layoutData as any,
           label: "",
@@ -158,7 +178,8 @@ export function useTicketTemplate() {
         await supabase
           .from("ticket_templates")
           .update({ layout: layoutData as any })
-          .eq("id", templateId);
+          .eq("id", activeTemplateId)
+          .eq("user_id", session.user.id);
       } else {
         const { data } = await supabase
           .from("ticket_templates")
