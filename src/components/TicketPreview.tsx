@@ -33,7 +33,7 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
     const printArea = document.createElement("div");
     printArea.id = "print-area";
     const nativePrint = canUseNativePrint();
-    const printDpi = nativePrint ? 72 : 96;
+    const printDpi = 96;
 
     // Get layout config for current copies count
     const layoutKey = String(copiesPerPage) as "1" | "2" | "3";
@@ -102,14 +102,28 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
       .then(async () => {
         if (nativePrint) {
           const printableWidth = 8.5 - config.pageMarginLeft - config.pageMarginRight;
+          const printableWidthPx = printableWidth * 96;
           const nativeHtml = `
             <html>
               <head>
-                <meta name="viewport" content="width=device-width,initial-scale=1" />
+                <meta name="viewport" content="width=${Math.round(printableWidthPx)},initial-scale=1,maximum-scale=1,user-scalable=no" />
                 <style>
-                  html, body { margin: 0; padding: 0; background: white; width: ${printableWidth}in; }
+                  html, body {
+                    margin: 0;
+                    padding: 0;
+                    background: white;
+                    width: ${printableWidthPx}px;
+                    min-width: ${printableWidthPx}px;
+                    -webkit-text-size-adjust: 100%;
+                  }
                   @page { margin: ${config.pageMarginTop}in ${config.pageMarginRight}in ${config.pageMarginBottom}in ${config.pageMarginLeft}in; size: letter portrait; }
-                  #print-area { display: block; width: ${printableWidth}in; margin: 0; padding: 0; }
+                  #print-area {
+                    display: block;
+                    width: ${printableWidthPx}px;
+                    min-width: ${printableWidthPx}px;
+                    margin: 0;
+                    padding: 0;
+                  }
                   #print-area .ticket-copy {
                     width: 100% !important;
                     position: relative !important;

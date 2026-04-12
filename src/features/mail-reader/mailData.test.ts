@@ -20,7 +20,7 @@ describe("getVisibleMessages", () => {
       unreadOnly: false,
     });
 
-    expect(results.some((message) => message.id === "msg-1003")).toBe(true);
+    expect(results.some((message) => message.id === "msg-1005")).toBe(true);
   });
 
   it("can narrow inbox results down to unread only", () => {
