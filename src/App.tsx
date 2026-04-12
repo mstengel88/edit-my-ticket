@@ -20,6 +20,7 @@ import ReportsPage from "./pages/ReportsPage";
 import UserRoles from "./pages/UserRoles";
 import Privacy from "./pages/Privacy";
 import Support from "./pages/Support";
+import MailReader from "./features/mail-reader/MailReader";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -96,6 +97,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          <Route path="/mail-reader" element={<MailReader />} />
           <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/support" element={<Support />} />

@@ -1,6 +1,6 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
-const config: CapacitorConfig = {
+const config = {
   appId: "com.ticketcreator.app",
   appName: "Ticket Creator",
   webDir: "dist",
@@ -16,6 +16,7 @@ const config: CapacitorConfig = {
       style: "LIGHT",
     },
   },
-};
+  packageClassList: ["SignInWithApple", "KeyboardPlugin", "StatusBarPlugin", "NativePrintPlugin"],
+} satisfies CapacitorConfig & { packageClassList: string[] };
 
 export default config;

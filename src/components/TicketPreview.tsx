@@ -6,6 +6,7 @@ import { Printer, Mail, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import companyLogo from "@/assets/Greenhillssupply_logo.png";
 import { supabase } from "@/integrations/supabase/client";
+import { canUseNativePrint, printHtml as printNativeHtml } from "@/lib/nativePrint";
 
 interface TicketPreviewProps {
   ticket: TicketData;
@@ -31,6 +32,8 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
 
     const printArea = document.createElement("div");
     printArea.id = "print-area";
+    const nativePrint = canUseNativePrint();
+    const printDpi = nativePrint ? 72 : 96;
 
     // Get layout config for current copies count
     const layoutKey = String(copiesPerPage) as "1" | "2" | "3";
@@ -50,8 +53,8 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
       const defaultH = (11 - config.pageMarginTop - config.pageMarginBottom) / copiesPerPage;
       const size = config.ticketSizes?.[i] || { width: defaultW, height: defaultH };
 
-      const ticketWidthPx = size.width * 96;
-      const ticketHeightPx = size.height * 96;
+      const ticketWidthPx = size.width * printDpi;
+      const ticketHeightPx = size.height * printDpi;
       const scale = Math.min(ticketWidthPx / canvasWidth, ticketHeightPx / canvasHeight);
 
       const copy = document.createElement("div");
@@ -61,8 +64,8 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
       copy.style.display = "flex";
       copy.style.justifyContent = "center";
       copy.style.position = "relative";
-      copy.style.marginLeft = `${offset.x * 96}px`;
-      copy.style.marginTop = `${offset.y * 96}px`;
+      copy.style.marginLeft = `${offset.x * printDpi}px`;
+      copy.style.marginTop = `${offset.y * printDpi}px`;
 
       const inner = document.createElement("div");
       inner.className = "ticket-copy-inner";
@@ -95,16 +98,60 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
         })
     );
 
-    Promise.all(imagePromises).then(() => {
-      window.print();
-      setTimeout(() => {
-        const el = document.getElementById("print-area");
-        if (el) el.remove();
-        const s = document.getElementById("print-dynamic-style");
-        if (s) s.remove();
-      }, 1000);
-    });
-  }, [copiesPerPage, canvasWidth, canvasHeight, layouts]);
+    Promise.all(imagePromises)
+      .then(async () => {
+        if (nativePrint) {
+          const printableWidth = 8.5 - config.pageMarginLeft - config.pageMarginRight;
+          const nativeHtml = `
+            <html>
+              <head>
+                <meta name="viewport" content="width=device-width,initial-scale=1" />
+                <style>
+                  html, body { margin: 0; padding: 0; background: white; width: ${printableWidth}in; }
+                  @page { margin: ${config.pageMarginTop}in ${config.pageMarginRight}in ${config.pageMarginBottom}in ${config.pageMarginLeft}in; size: letter portrait; }
+                  #print-area { display: block; width: ${printableWidth}in; margin: 0; padding: 0; }
+                  #print-area .ticket-copy {
+                    width: 100% !important;
+                    position: relative !important;
+                    overflow: hidden !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    border: none !important;
+                    background: white !important;
+                    page-break-inside: avoid !important;
+                  }
+                  #print-area .ticket-copy-inner {
+                    transform-origin: top center !important;
+                  }
+                  #print-area img {
+                    max-width: 100%;
+                    height: auto;
+                  }
+                </style>
+              </head>
+              <body><div id="print-area">${printArea.innerHTML}</div></body>
+            </html>
+          `;
+
+          await printNativeHtml(nativeHtml, ticket.jobNumber);
+          return;
+        }
+
+        window.print();
+      })
+      .catch((error) => {
+        const message = error instanceof Error ? error.message : "Printing failed";
+        toast.error(message);
+      })
+      .finally(() => {
+        setTimeout(() => {
+          const el = document.getElementById("print-area");
+          if (el) el.remove();
+          const s = document.getElementById("print-dynamic-style");
+          if (s) s.remove();
+        }, 300);
+      });
+  }, [copiesPerPage, canvasWidth, canvasHeight, layouts, ticket.jobNumber]);
 
   useEffect(() => {
     const onPrintRequest = () => handlePrint();
