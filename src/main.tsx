@@ -33,4 +33,11 @@ async function configureNativeShell() {
 
 void configureNativeShell();
 
-createRoot(document.getElementById("root")!).render(<App />);
+const root = createRoot(document.getElementById("root")!);
+root.render(<App />);
+
+window.requestAnimationFrame(() => {
+  window.setTimeout(() => {
+    document.getElementById("app-startup")?.remove();
+  }, 120);
+});

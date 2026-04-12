@@ -8,11 +8,12 @@ import { ThemeProvider } from "next-themes";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Loader2 } from "lucide-react";
+import companyLogo from "@/assets/Greenhillssupply_logo.png";
+import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 const Index = lazy(() => import("./pages/Index"));
-const Auth = lazy(() => import("./pages/Auth"));
-const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Settings = lazy(() => import("./pages/Settings"));
 const AuditLog = lazy(() => import("./pages/AuditLog"));
@@ -26,9 +27,16 @@ const Privacy = lazy(() => import("./pages/Privacy"));
 const Support = lazy(() => import("./pages/Support"));
 const MailReader = lazy(() => import("./features/mail-reader/MailReader"));
 
-const RouteLoader = () => (
-  <div className="min-h-screen flex items-center justify-center">
-    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+const AppSplash = () => (
+  <div className="min-h-screen flex items-center justify-center bg-[#f2f7f5] px-6 dark:bg-slate-950">
+    <div className="flex flex-col items-center gap-5 text-center">
+      <img
+        src={companyLogo}
+        alt="Ticket Creator"
+        className="w-full max-w-[240px] object-contain"
+      />
+      <Loader2 className="h-7 w-7 animate-spin text-slate-500 dark:text-slate-300" />
+    </div>
   </div>
 );
 
@@ -36,11 +44,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <AppSplash />;
   }
 
   if (!session) return <Navigate to="/auth" replace />;
@@ -52,11 +56,7 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAdminOrManager, loading: roleLoading } = useUserRole();
 
   if (authLoading || roleLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <AppSplash />;
   }
 
   if (!session) return <Navigate to="/auth" replace />;
@@ -69,11 +69,7 @@ const DeveloperRoute = ({ children }: { children: React.ReactNode }) => {
   const { isDeveloper, loading: roleLoading } = useUserRole();
 
   if (authLoading || roleLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <AppSplash />;
   }
 
   if (!session) return <Navigate to="/auth" replace />;
@@ -85,11 +81,7 @@ const AuthRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <AppSplash />;
   }
 
   if (session) return <Navigate to="/" replace />;
@@ -103,7 +95,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Suspense fallback={<RouteLoader />}>
+        <Suspense fallback={<AppSplash />}>
           <Routes>
             <Route path="/mail-reader" element={<MailReader />} />
             <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />

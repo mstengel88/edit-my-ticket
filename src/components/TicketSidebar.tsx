@@ -94,12 +94,12 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
 
         {/* Ticket list */}
         <ScrollArea className="flex-1">
-          <div className="p-2 space-y-1">
+          <div className="px-3 py-3 space-y-2">
             {filtered.map((ticket) => (
               <div
                 key={ticket.id}
                 onClick={() => onSelect(ticket)}
-                className={`group relative rounded-md border p-2.5 cursor-pointer transition-colors text-xs ${
+                className={`group relative rounded-md border px-3 py-3 cursor-pointer transition-colors text-xs ${
                   ticket.id === selectedId
                     ? "border-primary bg-primary/5"
                     : "border-transparent hover:bg-muted/50"
@@ -123,9 +123,9 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
                     <span className="text-muted-foreground ml-0.5">{ticket.totalUnit}</span>
                   </div>
                 </div>
-                <div className="flex items-center justify-between mt-1">
+                <div className="mt-1.5 flex items-center justify-between gap-3">
                   <span className="text-muted-foreground truncate">{ticket.product}</span>
-                    <div className="flex items-center gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                    <div className="mr-1 flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                      {ticket.status !== "completed" && onStatusChange && (
                        <Button
                          variant="ghost"
