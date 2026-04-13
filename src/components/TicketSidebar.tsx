@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Trash2, Search, Plus, Printer, Mail, CheckCircle2 } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 type StatusFilter = "all" | "draft" | "pending" | "sent" | "completed";
 
@@ -27,6 +26,12 @@ const statusDot: Record<TicketData["status"], string> = {
   pending: "bg-warning",
   sent: "bg-accent-foreground",
   completed: "bg-success",
+};
+
+const compactUnitLabel: Record<string, string> = {
+  Yardage: "Yds",
+  Ton: "Tons",
+  Gallons: "Gal",
 };
 
 export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, onPrint, onEmail, onStatusChange, readOnly }: TicketSidebarProps) {
@@ -54,9 +59,14 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
     );
   });
 
+  const getSidebarUnitLabel = (unit: string) => compactUnitLabel[unit] ?? unit;
+
   return (
     <>
-      <aside className="h-full w-[18rem] shrink-0 border-l bg-card xl:w-80 2xl:w-96 flex flex-col">
+      <aside
+        className="h-full w-[19rem] shrink-0 border-l bg-card xl:w-[21rem] 2xl:w-[23rem] flex flex-col overflow-hidden"
+        style={{ paddingRight: "max(0.75rem, var(--safe-area-right))" }}
+      >
         {/* Header */}
         <div className="px-3 py-3 border-b space-y-2">
           <div className="flex items-center justify-between">
@@ -93,8 +103,8 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
         </div>
 
         {/* Ticket list */}
-        <ScrollArea className="flex-1">
-          <div className="px-3 py-3 space-y-2">
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-3 py-3 pr-4 space-y-2">
             {filtered.map((ticket) => (
               <div
                 key={ticket.id}
@@ -105,7 +115,7 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
                     : "border-transparent hover:bg-muted/50"
                 }`}
               >
-                <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                       <span className={`h-2 w-2 rounded-full shrink-0 ${statusDot[ticket.status]}`} />
@@ -118,14 +128,16 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
                       )}
                     </p>
                   </div>
-                  <div className="text-right shrink-0">
-                    <span className="font-bold text-foreground tabular-nums">{ticket.totalAmount}</span>
-                    <span className="text-muted-foreground ml-0.5">{ticket.totalUnit}</span>
+                  <div className="mr-1 shrink-0 text-right min-w-[5.5rem]">
+                    <div className="whitespace-nowrap">
+                      <span className="font-bold text-foreground tabular-nums">{ticket.totalAmount}</span>
+                      <span className="ml-1 text-[10px] text-muted-foreground">{getSidebarUnitLabel(ticket.totalUnit)}</span>
+                    </div>
                   </div>
                 </div>
                 <div className="mt-1.5 flex items-center justify-between gap-3">
                   <span className="text-muted-foreground truncate">{ticket.product}</span>
-                    <div className="mr-1 flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                    <div className="mr-1 flex shrink-0 items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                      {ticket.status !== "completed" && onStatusChange && (
                        <Button
                          variant="ghost"
@@ -173,7 +185,7 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
               <p className="text-center text-xs text-muted-foreground py-6">No tickets found.</p>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </aside>
 
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>

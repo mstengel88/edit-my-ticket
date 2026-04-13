@@ -70,6 +70,9 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
   const location = useLocation();
   const useCompactLayout = isMobile || (isTablet && isPortrait);
   const currentTheme = theme === "dark" ? "dark" : "light";
+  const desktopShellInset = !useCompactLayout && !isPortrait
+    ? "max(12px, var(--safe-area-left), var(--safe-area-right))"
+    : undefined;
 
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -135,7 +138,17 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
   ];
 
   return (
-    <div className="safe-area-min-h safe-area-x flex w-full bg-background">
+    <div
+      className="safe-area-min-h safe-area-x flex w-full bg-background"
+      style={
+        desktopShellInset
+          ? {
+              paddingLeft: desktopShellInset,
+              paddingRight: desktopShellInset,
+            }
+          : undefined
+      }
+    >
       {/* Desktop Sidebar */}
       {!useCompactLayout && (
         <aside className="sticky top-0 h-screen w-56 shrink-0 border-r bg-card flex flex-col">

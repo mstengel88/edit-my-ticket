@@ -269,7 +269,7 @@ const Index = () => {
       <AppLayout title="Tickets" subtitle={subtitle} headerExtra={headerExtra}>
         <div className="flex h-[calc(100dvh-57px)] min-h-0">
           {/* Main content area */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="min-w-0 flex-1 overflow-y-auto">
             <div className="mx-auto w-full max-w-5xl p-4 md:p-6 xl:p-8">
               {view === "list" && !selectedTicket && (
                 <div className="flex min-h-[60vh] flex-col items-center justify-center py-20 text-center animate-fade-in">
