@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { TicketData } from "@/types/ticket";
 import { CanvasElement, DEFAULT_CANVAS_ELEMENTS, CANVAS_WIDTH, CANVAS_HEIGHT, TemplateField, PrintLayouts, DEFAULT_PRINT_LAYOUTS } from "@/types/template";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,6 @@ interface TicketPreviewProps {
 export function TicketPreview({ ticket, canvasElements, emailElements, copiesPerPage = 2, canvasWidth = CANVAS_WIDTH, canvasHeight = CANVAS_HEIGHT, printLayouts }: TicketPreviewProps) {
   const elements = canvasElements || DEFAULT_CANVAS_ELEMENTS;
   const [sending, setSending] = useState(false);
-  const printRef = useRef<HTMLDivElement>(null);
 
   const layouts = printLayouts || DEFAULT_PRINT_LAYOUTS;
 
@@ -102,63 +101,9 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
     styleEl.textContent = `@media print { @page { margin: ${config.pageMarginTop}in ${config.pageMarginRight}in ${config.pageMarginBottom}in ${config.pageMarginLeft}in; size: letter portrait; } }`;
     document.head.appendChild(styleEl);
 
-    let accumulatedTopPx = 0;
-    for (let i = 0; i < copiesPerPage; i++) {
-      const offset = config.ticketOffsets[i] || { x: 0, y: 0 };
-      const defaultW = (8.5 - config.pageMarginLeft - config.pageMarginRight);
-      const defaultH = (11 - config.pageMarginTop - config.pageMarginBottom) / copiesPerPage;
-      const size = config.ticketSizes?.[i] || { width: defaultW, height: defaultH };
-
-      const ticketWidthPx = size.width * printDpi;
-      const ticketHeightPx = size.height * printDpi;
-      const scale = Math.min(ticketWidthPx / canvasWidth, ticketHeightPx / canvasHeight);
-
-      const copy = document.createElement("div");
-      copy.className = "ticket-copy";
-      copy.style.height = `${ticketHeightPx}px`;
-      copy.style.width = `${ticketWidthPx}px`;
-      copy.style.display = "flex";
-      copy.style.justifyContent = "center";
-      copy.style.position = "relative";
-      copy.style.marginLeft = `${offset.x * printDpi}px`;
-      copy.style.marginTop = `${accumulatedTopPx + offset.y * printDpi}px`;
-
-      const inner = document.createElement("div");
-      inner.className = "ticket-copy-inner";
-      inner.style.position = "relative";
-      inner.style.width = `${canvasWidth}px`;
-      inner.style.height = `${canvasHeight}px`;
-      inner.style.transform = `scale(${scale})`;
-      inner.style.transformOrigin = "top left";
-
-      if (printRef.current) {
-        const source = printRef.current.querySelector(".ticket-copy-inner");
-        if (source) {
-          inner.innerHTML = source.innerHTML;
-        }
-      }
-
-      copy.appendChild(inner);
-      printArea.appendChild(copy);
-      accumulatedTopPx += ticketHeightPx;
-    }
-
-    document.body.appendChild(printArea);
-
-    const images = printArea.querySelectorAll("img");
-    const imagePromises = Array.from(images).map(
-      (img) =>
-        new Promise<void>((resolve) => {
-          if (img.complete) return resolve();
-          img.onload = () => resolve();
-          img.onerror = () => resolve();
-        })
-    );
-
-    Promise.all(imagePromises)
-      .then(async () => {
+    renderTicketToImage()
+      .then(async (imageDataUrl) => {
         if (nativePrint) {
-          const imageDataUrl = await renderTicketToImage();
           await printNativeTicketImage({
             imageDataUrl,
             jobName: ticket.jobNumber,
@@ -172,6 +117,61 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
           });
           return;
         }
+
+        let accumulatedTopPx = 0;
+        for (let i = 0; i < copiesPerPage; i++) {
+          const offset = config.ticketOffsets[i] || { x: 0, y: 0 };
+          const defaultW = 8.5 - config.pageMarginLeft - config.pageMarginRight;
+          const defaultH = (11 - config.pageMarginTop - config.pageMarginBottom) / copiesPerPage;
+          const size = config.ticketSizes?.[i] || { width: defaultW, height: defaultH };
+
+          const ticketWidthPx = size.width * printDpi;
+          const ticketHeightPx = size.height * printDpi;
+
+          const copy = document.createElement("div");
+          copy.className = "ticket-copy";
+          copy.style.width = `${ticketWidthPx}px`;
+          copy.style.height = `${ticketHeightPx}px`;
+          copy.style.position = "relative";
+          copy.style.marginLeft = `${offset.x * printDpi}px`;
+          copy.style.marginTop = `${accumulatedTopPx + offset.y * printDpi}px`;
+
+          const image = document.createElement("img");
+          image.src = imageDataUrl;
+          image.alt = `Ticket ${ticket.jobNumber}`;
+          image.style.display = "block";
+          image.style.width = "100%";
+          image.style.height = "100%";
+          image.style.objectFit = "contain";
+
+          copy.appendChild(image);
+          printArea.appendChild(copy);
+          accumulatedTopPx += ticketHeightPx;
+        }
+
+        document.body.appendChild(printArea);
+
+        await new Promise<void>((resolve) => {
+          const images = printArea.querySelectorAll("img");
+          if (!images.length) return resolve();
+
+          let remaining = images.length;
+          images.forEach((img) => {
+            if (img.complete) {
+              remaining -= 1;
+              if (remaining === 0) resolve();
+              return;
+            }
+
+            const finish = () => {
+              remaining -= 1;
+              if (remaining === 0) resolve();
+            };
+
+            img.onload = finish;
+            img.onerror = finish;
+          });
+        });
 
         window.print();
       })
@@ -187,7 +187,7 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
           if (s) s.remove();
         }, 300);
       });
-  }, [copiesPerPage, canvasWidth, canvasHeight, layouts, renderTicketToImage, ticket.jobNumber]);
+  }, [copiesPerPage, layouts, renderTicketToImage, ticket.jobNumber]);
 
   useEffect(() => {
     const onPrintRequest = () => handlePrint();
@@ -266,7 +266,7 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
   };
 
   return (
-    <div className="animate-fade-in" ref={printRef}>
+    <div className="animate-fade-in">
       <div className="flex justify-center gap-3 mb-6">
         <Button onClick={handlePrint} className="gap-1.5">
           <Printer className="h-4 w-4" /> Print Ticket
