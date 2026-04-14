@@ -81,25 +81,12 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
   }, [canvasHeight, canvasWidth, elements, ticket]);
 
   const handlePrint = useCallback(() => {
-    const existing = document.getElementById("print-area");
-    if (existing) existing.remove();
-
-    const printArea = document.createElement("div");
-    printArea.id = "print-area";
     const nativePrint = canUseNativePrint();
     const printDpi = 96;
 
     // Get layout config for current copies count
     const layoutKey = String(copiesPerPage) as "1" | "2" | "3";
     const config = layouts[layoutKey] || layouts["3"];
-
-    // Inject dynamic @page margins via a style tag
-    const styleEl = document.createElement("style");
-    styleEl.id = "print-dynamic-style";
-    const existingStyle = document.getElementById("print-dynamic-style");
-    if (existingStyle) existingStyle.remove();
-    styleEl.textContent = `@media print { @page { margin: ${config.pageMarginTop}in ${config.pageMarginRight}in ${config.pageMarginBottom}in ${config.pageMarginLeft}in; size: letter portrait; } }`;
-    document.head.appendChild(styleEl);
 
     renderTicketToImage()
       .then(async (imageDataUrl) => {
@@ -120,11 +107,7 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
 
         const printableWidthPx = (8.5 - config.pageMarginLeft - config.pageMarginRight) * printDpi;
         const printableHeightPx = (11 - config.pageMarginTop - config.pageMarginBottom) * printDpi;
-        const printSheet = document.createElement("div");
-        printSheet.className = "print-sheet";
-        printSheet.style.width = `${printableWidthPx}px`;
-        printSheet.style.height = `${printableHeightPx}px`;
-
+        const copiesHtml: string[] = [];
         let accumulatedTopPx = 0;
         for (let i = 0; i < copiesPerPage; i++) {
           const offset = config.ticketOffsets[i] || { x: 0, y: 0 };
@@ -134,66 +117,99 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
 
           const ticketWidthPx = size.width * printDpi;
           const ticketHeightPx = size.height * printDpi;
-
-          const copy = document.createElement("div");
-          copy.className = "ticket-copy";
-          copy.style.width = `${ticketWidthPx}px`;
-          copy.style.height = `${ticketHeightPx}px`;
-          copy.style.position = "absolute";
-          copy.style.left = `${offset.x * printDpi}px`;
-          copy.style.top = `${accumulatedTopPx + offset.y * printDpi}px`;
-
-          const image = document.createElement("img");
-          image.src = imageDataUrl;
-          image.alt = `Ticket ${ticket.jobNumber}`;
-          image.style.display = "block";
-          image.style.width = "100%";
-          image.style.height = "100%";
-          image.style.objectFit = "contain";
-
-          copy.appendChild(image);
-          printSheet.appendChild(copy);
+          copiesHtml.push(`
+            <div
+              class="ticket-copy"
+              style="
+                width:${ticketWidthPx}px;
+                height:${ticketHeightPx}px;
+                left:${offset.x * printDpi}px;
+                top:${accumulatedTopPx + offset.y * printDpi}px;
+              "
+            >
+              <img src="${imageDataUrl}" alt="Ticket ${ticket.jobNumber}" />
+            </div>
+          `);
           accumulatedTopPx += ticketHeightPx;
         }
 
-        printArea.appendChild(printSheet);
-        document.body.appendChild(printArea);
+        const printWindow = window.open("", "_blank", "noopener,noreferrer");
+        if (!printWindow) {
+          throw new Error("Safari blocked the print window. Please allow pop-ups and try again.");
+        }
 
-        await new Promise<void>((resolve) => {
-          const images = printArea.querySelectorAll("img");
-          if (!images.length) return resolve();
+        const html = `<!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="utf-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1" />
+              <title>Print Ticket ${ticket.jobNumber}</title>
+              <style>
+                @page {
+                  margin: ${config.pageMarginTop}in ${config.pageMarginRight}in ${config.pageMarginBottom}in ${config.pageMarginLeft}in;
+                  size: letter portrait;
+                }
 
-          let remaining = images.length;
-          images.forEach((img) => {
-            if (img.complete) {
-              remaining -= 1;
-              if (remaining === 0) resolve();
-              return;
-            }
+                html, body {
+                  margin: 0;
+                  padding: 0;
+                  background: #fff;
+                  -webkit-print-color-adjust: exact;
+                  print-color-adjust: exact;
+                }
 
-            const finish = () => {
-              remaining -= 1;
-              if (remaining === 0) resolve();
-            };
+                body {
+                  display: flex;
+                  justify-content: center;
+                }
 
-            img.onload = finish;
-            img.onerror = finish;
-          });
-        });
+                .print-sheet {
+                  position: relative;
+                  width: ${printableWidthPx}px;
+                  height: ${printableHeightPx}px;
+                  overflow: hidden;
+                  background: #fff;
+                }
 
-        window.print();
+                .ticket-copy {
+                  position: absolute;
+                  overflow: hidden;
+                }
+
+                .ticket-copy img {
+                  display: block;
+                  width: 100%;
+                  height: 100%;
+                  object-fit: contain;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="print-sheet">
+                ${copiesHtml.join("")}
+              </div>
+              <script>
+                const images = Array.from(document.images);
+                Promise.all(images.map((img) => img.complete ? Promise.resolve() : new Promise((resolve) => {
+                  img.onload = resolve;
+                  img.onerror = resolve;
+                }))).then(() => {
+                  setTimeout(() => {
+                    window.focus();
+                    window.print();
+                  }, 150);
+                });
+              </script>
+            </body>
+          </html>`;
+
+        printWindow.document.open();
+        printWindow.document.write(html);
+        printWindow.document.close();
       })
       .catch((error) => {
         const message = error instanceof Error ? error.message : "Printing failed";
         toast.error(message);
-      })
-      .finally(() => {
-        setTimeout(() => {
-          const el = document.getElementById("print-area");
-          if (el) el.remove();
-          const s = document.getElementById("print-dynamic-style");
-          if (s) s.remove();
-        }, 300);
       });
   }, [copiesPerPage, layouts, renderTicketToImage, ticket.jobNumber]);
 
