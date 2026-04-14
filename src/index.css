@@ -209,7 +209,9 @@
 
   /* Show only the print container */
   #print-area {
-    display: block !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: flex-start !important;
     position: static !important;
     width: 100% !important;
     z-index: 99999 !important;
@@ -218,18 +220,23 @@
     padding: 0 !important;
   }
 
-  #print-area .ticket-copy {
-    width: 100% !important;
+  #print-area .print-sheet {
     position: relative !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  #print-area .ticket-copy {
+    position: absolute !important;
     overflow: hidden !important;
     margin: 0 !important;
     padding: 0 !important;
     border: none !important;
     background: white !important;
     page-break-inside: avoid !important;
-  }
-
-  #print-area .ticket-copy-inner {
-    transform-origin: top center !important;
   }
 }

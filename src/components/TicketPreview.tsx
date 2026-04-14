@@ -118,6 +118,13 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
           return;
         }
 
+        const printableWidthPx = (8.5 - config.pageMarginLeft - config.pageMarginRight) * printDpi;
+        const printableHeightPx = (11 - config.pageMarginTop - config.pageMarginBottom) * printDpi;
+        const printSheet = document.createElement("div");
+        printSheet.className = "print-sheet";
+        printSheet.style.width = `${printableWidthPx}px`;
+        printSheet.style.height = `${printableHeightPx}px`;
+
         let accumulatedTopPx = 0;
         for (let i = 0; i < copiesPerPage; i++) {
           const offset = config.ticketOffsets[i] || { x: 0, y: 0 };
@@ -132,9 +139,9 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
           copy.className = "ticket-copy";
           copy.style.width = `${ticketWidthPx}px`;
           copy.style.height = `${ticketHeightPx}px`;
-          copy.style.position = "relative";
-          copy.style.marginLeft = `${offset.x * printDpi}px`;
-          copy.style.marginTop = `${accumulatedTopPx + offset.y * printDpi}px`;
+          copy.style.position = "absolute";
+          copy.style.left = `${offset.x * printDpi}px`;
+          copy.style.top = `${accumulatedTopPx + offset.y * printDpi}px`;
 
           const image = document.createElement("img");
           image.src = imageDataUrl;
@@ -145,10 +152,11 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
           image.style.objectFit = "contain";
 
           copy.appendChild(image);
-          printArea.appendChild(copy);
+          printSheet.appendChild(copy);
           accumulatedTopPx += ticketHeightPx;
         }
 
+        printArea.appendChild(printSheet);
         document.body.appendChild(printArea);
 
         await new Promise<void>((resolve) => {
