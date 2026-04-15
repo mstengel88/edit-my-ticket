@@ -133,9 +133,26 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
           accumulatedTopPx += ticketHeightPx;
         }
 
-        const printWindow = window.open("", "_blank", "noopener,noreferrer");
-        if (!printWindow) {
-          throw new Error("Safari blocked the print window. Please allow pop-ups and try again.");
+        const existingFrame = document.getElementById("ticket-print-frame");
+        if (existingFrame) existingFrame.remove();
+
+        const printFrame = document.createElement("iframe");
+        printFrame.id = "ticket-print-frame";
+        printFrame.setAttribute("aria-hidden", "true");
+        printFrame.style.position = "fixed";
+        printFrame.style.right = "0";
+        printFrame.style.bottom = "0";
+        printFrame.style.width = "0";
+        printFrame.style.height = "0";
+        printFrame.style.border = "0";
+        printFrame.style.opacity = "0";
+        document.body.appendChild(printFrame);
+
+        const frameWindow = printFrame.contentWindow;
+        const frameDocument = printFrame.contentDocument;
+        if (!frameWindow || !frameDocument) {
+          printFrame.remove();
+          throw new Error("Unable to start Safari print preview");
         }
 
         const html = `<!DOCTYPE html>
@@ -203,9 +220,19 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
             </body>
           </html>`;
 
-        printWindow.document.open();
-        printWindow.document.write(html);
-        printWindow.document.close();
+        frameDocument.open();
+        frameDocument.write(html);
+        frameDocument.close();
+
+        frameWindow.addEventListener(
+          "afterprint",
+          () => {
+            window.setTimeout(() => {
+              printFrame.remove();
+            }, 250);
+          },
+          { once: true }
+        );
       })
       .catch((error) => {
         const message = error instanceof Error ? error.message : "Printing failed";
