@@ -155,13 +155,31 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
           pdf.autoPrint();
         }
 
+        const pdfBlob = pdf.output("blob");
+
         const blobUrl = pdf.output("bloburl");
         if (isIosSafariWeb()) {
+          const pdfFile = new File([pdfBlob], `ticket-${ticket.jobNumber}.pdf`, {
+            type: "application/pdf",
+          });
+
+          if (
+            typeof navigator !== "undefined" &&
+            "share" in navigator &&
+            (!("canShare" in navigator) || navigator.canShare?.({ files: [pdfFile] }))
+          ) {
+            await navigator.share({
+              title: `Ticket ${ticket.jobNumber}`,
+              files: [pdfFile],
+            });
+            return;
+          }
+
           const popup = window.open(blobUrl, "_blank", "noopener,noreferrer");
           if (!popup) {
             window.location.href = blobUrl;
           }
-          toast.info("Safari opened a PDF version of the ticket. Use Share or Print from that PDF screen.");
+          toast.info("Use Safari's Share button on the PDF screen, then choose Print.");
           return;
         }
 
