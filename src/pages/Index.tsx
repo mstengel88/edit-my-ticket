@@ -18,6 +18,7 @@ import { useTicketTemplate } from "@/hooks/useTicketTemplate";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AppLayout } from "@/components/AppLayout";
 import companyLogo from "@/assets/Greenhillssupply_logo.png";
+import { useLocation, useNavigate } from "react-router-dom";
 
 type View = "list" | "editor" | "preview";
 
@@ -25,6 +26,8 @@ const Index = () => {
   const { tickets, loading, error, fetchData, loadFromDb } = useLoadriteData();
   const { signOut, session } = useAuth();
   const { isAdminOrManager } = useUserRole();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { fields: templateFields, canvasElements, reportFields, copiesPerPage, canvasWidth, canvasHeight, emailElements, reportEmailConfig, printLayouts } = useTicketTemplate();
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
@@ -35,6 +38,18 @@ const Index = () => {
 
   useEffect(() => { if (session) loadFromDb(); }, [loadFromDb, session]);
   useEffect(() => { if (error) toast.error(error); }, [error]);
+  useEffect(() => {
+    const requestedTicketId = location.state?.openTicketId as string | undefined;
+    if (!requestedTicketId || loading) return;
+
+    const requestedTicket = tickets.find((ticket) => ticket.id === requestedTicketId);
+    if (!requestedTicket) return;
+
+    setSelectedTicket({ ...requestedTicket });
+    setView(isAdminOrManager ? "editor" : "preview");
+    setActiveTab("tickets");
+    navigate(location.pathname, { replace: true, state: null });
+  }, [isAdminOrManager, loading, location.pathname, location.state, navigate, tickets]);
   useEffect(() => {
     if (!pendingPrint || view !== "preview" || !selectedTicket) return;
 
