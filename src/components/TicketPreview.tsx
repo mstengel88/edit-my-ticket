@@ -92,9 +92,59 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
     return canvas.toDataURL("image/png");
   }, [canvasHeight, canvasWidth, elements, ticket]);
 
+  const renderPrintSheetToImage = useCallback(
+    async (ticketImageDataUrl: string, copiesCount: number, config: PrintLayouts["1"]) => {
+      const pageDpi = 144;
+      const pageWidthPx = Math.round(8.5 * pageDpi);
+      const pageHeightPx = Math.round(11 * pageDpi);
+      const pageCanvas = document.createElement("canvas");
+      pageCanvas.width = pageWidthPx;
+      pageCanvas.height = pageHeightPx;
+
+      const ctx = pageCanvas.getContext("2d");
+      if (!ctx) throw new Error("Unable to create print sheet canvas");
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, pageWidthPx, pageHeightPx);
+
+      const ticketImage = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = () => reject(new Error("Unable to load ticket image"));
+        image.src = ticketImageDataUrl;
+      });
+
+      const marginTopPx = config.pageMarginTop * pageDpi;
+      const marginRightPx = config.pageMarginRight * pageDpi;
+      const marginBottomPx = config.pageMarginBottom * pageDpi;
+      const marginLeftPx = config.pageMarginLeft * pageDpi;
+      const printableWidthPx = pageWidthPx - marginLeftPx - marginRightPx;
+      const printableHeightPx = pageHeightPx - marginTopPx - marginBottomPx;
+
+      let currentY = marginTopPx;
+      for (let i = 0; i < copiesCount; i++) {
+        const offset = config.ticketOffsets[i] || { x: 0, y: 0 };
+        const size = config.ticketSizes?.[i] || {
+          width: printableWidthPx / pageDpi,
+          height: printableHeightPx / pageDpi / copiesCount,
+        };
+
+        const targetX = marginLeftPx + offset.x * pageDpi;
+        const targetY = currentY + offset.y * pageDpi;
+        const targetWidth = size.width * pageDpi;
+        const targetHeight = size.height * pageDpi;
+
+        ctx.drawImage(ticketImage, targetX, targetY, targetWidth, targetHeight);
+        currentY += targetHeight;
+      }
+
+      return pageCanvas.toDataURL("image/png");
+    },
+    []
+  );
+
   const handlePrint = useCallback(() => {
     const nativePrint = canUseNativePrint();
-    const printDpi = 96;
 
     // Get layout config for current copies count
     const layoutKey = String(copiesPerPage) as "1" | "2" | "3";
@@ -123,28 +173,9 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
           format: "letter",
           compress: true,
         });
+        const printSheetImageDataUrl = await renderPrintSheetToImage(imageDataUrl, copiesPerPage, config);
 
-        let accumulatedTopPx = 0;
-        for (let i = 0; i < copiesPerPage; i++) {
-          const offset = config.ticketOffsets[i] || { x: 0, y: 0 };
-          const defaultW = 8.5 - config.pageMarginLeft - config.pageMarginRight;
-          const defaultH = (11 - config.pageMarginTop - config.pageMarginBottom) / copiesPerPage;
-          const size = config.ticketSizes?.[i] || { width: defaultW, height: defaultH };
-          const ticketHeightPx = size.height * printDpi;
-
-          pdf.addImage(
-            imageDataUrl,
-            "PNG",
-            config.pageMarginLeft + offset.x,
-            config.pageMarginTop + offset.y + accumulatedTopPx / printDpi,
-            size.width,
-            size.height,
-            undefined,
-            "FAST"
-          );
-
-          accumulatedTopPx += ticketHeightPx;
-        }
+        pdf.addImage(printSheetImageDataUrl, "PNG", 0, 0, 8.5, 11, undefined, "FAST");
 
         pdf.setProperties({
           title: `Ticket ${ticket.jobNumber}`,
@@ -231,7 +262,7 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
         const message = error instanceof Error ? error.message : "Printing failed";
         toast.error(message);
       });
-  }, [copiesPerPage, isIosSafariWeb, layouts, renderTicketToImage, ticket.jobNumber]);
+  }, [copiesPerPage, isIosSafariWeb, layouts, renderPrintSheetToImage, renderTicketToImage, ticket.jobNumber]);
 
   useEffect(() => {
     const onPrintRequest = () => handlePrint();
