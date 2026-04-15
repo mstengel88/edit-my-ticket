@@ -26,6 +26,17 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
 
   const layouts = printLayouts || DEFAULT_PRINT_LAYOUTS;
 
+  const isIosSafariWeb = useCallback(() => {
+    if (canUseNativePrint()) return false;
+
+    const ua = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && "ontouchend" in document);
+    const isWebKit = /WebKit/.test(ua);
+    const isExcludedBrowser = /CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+
+    return isIOS && isWebKit && !isExcludedBrowser;
+  }, []);
+
   const renderTicketToImage = useCallback(async () => {
     const canvas = document.createElement("canvas");
     canvas.width = canvasWidth;
@@ -139,9 +150,21 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
           title: `Ticket ${ticket.jobNumber}`,
           subject: `Ticket ${ticket.jobNumber}`,
         });
-        pdf.autoPrint();
+
+        if (!isIosSafariWeb()) {
+          pdf.autoPrint();
+        }
 
         const blobUrl = pdf.output("bloburl");
+        if (isIosSafariWeb()) {
+          const popup = window.open(blobUrl, "_blank", "noopener,noreferrer");
+          if (!popup) {
+            window.location.href = blobUrl;
+          }
+          toast.info("Safari opened a PDF version of the ticket. Use Share or Print from that PDF screen.");
+          return;
+        }
+
         const existingFrame = document.getElementById("ticket-print-frame");
         if (existingFrame) existingFrame.remove();
 
@@ -190,7 +213,7 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
         const message = error instanceof Error ? error.message : "Printing failed";
         toast.error(message);
       });
-  }, [copiesPerPage, layouts, renderTicketToImage, ticket.jobNumber]);
+  }, [copiesPerPage, isIosSafariWeb, layouts, renderTicketToImage, ticket.jobNumber]);
 
   useEffect(() => {
     const onPrintRequest = () => handlePrint();
