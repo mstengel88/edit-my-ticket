@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { getProducts, LoadriteProduct } from "@/services/loadrite";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { normalizeTruckName } from "@/lib/truckName";
 
 interface LookupData {
   products: string[];
@@ -93,7 +94,7 @@ export function useTicketLookups(): LookupData {
       const custs = (customerRows || []).map((r) => r.name);
       const emailMap: Record<string, string> = {};
       (customerRows || []).forEach((r) => { if (r.email) emailMap[r.name] = r.email; });
-      const trks = (truckRows || []).map((r) => r.name);
+      const trks = uniqueSorted((truckRows || []).map((r) => normalizeTruckName(r.name)));
 
       setProducts(prods);
       setCustomers(custs);
@@ -162,8 +163,8 @@ export function useTicketLookups(): LookupData {
             const uniqueTruckNames = [
               ...new Set(
                 tickets
-                  .map((t) => t.truck)
-                  .filter((t) => t && t.trim() && t !== "-" && t !== "NOT SPECIFIED")
+                  .map((t) => normalizeTruckName(t.truck))
+                  .filter((t) => t && t !== "-" && t !== "NOT SPECIFIED")
               ),
             ];
             const truckRows = uniqueTruckNames.map((name) => ({ name, user_id: userId }));

@@ -27,6 +27,7 @@ import {
   Settings,
   ShieldCheck,
   Sun,
+  Truck,
   Users,
   FileText,
 } from "lucide-react";
@@ -46,6 +47,7 @@ const managerNavItems = [
   { label: "Reports", icon: BarChart3, href: "/reports" },
   { label: "Customers", icon: Users, href: "/customers" },
   { label: "Products", icon: Package, href: "/products" },
+  { label: "Trucks", icon: Truck, href: "/trucks" },
   { label: "Feedback", icon: MessageSquarePlus, href: "/feedback" },
 ];
 
