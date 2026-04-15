@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import companyLogo from "@/assets/Greenhillssupply_logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { canUseNativePrint, printTicketImage as printNativeTicketImage } from "@/lib/nativePrint";
+import { jsPDF } from "jspdf";
 
 interface TicketPreviewProps {
   ticket: TicketData;
@@ -105,34 +106,42 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
           return;
         }
 
-        const printableWidthPx = (8.5 - config.pageMarginLeft - config.pageMarginRight) * printDpi;
-        const printableHeightPx = (11 - config.pageMarginTop - config.pageMarginBottom) * printDpi;
-        const copiesHtml: string[] = [];
+        const pdf = new jsPDF({
+          orientation: "portrait",
+          unit: "in",
+          format: "letter",
+          compress: true,
+        });
+
         let accumulatedTopPx = 0;
         for (let i = 0; i < copiesPerPage; i++) {
           const offset = config.ticketOffsets[i] || { x: 0, y: 0 };
           const defaultW = 8.5 - config.pageMarginLeft - config.pageMarginRight;
           const defaultH = (11 - config.pageMarginTop - config.pageMarginBottom) / copiesPerPage;
           const size = config.ticketSizes?.[i] || { width: defaultW, height: defaultH };
-
-          const ticketWidthPx = size.width * printDpi;
           const ticketHeightPx = size.height * printDpi;
-          copiesHtml.push(`
-            <div
-              class="ticket-copy"
-              style="
-                width:${ticketWidthPx}px;
-                height:${ticketHeightPx}px;
-                left:${offset.x * printDpi}px;
-                top:${accumulatedTopPx + offset.y * printDpi}px;
-              "
-            >
-              <img src="${imageDataUrl}" alt="Ticket ${ticket.jobNumber}" />
-            </div>
-          `);
+
+          pdf.addImage(
+            imageDataUrl,
+            "PNG",
+            config.pageMarginLeft + offset.x,
+            config.pageMarginTop + offset.y + accumulatedTopPx / printDpi,
+            size.width,
+            size.height,
+            undefined,
+            "FAST"
+          );
+
           accumulatedTopPx += ticketHeightPx;
         }
 
+        pdf.setProperties({
+          title: `Ticket ${ticket.jobNumber}`,
+          subject: `Ticket ${ticket.jobNumber}`,
+        });
+        pdf.autoPrint();
+
+        const blobUrl = pdf.output("bloburl");
         const existingFrame = document.getElementById("ticket-print-frame");
         if (existingFrame) existingFrame.remove();
 
@@ -149,87 +158,30 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
         document.body.appendChild(printFrame);
 
         const frameWindow = printFrame.contentWindow;
-        const frameDocument = printFrame.contentDocument;
-        if (!frameWindow || !frameDocument) {
+        if (!frameWindow) {
           printFrame.remove();
           throw new Error("Unable to start Safari print preview");
         }
-
-        const html = `<!DOCTYPE html>
-          <html>
-            <head>
-              <meta charset="utf-8" />
-              <meta name="viewport" content="width=device-width, initial-scale=1" />
-              <title>Print Ticket ${ticket.jobNumber}</title>
-              <style>
-                @page {
-                  margin: ${config.pageMarginTop}in ${config.pageMarginRight}in ${config.pageMarginBottom}in ${config.pageMarginLeft}in;
-                  size: letter portrait;
-                }
-
-                html, body {
-                  margin: 0;
-                  padding: 0;
-                  background: #fff;
-                  -webkit-print-color-adjust: exact;
-                  print-color-adjust: exact;
-                }
-
-                body {
-                  display: flex;
-                  justify-content: center;
-                }
-
-                .print-sheet {
-                  position: relative;
-                  width: ${printableWidthPx}px;
-                  height: ${printableHeightPx}px;
-                  overflow: hidden;
-                  background: #fff;
-                }
-
-                .ticket-copy {
-                  position: absolute;
-                  overflow: hidden;
-                }
-
-                .ticket-copy img {
-                  display: block;
-                  width: 100%;
-                  height: 100%;
-                  object-fit: contain;
-                }
-              </style>
-            </head>
-            <body>
-              <div class="print-sheet">
-                ${copiesHtml.join("")}
-              </div>
-              <script>
-                const images = Array.from(document.images);
-                Promise.all(images.map((img) => img.complete ? Promise.resolve() : new Promise((resolve) => {
-                  img.onload = resolve;
-                  img.onerror = resolve;
-                }))).then(() => {
-                  setTimeout(() => {
-                    window.focus();
-                    window.print();
-                  }, 150);
-                });
-              </script>
-            </body>
-          </html>`;
-
-        frameDocument.open();
-        frameDocument.write(html);
-        frameDocument.close();
+        printFrame.src = blobUrl;
 
         frameWindow.addEventListener(
           "afterprint",
           () => {
             window.setTimeout(() => {
+              URL.revokeObjectURL(blobUrl);
               printFrame.remove();
             }, 250);
+          },
+          { once: true }
+        );
+
+        printFrame.addEventListener(
+          "load",
+          () => {
+            window.setTimeout(() => {
+              frameWindow.focus();
+              frameWindow.print();
+            }, 300);
           },
           { once: true }
         );
