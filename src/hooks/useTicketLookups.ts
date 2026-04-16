@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { getProducts, LoadriteProduct } from "@/services/loadrite";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { normalizeTruckName } from "@/lib/truckName";
+import { isStandardTruckName, normalizeTruckName } from "@/lib/truckName";
 
 interface LookupData {
   products: string[];
@@ -164,7 +164,7 @@ export function useTicketLookups(): LookupData {
               ...new Set(
                 tickets
                   .map((t) => normalizeTruckName(t.truck))
-                  .filter((t) => t && t !== "-" && t !== "NOT SPECIFIED")
+                  .filter((t) => t && t !== "-" && t !== "NOT SPECIFIED" && isStandardTruckName(t))
               ),
             ];
             const truckRows = uniqueTruckNames.map((name) => ({ name, user_id: userId }));

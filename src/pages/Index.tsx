@@ -19,7 +19,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AppLayout } from "@/components/AppLayout";
 import companyLogo from "@/assets/Greenhillssupply_logo.png";
 import { useLocation, useNavigate } from "react-router-dom";
-import { normalizeTruckName } from "@/lib/truckName";
+import { isStandardTruckName, normalizeTruckName } from "@/lib/truckName";
 
 type View = "list" | "editor" | "preview";
 
@@ -163,7 +163,12 @@ const Index = () => {
           );
       }
       const normalizedTruck = normalizeTruckName(updated.truck);
-      if (normalizedTruck && normalizedTruck !== "-" && normalizedTruck !== "NOT SPECIFIED") {
+      if (
+        normalizedTruck &&
+        normalizedTruck !== "-" &&
+        normalizedTruck !== "NOT SPECIFIED" &&
+        isStandardTruckName(normalizedTruck)
+      ) {
         await supabase
           .from("trucks")
           .upsert(

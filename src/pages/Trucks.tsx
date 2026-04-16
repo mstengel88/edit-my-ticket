@@ -12,7 +12,7 @@ import { Plus, Pencil, Trash2, Search, Loader2, AlertTriangle } from "lucide-rea
 import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
 import { useIsMobile, useIsTablet } from "@/hooks/use-mobile";
-import { normalizeTruckName, truckNameKey } from "@/lib/truckName";
+import { isStandardTruckName, normalizeTruckName, truckNameKey } from "@/lib/truckName";
 
 interface Truck {
   id: string;
@@ -78,6 +78,9 @@ const Trucks = () => {
     const normalizedName = normalizeTruckName(form.name);
     if (!userId) return;
     if (!normalizedName) return toast.error("Truck name is required");
+    if (!isStandardTruckName(normalizedName)) {
+      return toast.error('Truck names must use the format "GREENHILLS-TRUCKNUMBER"');
+    }
 
     const duplicate = trucks.find(
       (truck) => truck.id !== editing?.id && truckNameKey(truck.name) === truckNameKey(normalizedName)
@@ -243,7 +246,14 @@ const Trucks = () => {
           <div className="space-y-4 py-2">
             <div>
               <Label className="text-xs text-muted-foreground">Name *</Label>
-              <Input value={form.name} onChange={(e) => setForm({ name: e.target.value })} placeholder="Truck name" />
+              <Input
+                value={form.name}
+                onChange={(e) => setForm({ name: e.target.value })}
+                placeholder="GREENHILLS-101"
+              />
+              <p className="mt-2 text-xs text-muted-foreground">
+                New truck names must start with <span className="font-medium">GREENHILLS-</span>.
+              </p>
             </div>
           </div>
           <DialogFooter>
