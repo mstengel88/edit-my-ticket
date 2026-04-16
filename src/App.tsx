@@ -65,6 +65,19 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const TemplateAdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { session, loading: authLoading } = useAuth();
+  const { isAdmin, loading: roleLoading } = useUserRole();
+
+  if (authLoading || roleLoading) {
+    return <AppSplash />;
+  }
+
+  if (!session) return <Navigate to="/auth" replace />;
+  if (!isAdmin) return <Navigate to="/" replace />;
+  return <>{children}</>;
+};
+
 const DeveloperRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, loading: authLoading } = useAuth();
   const { isDeveloper, loading: roleLoading } = useUserRole();
@@ -104,7 +117,7 @@ const App = () => (
             <Route path="/support" element={<Support />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/settings" element={<AdminRoute><Settings /></AdminRoute>} />
+            <Route path="/settings" element={<TemplateAdminRoute><Settings /></TemplateAdminRoute>} />
             <Route path="/audit-log" element={<AdminRoute><AuditLog /></AdminRoute>} />
             <Route path="/admin" element={<DeveloperRoute><Admin /></DeveloperRoute>} />
             <Route path="/customers" element={<AdminRoute><Customers /></AdminRoute>} />

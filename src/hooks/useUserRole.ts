@@ -64,7 +64,8 @@ export const useUserRole = () => {
 
   const isAdminOrManager = role === "admin" || role === "manager" || role === "developer";
   const isDeveloper = role === "developer";
+  const isAdmin = role === "admin" || role === "developer";
   const isReadOnlyUser = role === "user";
 
-  return { role, loading, isAdminOrManager, isDeveloper, isReadOnlyUser };
+  return { role, loading, isAdminOrManager, isAdmin, isDeveloper, isReadOnlyUser };
 };

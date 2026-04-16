@@ -10,6 +10,8 @@ import {
   PrintLayouts, DEFAULT_PRINT_LAYOUTS,
 } from "@/types/template";
 
+const SHARED_TEMPLATE_NAME = "Global Print Template";
+
 export function useTicketTemplate() {
   const { session } = useAuth();
   const [fields, setFields] = useState<TemplateField[]>(DEFAULT_TEMPLATE_FIELDS);
@@ -53,7 +55,7 @@ export function useTicketTemplate() {
     const { data, error } = await supabase
       .from("ticket_templates")
       .select("*")
-      .eq("user_id", session.user.id)
+      .eq("name", SHARED_TEMPLATE_NAME)
       .order("updated_at", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(1)
@@ -156,7 +158,7 @@ export function useTicketTemplate() {
         const { data: existingTemplate } = await supabase
           .from("ticket_templates")
           .select("id")
-          .eq("user_id", session.user.id)
+          .eq("name", SHARED_TEMPLATE_NAME)
           .order("updated_at", { ascending: false })
           .order("created_at", { ascending: false })
           .limit(1)
@@ -179,11 +181,11 @@ export function useTicketTemplate() {
           .from("ticket_templates")
           .update({ layout: layoutData as any })
           .eq("id", activeTemplateId)
-          .eq("user_id", session.user.id);
+          .eq("name", SHARED_TEMPLATE_NAME);
       } else {
         const { data } = await supabase
           .from("ticket_templates")
-          .insert({ user_id: session.user.id, layout: layoutData as any })
+          .insert({ user_id: session.user.id, name: SHARED_TEMPLATE_NAME, layout: layoutData as any })
           .select("id")
           .single();
         if (data) setTemplateId(data.id);

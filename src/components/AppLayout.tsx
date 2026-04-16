@@ -63,7 +63,7 @@ const developerItems = [
 
 export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutProps) {
   const { signOut, session } = useAuth();
-  const { isAdminOrManager, role } = useUserRole();
+  const { isAdminOrManager, isAdmin, role } = useUserRole();
   const { theme, setTheme } = useTheme();
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
@@ -135,7 +135,7 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
 
   const allNav = [
     ...navItems,
-    ...(isAdminOrManager ? adminItems : []),
+    ...(isAdmin ? adminItems : []),
     ...(role === "developer" ? developerItems : []),
   ];
 
@@ -172,7 +172,7 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
               </NavLink>
             ))}
 
-            {isAdminOrManager && (
+            {isAdmin && (
               <>
                 <div className="pt-3 pb-1 px-3">
                   <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Management</span>
