@@ -38,13 +38,15 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
   }, []);
 
   const renderTicketToImage = useCallback(async () => {
+    const printScale = 3;
     const canvas = document.createElement("canvas");
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
+    canvas.width = canvasWidth * printScale;
+    canvas.height = canvasHeight * printScale;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Unable to create print canvas");
 
+    ctx.scale(printScale, printScale);
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
     ctx.textBaseline = "top";
@@ -67,8 +69,8 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
       }
 
       if (el.type === "divider") {
-        ctx.strokeStyle = "rgba(0, 0, 0, 0.3)";
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.45)";
+        ctx.lineWidth = 1.2;
         const y = el.y + el.height / 2;
         ctx.beginPath();
         ctx.moveTo(el.x, y);
@@ -94,7 +96,7 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
 
   const renderPrintSheetToImage = useCallback(
     async (ticketImageDataUrl: string, copiesCount: number, config: PrintLayouts["1"]) => {
-      const pageDpi = 144;
+      const pageDpi = 300;
       const pageWidthPx = Math.round(8.5 * pageDpi);
       const pageHeightPx = Math.round(11 * pageDpi);
       const pageCanvas = document.createElement("canvas");
@@ -318,7 +320,7 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
       return <img src={companyLogo} alt={ticket.companyName} className="h-full w-auto object-contain" />;
     }
     if (el.type === "divider") {
-      return <div className="w-full border-t border-black/30" style={{ marginTop: el.height / 2 }} />;
+      return <div className="w-full border-t border-black/45" style={{ marginTop: el.height / 2 }} />;
     }
     if (el.type === "label") {
       return (

@@ -17,6 +17,7 @@ import {
   Download,
   Upload,
   Mail,
+  Printer,
   MapPin,
   UserRound,
   FileText,
@@ -26,7 +27,11 @@ import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useIsMobile, useIsTablet } from "@/hooks/use-mobile";
-import { useNavigate } from "react-router-dom";
+import { TicketEditor } from "@/components/TicketEditor";
+import { TicketPreview } from "@/components/TicketPreview";
+import { useTicketTemplate } from "@/hooks/useTicketTemplate";
+import { TicketData } from "@/types/ticket";
+import companyLogo from "@/assets/Greenhillssupply_logo.png";
 
 interface Customer {
   id: string;
@@ -36,6 +41,11 @@ interface Customer {
 
 interface CustomerTicket {
   id: string;
+  bucket: string;
+  company_email: string;
+  company_name: string;
+  company_phone: string;
+  company_website: string;
   job_number: string;
   job_name: string;
   date_time: string;
@@ -49,6 +59,8 @@ interface CustomerTicket {
   customer_email: string;
   customer_address: string;
   customer_name: string;
+  customer: string;
+  signature: string;
 }
 
 const statusBadgeVariant = (status: string): "default" | "secondary" | "outline" => {
@@ -60,7 +72,7 @@ const statusBadgeVariant = (status: string): "default" | "secondary" | "outline"
 const Customers = () => {
   const { session } = useAuth();
   const { isDeveloper } = useUserRole();
-  const navigate = useNavigate();
+  const { fields: templateFields, canvasElements, copiesPerPage, canvasWidth, canvasHeight, emailElements, printLayouts } = useTicketTemplate();
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
   const useCompactActions = isMobile || isTablet;
@@ -76,6 +88,32 @@ const Customers = () => {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [customerTickets, setCustomerTickets] = useState<CustomerTicket[]>([]);
   const [ticketsLoading, setTicketsLoading] = useState(false);
+  const [editingTicket, setEditingTicket] = useState<TicketData | null>(null);
+  const [printTicket, setPrintTicket] = useState<TicketData | null>(null);
+  const [pendingPrint, setPendingPrint] = useState(false);
+
+  const mapTicket = (ticket: CustomerTicket): TicketData => ({
+    id: ticket.id,
+    jobNumber: ticket.job_number,
+    jobName: ticket.job_name,
+    dateTime: ticket.date_time,
+    companyName: ticket.company_name,
+    companyEmail: ticket.company_email,
+    companyWebsite: ticket.company_website,
+    companyPhone: ticket.company_phone,
+    totalAmount: ticket.total_amount,
+    totalUnit: ticket.total_unit,
+    customer: ticket.customer,
+    product: ticket.product,
+    truck: ticket.truck,
+    note: ticket.note,
+    bucket: ticket.bucket,
+    customerName: ticket.customer_name,
+    customerEmail: ticket.customer_email,
+    customerAddress: ticket.customer_address,
+    signature: ticket.signature,
+    status: ticket.status as TicketData["status"],
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -117,7 +155,7 @@ const Customers = () => {
     setTicketsLoading(true);
     const { data, error } = await supabase
       .from("tickets")
-      .select("id, job_number, job_name, date_time, created_at, product, total_amount, total_unit, status, truck, note, customer_email, customer_address, customer_name")
+      .select("*")
       .eq("customer", customerName)
       .order("created_at", { ascending: false });
 
@@ -140,6 +178,17 @@ const Customers = () => {
 
     loadCustomerTickets(selectedCustomer.name);
   }, [loadCustomerTickets, selectedCustomer?.name]);
+
+  useEffect(() => {
+    if (!pendingPrint || !printTicket) return;
+
+    const timeout = window.setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("ticket-print-request"));
+      setPendingPrint(false);
+    }, 50);
+
+    return () => window.clearTimeout(timeout);
+  }, [pendingPrint, printTicket]);
 
   const handleSync = async () => {
     const userId = session?.user?.id;
@@ -282,8 +331,89 @@ const Customers = () => {
   const completedCount = customerTickets.filter((ticket) => ticket.status === "completed").length;
   const pendingCount = customerTickets.filter((ticket) => ticket.status === "pending").length;
 
-  const openTicket = (ticketId: string) => {
-    navigate("/", { state: { openTicketId: ticketId } });
+  const openTicketEditor = (ticket: CustomerTicket) => {
+    setEditingTicket(mapTicket(ticket));
+  };
+
+  const handlePrintTicket = (ticket: CustomerTicket | TicketData) => {
+    const nextTicket = "job_number" in ticket ? mapTicket(ticket) : ticket;
+    setPrintTicket(nextTicket);
+    setPendingPrint(true);
+  };
+
+  const handleSaveTicket = async (updated: TicketData) => {
+    const { error } = await supabase
+      .from("tickets")
+      .update({
+        job_number: updated.jobNumber,
+        job_name: updated.jobName,
+        date_time: updated.dateTime,
+        company_name: updated.companyName,
+        company_email: updated.companyEmail,
+        company_website: updated.companyWebsite,
+        company_phone: updated.companyPhone,
+        total_amount: updated.totalAmount,
+        total_unit: updated.totalUnit,
+        customer: updated.customer,
+        product: updated.product,
+        truck: updated.truck,
+        note: updated.note,
+        bucket: updated.bucket,
+        customer_name: updated.customerName,
+        customer_email: updated.customerEmail,
+        customer_address: updated.customerAddress,
+        signature: updated.signature,
+        status: updated.status,
+      })
+      .eq("id", updated.id);
+
+    if (error) {
+      toast.error("Failed to save ticket");
+      return;
+    }
+
+    setEditingTicket(null);
+    if (selectedCustomer?.name) {
+      loadCustomerTickets(selectedCustomer.name);
+    }
+  };
+
+  const handleEmailTicket = async (ticket: TicketData) => {
+    if (!ticket.customerEmail) {
+      toast.error("No customer email set.");
+      return;
+    }
+
+    try {
+      let logoBase64 = "";
+      try {
+        const response = await fetch(companyLogo);
+        const blob = await response.blob();
+        logoBase64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob);
+        });
+      } catch (e) {
+        console.warn("Could not convert logo:", e);
+      }
+
+      const { error } = await supabase.functions.invoke("send-ticket-email", {
+        body: {
+          to: ticket.customerEmail,
+          subject: `Ticket - Job #${ticket.jobNumber} from ${ticket.companyName}`,
+          ticket,
+          logoBase64,
+          emailElements: emailElements || undefined,
+        },
+      });
+
+      if (error) throw error;
+      toast.success(`Email sent to ${ticket.customerEmail}!`);
+    } catch (err: any) {
+      console.error("Email send error:", err);
+      toast.error(err?.message || "Failed to send email");
+    }
   };
 
   const headerExtra = (
@@ -457,11 +587,15 @@ const Customers = () => {
                       ) : (
                         <div className="space-y-3">
                           {customerTickets.map((ticket) => (
-                            <button
+                            <div
                               key={ticket.id}
-                              type="button"
-                              onClick={() => openTicket(ticket.id)}
-                              className="block w-full rounded-lg border bg-background p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent/30"
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => openTicketEditor(ticket)}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter" || event.key === " ") openTicketEditor(ticket);
+                              }}
+                              className="block w-full cursor-pointer rounded-lg border bg-background p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent/30"
                             >
                               <div className="flex flex-wrap items-start justify-between gap-3">
                                 <div className="min-w-0">
@@ -498,7 +632,31 @@ const Customers = () => {
                                   <p className="mt-1">{ticket.note || "—"}</p>
                                 </div>
                               </div>
-                            </button>
+
+                              <div className="mt-4 flex flex-wrap justify-end gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-1.5"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    handlePrintTicket(ticket);
+                                  }}
+                                >
+                                  <Printer className="h-4 w-4" /> Print
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  className="gap-1.5"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    openTicketEditor(ticket);
+                                  }}
+                                >
+                                  <Pencil className="h-4 w-4" /> Edit
+                                </Button>
+                              </div>
+                            </div>
                           ))}
                         </div>
                       )}
@@ -552,6 +710,37 @@ const Customers = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!editingTicket} onOpenChange={(open) => !open && setEditingTicket(null)}>
+        <DialogContent className="max-h-[90dvh] max-w-5xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingTicket ? `Edit Ticket ${editingTicket.jobNumber}` : "Edit Ticket"}</DialogTitle>
+          </DialogHeader>
+          {editingTicket && (
+            <TicketEditor
+              ticket={editingTicket}
+              onSave={handleSaveTicket}
+              onPrint={handlePrintTicket}
+              onEmail={handleEmailTicket}
+              templateFields={templateFields}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {printTicket && (
+        <div className="hidden">
+          <TicketPreview
+            ticket={printTicket}
+            canvasElements={canvasElements}
+            emailElements={emailElements}
+            copiesPerPage={copiesPerPage}
+            canvasWidth={canvasWidth}
+            canvasHeight={canvasHeight}
+            printLayouts={printLayouts}
+          />
+        </div>
+      )}
     </AppLayout>
   );
 };
