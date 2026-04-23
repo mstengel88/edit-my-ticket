@@ -13,6 +13,7 @@ import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
+const Home = lazy(() => import("./pages/Home"));
 const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Settings = lazy(() => import("./pages/Settings"));
@@ -29,14 +30,14 @@ const Support = lazy(() => import("./pages/Support"));
 const MailReader = lazy(() => import("./features/mail-reader/MailReader"));
 
 const AppSplash = () => (
-  <div className="min-h-screen flex items-center justify-center bg-[#f2f7f5] px-6 dark:bg-slate-950">
+  <div className="min-h-screen flex items-center justify-center bg-[#0d1522] px-6">
     <div className="flex flex-col items-center gap-5 text-center">
       <img
         src={companyLogo}
         alt="Ticket Creator"
         className="w-full max-w-[240px] object-contain"
       />
-      <Loader2 className="h-7 w-7 animate-spin text-slate-500 dark:text-slate-300" />
+      <Loader2 className="h-7 w-7 animate-spin text-slate-300" />
     </div>
   </div>
 );
@@ -104,7 +105,7 @@ const AuthRoute = ({ children }: { children: React.ReactNode }) => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} storageKey="ticket-theme">
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="ticket-theme">
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -116,6 +117,7 @@ const App = () => (
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/support" element={<Support />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/settings" element={<TemplateAdminRoute><Settings /></TemplateAdminRoute>} />
             <Route path="/audit-log" element={<AdminRoute><AuditLog /></AdminRoute>} />

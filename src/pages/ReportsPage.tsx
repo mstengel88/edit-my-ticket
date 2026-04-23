@@ -11,7 +11,7 @@ const ReportsPage = () => {
   useEffect(() => { loadFromDb(); }, [loadFromDb]);
 
   return (
-    <AppLayout title="Reports">
+    <AppLayout title="Ticket Query" subtitle="Search, summarize, and export ticket activity">
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
         <Reports tickets={tickets} reportFields={reportFields} reportEmailConfig={reportEmailConfig} />
       </div>

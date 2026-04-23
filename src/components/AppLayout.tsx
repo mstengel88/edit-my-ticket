@@ -19,6 +19,7 @@ import {
 import {
   BarChart3,
   ClipboardList,
+  Home,
   LogOut,
   Menu,
   MessageSquarePlus,
@@ -40,6 +41,7 @@ interface AppLayoutProps {
 }
 
 const baseNavItems = [
+  { label: "Home", icon: Home, href: "/home" },
   { label: "Tickets", icon: FileText, href: "/", end: true },
 ];
 
@@ -141,7 +143,7 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
 
   return (
     <div
-      className="safe-area-min-h safe-area-x flex w-full bg-background"
+      className="safe-area-min-h safe-area-x flex w-full bg-[radial-gradient(circle_at_top,_hsl(215_52%_18%)_0%,_hsl(var(--background))_38%,_hsl(var(--background))_100%)]"
       style={
         desktopShellInset
           ? {
@@ -153,19 +155,27 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
     >
       {/* Desktop Sidebar */}
       {!useCompactLayout && (
-        <aside className="sticky top-0 h-screen w-56 shrink-0 border-r bg-card flex flex-col">
-          <div className="px-4 py-4 border-b">
-            <h2 className="text-base font-bold tracking-tight text-foreground">Ticket Manager</h2>
+        <aside className="sticky top-0 h-screen w-64 shrink-0 border-r border-white/10 bg-[#0b1524] text-slate-100 flex flex-col shadow-2xl shadow-black/25">
+          <div className="border-b border-white/10 px-5 py-5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-400/10 ring-1 ring-cyan-300/20">
+                <FileText className="h-5 w-5 text-cyan-300" />
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">Green Hills</p>
+                <h2 className="text-lg font-semibold tracking-tight text-white">Ticket Creator</h2>
+              </div>
+            </div>
           </div>
 
-          <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-1">
+          <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5">
             {navItems.map((item) => (
               <NavLink
                 key={item.href}
                 to={item.href}
                 end={item.end}
-                className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                activeClassName="bg-accent text-accent-foreground"
+                className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+                activeClassName="bg-cyan-400/12 text-white shadow-[inset_0_0_0_1px_rgba(103,232,249,0.18)]"
               >
                 <item.icon className="h-4 w-4" />
                 {item.label}
@@ -175,14 +185,14 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
             {isAdmin && (
               <>
                 <div className="pt-3 pb-1 px-3">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Management</span>
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Management</span>
                 </div>
                 {adminItems.map((item) => (
                   <NavLink
                     key={item.href}
                     to={item.href}
-                    className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                    activeClassName="bg-accent text-accent-foreground"
+                    className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+                    activeClassName="bg-cyan-400/12 text-white shadow-[inset_0_0_0_1px_rgba(103,232,249,0.18)]"
                   >
                     <item.icon className="h-4 w-4" />
                     {item.label}
@@ -194,14 +204,14 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
             {role === "developer" && (
               <>
                 <div className="pt-3 pb-1 px-3">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Developer</span>
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Developer</span>
                 </div>
                 {developerItems.map((item) => (
                   <NavLink
                     key={item.href}
                     to={item.href}
-                    className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                    activeClassName="bg-accent text-accent-foreground"
+                    className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+                    activeClassName="bg-cyan-400/12 text-white shadow-[inset_0_0_0_1px_rgba(103,232,249,0.18)]"
                   >
                     <item.icon className="h-4 w-4" />
                     {item.label}
@@ -211,17 +221,17 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
             )}
           </nav>
 
-          <div className="border-t px-2 py-3 space-y-1">
+          <div className="mt-auto border-t border-white/10 px-3 py-4 space-y-1.5">
             <button
               onClick={handleThemeToggle}
-              className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
             >
               {currentTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               {currentTheme === "dark" ? "Light Mode" : "Dark Mode"}
             </button>
             <button
               onClick={signOut}
-              className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
+              className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-rose-300 transition-colors hover:bg-rose-400/10"
             >
               <LogOut className="h-4 w-4" />
               Sign Out
@@ -234,21 +244,21 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile header */}
         {useCompactLayout && (
-          <header className="safe-area-top sticky top-0 z-10 border-b bg-card/80 backdrop-blur-sm no-print">
+          <header className="safe-area-top sticky top-0 z-10 border-b border-white/10 bg-[#0b1524]/95 backdrop-blur-sm no-print">
             <div className="px-4 py-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   {title && (
-                    <h1 className="truncate text-lg font-bold tracking-tight text-foreground">{title}</h1>
+                    <h1 className="truncate text-lg font-bold tracking-tight text-white">{title}</h1>
                   )}
                   {subtitle && (
-                    <p className="text-xs text-muted-foreground">{subtitle}</p>
+                    <p className="text-xs text-slate-400">{subtitle}</p>
                   )}
                 </div>
                 <div className="shrink-0">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="shrink-0">
+                      <Button variant="ghost" size="icon" className="shrink-0 text-slate-200 hover:bg-white/10 hover:text-white">
                         <Menu className="h-5 w-5" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -256,7 +266,7 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
                       align="end"
                       sideOffset={8}
                       collisionPadding={{ top: 8, right: 16, bottom: 8, left: 16 }}
-                      className="w-64 max-w-[calc(100vw-var(--safe-area-left)-var(--safe-area-right)-1rem)]"
+                      className="w-64 max-w-[calc(100vw-var(--safe-area-left)-var(--safe-area-right)-1rem)] border-white/10 bg-[#132135] text-slate-100"
                     >
                       {allNav.map((item) => (
                         <DropdownMenuItem key={item.href} onClick={() => navigate(item.href)}>
@@ -289,14 +299,14 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
 
         {/* Desktop header (minimal, for page-specific actions) */}
         {!useCompactLayout && (title || headerExtra) && (
-          <header className="safe-area-top sticky top-0 z-10 border-b bg-card/80 backdrop-blur-sm no-print">
+          <header className="safe-area-top sticky top-0 z-10 border-b border-white/10 bg-[#0f1b2d]/88 backdrop-blur-sm no-print">
             <div className="flex items-center justify-between gap-4 px-6 py-3">
               <div>
                 {title && (
-                  <h1 className="text-lg font-bold tracking-tight text-foreground">{title}</h1>
+                  <h1 className="text-lg font-bold tracking-tight text-white">{title}</h1>
                 )}
                 {subtitle && (
-                  <p className="text-xs text-muted-foreground">{subtitle}</p>
+                  <p className="text-xs text-slate-400">{subtitle}</p>
                 )}
               </div>
               <div className="flex flex-wrap justify-end gap-2">
@@ -306,7 +316,7 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
           </header>
         )}
 
-        <main className="safe-area-bottom flex-1">
+        <main className="safe-area-bottom flex-1 bg-[#0d1522]">
           {children}
         </main>
       </div>

@@ -158,16 +158,53 @@ const Products = () => {
   );
 
   return (
-    <AppLayout title="Products" headerExtra={useCompactActions ? undefined : headerExtra}>
+    <AppLayout title="Products" subtitle="Manage the material catalog used during ticket entry" headerExtra={useCompactActions ? undefined : headerExtra}>
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
         {useCompactActions && (
           <div className="mb-4 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <div className="min-w-max">{headerExtra}</div>
           </div>
         )}
-        <div className="relative mb-4 max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search products..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+        <div className="mb-6 grid gap-6 xl:grid-cols-[1.05fr_1.35fr]">
+          <section className="rounded-[26px] border border-white/8 bg-[#111c2d] p-5 shadow-xl shadow-black/10">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Catalog Control</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">Keep ticket products clean and ready for dispatch.</h2>
+            <p className="mt-3 text-sm leading-6 text-slate-300">
+              This page is where the order-side material catalog stays organized. Sync from Loadrite when needed,
+              then add or clean up the manual entries your team uses during ticket creation.
+            </p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">Products</p>
+                <p className="mt-3 text-3xl font-semibold text-white">{products.length}</p>
+              </div>
+              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">Visible</p>
+                <p className="mt-3 text-3xl font-semibold text-white">{filtered.length}</p>
+              </div>
+              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">Search State</p>
+                <p className="mt-3 text-sm font-medium text-slate-300">{search ? "Filtered" : "All products"}</p>
+              </div>
+            </div>
+          </section>
+
+          <section className="rounded-[26px] border border-white/8 bg-[#111c2d] p-5 shadow-xl shadow-black/10">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Lookup</p>
+            <h3 className="mt-2 text-xl font-semibold text-white">Search the catalog</h3>
+            <div className="relative mt-5 max-w-lg">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <Input
+                placeholder="Search products..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-11 border-white/10 bg-[#0d1726] pl-9 text-white placeholder:text-slate-500"
+              />
+            </div>
+            <p className="mt-3 text-sm text-slate-400">
+              Use this to narrow the grid before exporting, editing, or reviewing imported material names.
+            </p>
+          </section>
         </div>
 
         {loading ? (
@@ -179,7 +216,7 @@ const Products = () => {
             {search ? "No products match your search" : "No products yet. Add one to get started!"}
           </p>
         ) : (
-          <div className="overflow-x-auto rounded-lg border bg-card">
+          <div className="overflow-x-auto rounded-[24px] border border-white/8 bg-[#111c2d] shadow-xl shadow-black/10">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -216,19 +253,31 @@ const Products = () => {
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="border-white/10 bg-[#111c2d] text-white sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editing ? "Edit Product" : "Add Product"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="grid gap-4 py-2 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <Label className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Product Name *</Label>
+              <Input value={form.name} onChange={(e) => setForm({ name: e.target.value })} placeholder="Product name" className="mt-1.5 border-white/10 bg-[#0d1726] text-white placeholder:text-slate-500" />
+            </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Name *</Label>
-              <Input value={form.name} onChange={(e) => setForm({ name: e.target.value })} placeholder="Product name" />
+              <Label className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Source</Label>
+              <div className="mt-1.5 rounded-xl border border-white/10 bg-[#0d1726] px-3 py-2 text-sm text-slate-300">
+                {editing?.source || "manual"}
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Status</Label>
+              <div className="mt-1.5 rounded-xl border border-white/10 bg-[#0d1726] px-3 py-2 text-sm text-slate-300">
+                Active
+              </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={saving}>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-white/10 bg-white/5 text-white hover:bg-white/10">Cancel</Button>
+            <Button onClick={handleSave} disabled={saving} className="bg-cyan-400 text-slate-950 hover:bg-cyan-300">
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {editing ? "Update" : "Add"}
             </Button>

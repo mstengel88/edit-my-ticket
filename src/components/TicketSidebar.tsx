@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { TicketData } from "@/types/ticket";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -64,20 +63,23 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
   return (
     <>
       <aside
-        className="h-full w-[19rem] shrink-0 border-l bg-card xl:w-[21rem] 2xl:w-[23rem] flex flex-col overflow-hidden"
+        className="h-full w-[19rem] shrink-0 border-l border-white/8 bg-[#111c2d] xl:w-[21rem] 2xl:w-[23rem] flex flex-col overflow-hidden"
         style={{ paddingRight: "max(0.75rem, var(--safe-area-right))" }}
       >
         {/* Header */}
-        <div className="px-3 py-3 border-b space-y-2">
+        <div className="space-y-3 border-b border-white/8 px-3 py-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-foreground">Tickets</h3>
-            <span className="text-xs text-muted-foreground">{tickets.length}</span>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">Live Queue</p>
+              <h3 className="mt-1 text-base font-semibold text-white">Tickets</h3>
+            </div>
+            <span className="rounded-full bg-white/5 px-2.5 py-1 text-xs text-slate-300">{tickets.length}</span>
           </div>
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
-            <SelectTrigger className="h-8 text-xs">
+            <SelectTrigger className="h-9 border-white/10 bg-[#0d1726] text-xs text-white">
               <SelectValue placeholder="All statuses" />
             </SelectTrigger>
-            <SelectContent className="bg-popover z-50">
+            <SelectContent className="z-50 border-white/10 bg-[#132135] text-slate-100">
               <SelectItem value="all">All statuses</SelectItem>
               <SelectItem value="draft">Draft</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
@@ -91,11 +93,11 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
               placeholder="Search..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 h-8 text-xs"
+              className="h-9 border-white/10 bg-[#0d1726] pl-8 text-xs text-white placeholder:text-slate-500"
             />
           </div>
           {!readOnly && (
-            <Button onClick={onNew} size="sm" className="w-full gap-1.5 h-8 text-xs">
+            <Button onClick={onNew} size="sm" className="h-9 w-full gap-1.5 bg-cyan-400 text-xs text-slate-950 hover:bg-cyan-300">
               <Plus className="h-3.5 w-3.5" />
               New Ticket
             </Button>
@@ -109,34 +111,34 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
               <div
                 key={ticket.id}
                 onClick={() => onSelect(ticket)}
-                className={`group relative rounded-md border px-3 py-3 cursor-pointer transition-colors text-xs ${
+                className={`group relative rounded-2xl border px-3 py-3 cursor-pointer transition-colors text-xs ${
                   ticket.id === selectedId
-                    ? "border-primary bg-primary/5"
-                    : "border-transparent hover:bg-muted/50"
+                    ? "border-cyan-300/20 bg-cyan-400/8"
+                    : "border-white/8 bg-white/[0.03] hover:bg-white/[0.06]"
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                       <span className={`h-2 w-2 rounded-full shrink-0 ${statusDot[ticket.status]}`} />
-                      <span className="font-semibold text-foreground truncate">#{ticket.jobNumber}</span>
+                      <span className="font-semibold text-white truncate">#{ticket.jobNumber}</span>
                     </div>
-                    <p className="text-muted-foreground truncate mt-0.5">
+                    <p className="mt-0.5 truncate text-slate-300">
                       {ticket.customer || "No customer"}
                       {ticket.jobName && ticket.jobName !== "Job" && (
-                        <span className="text-muted-foreground/70 ml-1">· PO: {ticket.jobName}</span>
+                        <span className="ml-1 text-slate-500">· PO: {ticket.jobName}</span>
                       )}
                     </p>
                   </div>
                   <div className="mr-1 shrink-0 text-right min-w-[5.5rem]">
                     <div className="whitespace-nowrap">
-                      <span className="font-bold text-foreground tabular-nums">{ticket.totalAmount}</span>
-                      <span className="ml-1 text-[10px] text-muted-foreground">{getSidebarUnitLabel(ticket.totalUnit)}</span>
+                      <span className="font-bold text-white tabular-nums">{ticket.totalAmount}</span>
+                      <span className="ml-1 text-[10px] text-cyan-300">{getSidebarUnitLabel(ticket.totalUnit)}</span>
                     </div>
                   </div>
                 </div>
                 <div className="mt-1.5 flex items-center justify-between gap-3">
-                  <span className="text-muted-foreground truncate">{ticket.product}</span>
+                  <span className="truncate text-slate-500">{ticket.product}</span>
                     <div className="mr-1 flex shrink-0 items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                      {ticket.status !== "completed" && onStatusChange && (
                        <Button
@@ -152,7 +154,7 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
                      <Button
                        variant="ghost"
                        size="icon"
-                       className="h-5 w-5"
+                       className="h-5 w-5 text-slate-300 hover:bg-white/5 hover:text-white"
                        onClick={(e) => { e.stopPropagation(); onPrint(ticket); }}
                        title="Print"
                      >
@@ -161,7 +163,7 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
                      <Button
                        variant="ghost"
                        size="icon"
-                       className="h-5 w-5"
+                       className="h-5 w-5 text-slate-300 hover:bg-white/5 hover:text-white"
                        onClick={(e) => { e.stopPropagation(); setEmailTicket(ticket); }}
                        title="Email"
                      >
@@ -171,7 +173,7 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
                        <Button
                          variant="ghost"
                          size="icon"
-                         className="h-5 w-5 text-destructive"
+                         className="h-5 w-5 text-rose-300 hover:bg-rose-400/10"
                          onClick={(e) => { e.stopPropagation(); setDeleteId(ticket.id); }}
                        >
                          <Trash2 className="h-3 w-3" />
@@ -182,7 +184,7 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
               </div>
             ))}
             {filtered.length === 0 && (
-              <p className="text-center text-xs text-muted-foreground py-6">No tickets found.</p>
+              <p className="py-6 text-center text-xs text-slate-500">No tickets found.</p>
             )}
           </div>
         </div>

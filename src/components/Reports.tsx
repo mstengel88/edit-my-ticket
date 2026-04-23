@@ -211,25 +211,28 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <Card className="no-print">
-        <CardHeader className="flex flex-col gap-3 space-y-0 pb-2 sm:flex-row sm:items-center sm:justify-between">
-          <CardTitle className="text-base">Report Filters</CardTitle>
+      <Card className="no-print overflow-hidden border-white/8 bg-[#111c2d] shadow-2xl shadow-black/20">
+        <CardHeader className="flex flex-col gap-3 space-y-0 border-b border-white/8 pb-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Query Filters</p>
+            <CardTitle className="mt-2 text-xl text-white">Ticket Query Console</CardTitle>
+          </div>
           <div className="flex flex-wrap items-center gap-2 no-print sm:justify-end">
             <Select value={printSection} onValueChange={(v) => setPrintSection(v as typeof printSection)}>
-              <SelectTrigger className="h-9 w-full text-sm sm:w-[160px]">
+              <SelectTrigger className="h-10 w-full border-white/10 bg-[#0d1726] text-sm text-white sm:w-[180px]">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="border-white/10 bg-[#132135] text-slate-100">
                 <SelectItem value="all">Print All</SelectItem>
                 <SelectItem value="tickets">Tickets Only</SelectItem>
                 <SelectItem value="customer">By Customer</SelectItem>
                 <SelectItem value="product">By Product</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5 whitespace-nowrap">
+            <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5 whitespace-nowrap border-white/10 bg-white/5 text-white hover:bg-white/10">
               <Printer className="h-4 w-4" /> Print
             </Button>
-            <Button variant="outline" size="sm" onClick={handleEmail} className="gap-1.5 whitespace-nowrap">
+            <Button variant="outline" size="sm" onClick={handleEmail} className="gap-1.5 whitespace-nowrap border-white/10 bg-white/5 text-white hover:bg-white/10">
               <Mail className="h-4 w-4" /> Email
             </Button>
           </div>
@@ -266,15 +269,15 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
             </DialogFooter>
           </DialogContent>
         </Dialog>
-        <CardContent>
-          <div className="flex flex-wrap items-end gap-4">
+        <CardContent className="pt-5">
+          <div className="grid gap-4 xl:grid-cols-4">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-muted-foreground">Time Period</label>
+              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Time Period</label>
               <Select value={period} onValueChange={(v) => setPeriod(v as TimePeriod)}>
-                <SelectTrigger className="w-full sm:w-[160px]">
+                <SelectTrigger className="h-11 w-full border-white/10 bg-[#0d1726] text-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="border-white/10 bg-[#132135] text-slate-100">
                   <SelectItem value="today">Today</SelectItem>
                   <SelectItem value="yesterday">Yesterday</SelectItem>
                   <SelectItem value="weekly">This Week</SelectItem>
@@ -288,29 +291,29 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
             {period === "custom" && (
               <>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-muted-foreground">From</label>
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">From</label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal sm:w-[150px]", !customFrom && "text-muted-foreground")}>
+                      <Button variant="outline" className={cn("h-11 w-full justify-start border-white/10 bg-[#0d1726] text-left font-normal text-white hover:bg-white/5", !customFrom && "text-slate-500")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {customFrom ? format(customFrom, "MM/dd/yyyy") : "Start"}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto border-white/10 bg-[#132135] p-0" align="start">
                       <Calendar mode="single" selected={customFrom} onSelect={setCustomFrom} initialFocus className="p-3 pointer-events-auto" />
                     </PopoverContent>
                   </Popover>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-muted-foreground">To</label>
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">To</label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal sm:w-[150px]", !customTo && "text-muted-foreground")}>
+                      <Button variant="outline" className={cn("h-11 w-full justify-start border-white/10 bg-[#0d1726] text-left font-normal text-white hover:bg-white/5", !customTo && "text-slate-500")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {customTo ? format(customTo, "MM/dd/yyyy") : "End"}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto border-white/10 bg-[#132135] p-0" align="start">
                       <Calendar mode="single" selected={customTo} onSelect={setCustomTo} initialFocus className="p-3 pointer-events-auto" />
                     </PopoverContent>
                   </Popover>
@@ -319,12 +322,12 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
             )}
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-muted-foreground">Customer</label>
+              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Customer</label>
               <Select value={customerFilter} onValueChange={setCustomerFilter}>
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="h-11 w-full border-white/10 bg-[#0d1726] text-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="border-white/10 bg-[#132135] text-slate-100">
                   <SelectItem value="all">All Customers</SelectItem>
                   {customers.map((c) => (
                     <SelectItem key={c} value={c}>{c}</SelectItem>
@@ -332,36 +335,48 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="flex items-end">
+              <div className="w-full rounded-2xl border border-cyan-300/10 bg-cyan-400/5 px-4 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-300">Current Query</p>
+                <p className="mt-2 text-sm text-slate-300">
+                  {periodLabel[period]} · {customerFilter === "all" ? "All customers" : customerFilter}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {format(dateRange.from, "MM/dd/yyyy")} to {format(dateRange.to, "MM/dd/yyyy")}
+                </p>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" data-report-section="summary">
-        <Card>
+        <Card className="border-white/8 bg-[#111c2d]">
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Total Tickets</p>
-            <p className="text-3xl font-bold text-foreground">{summary.ticketCount}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Total Tickets</p>
+            <p className="mt-3 text-3xl font-bold text-white">{summary.ticketCount}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-white/8 bg-[#111c2d]">
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Total Tonnage</p>
-            <p className="text-3xl font-bold text-foreground">{summary.totalTons.toFixed(2)}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Total Tonnage</p>
+            <p className="mt-3 text-3xl font-bold text-white">{summary.totalTons.toFixed(2)}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-white/8 bg-[#111c2d]">
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Total Yardage</p>
-            <p className="text-3xl font-bold text-foreground">{summary.totalYards.toFixed(2)}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Total Yardage</p>
+            <p className="mt-3 text-3xl font-bold text-white">{summary.totalYards.toFixed(2)}</p>
           </CardContent>
         </Card>
       </div>
 
       {/* By Customer */}
-      <Card data-report-section="customer">
+      <Card data-report-section="customer" className="border-white/8 bg-[#111c2d]">
         <CardHeader>
-          <CardTitle className="text-base">By Customer</CardTitle>
+          <CardTitle className="text-base text-white">By Customer</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -405,9 +420,9 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
       </Card>
 
       {/* By Product */}
-      <Card data-report-section="product">
+      <Card data-report-section="product" className="border-white/8 bg-[#111c2d]">
         <CardHeader>
-          <CardTitle className="text-base">By Product</CardTitle>
+          <CardTitle className="text-base text-white">By Product</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -451,9 +466,9 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
       </Card>
 
       {/* All Tickets Detail */}
-      <Card data-report-section="tickets">
+      <Card data-report-section="tickets" className="border-white/8 bg-[#111c2d]">
         <CardHeader>
-          <CardTitle className="text-base">Ticket Details</CardTitle>
+          <CardTitle className="text-base text-white">Ticket Details</CardTitle>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           <Table>

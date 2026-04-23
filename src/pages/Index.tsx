@@ -6,7 +6,7 @@ import { TicketEditor } from "@/components/TicketEditor";
 import { TicketPreview } from "@/components/TicketPreview";
 import { Reports } from "@/components/Reports";
 import { useLoadriteData } from "@/hooks/useLoadriteData";
-import { ArrowLeft, Plus, RefreshCw, Loader2, BarChart3 } from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw, Loader2, BarChart3, FileClock, Package2, Truck, Users } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useIsMobile, useIsTablet } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -270,18 +270,28 @@ const Index = () => {
   // ─── Desktop split layout ───
   if (!isMobile && !isTablet) {
     const subtitle = `${tickets.length} ticket${tickets.length !== 1 ? "s" : ""}${loading ? " · syncing..." : ""}`;
+    const pendingCount = tickets.filter((ticket) => ticket.status === "pending").length;
+    const completedCount = tickets.filter((ticket) => ticket.status === "completed").length;
+    const customerCount = new Set(tickets.map((ticket) => ticket.customer?.trim()).filter(Boolean)).size;
+    const productCount = new Set(tickets.map((ticket) => ticket.product?.trim()).filter(Boolean)).size;
 
     const headerExtra = (
       <>
         {isAdminOrManager && view !== "list" && (
-          <Button variant="ghost" size="icon" onClick={handleBack}>
+          <Button variant="ghost" size="icon" onClick={handleBack} className="text-slate-200 hover:bg-white/10 hover:text-white">
             <ArrowLeft className="h-5 w-5" />
           </Button>
         )}
         {isAdminOrManager && (
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="gap-1.5">
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="gap-1.5 border-white/10 bg-white/5 text-white hover:bg-white/10">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Sync
+          </Button>
+        )}
+        {isAdminOrManager && (
+          <Button size="sm" onClick={handleNewTicket} className="gap-1.5 bg-cyan-400 text-slate-950 hover:bg-cyan-300">
+            <Plus className="h-4 w-4" />
+            New Ticket
           </Button>
         )}
       </>
@@ -292,23 +302,112 @@ const Index = () => {
         <div className="flex h-[calc(100dvh-57px)] min-h-0">
           {/* Main content area */}
           <div className="min-w-0 flex-1 overflow-y-auto">
-            <div className="mx-auto w-full max-w-5xl p-4 md:p-6 xl:p-8">
+            <div className="mx-auto w-full max-w-6xl p-4 md:p-6 xl:p-8">
               {view === "list" && !selectedTicket && (
-                <div className="flex min-h-[60vh] flex-col items-center justify-center py-20 text-center animate-fade-in">
-                  <div className="rounded-full bg-muted p-6 mb-4">
-                    <BarChart3 className="h-8 w-8 text-muted-foreground" />
+                <div className="space-y-6 animate-fade-in">
+                  <section className="rounded-[30px] border border-white/8 bg-[linear-gradient(135deg,rgba(17,28,45,0.98),rgba(11,21,36,0.98))] p-6 shadow-2xl shadow-black/20">
+                    <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+                      <div className="max-w-2xl">
+                        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-300">Ticket Desk</p>
+                        <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white">
+                          Work the queue from one focused ticket console.
+                        </h2>
+                        <p className="mt-3 text-sm leading-6 text-slate-300">
+                          Select a ticket from the right to edit or preview it, or create a new one and keep the dispatch,
+                          customer, and material details all in the same workflow.
+                        </p>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[320px]">
+                        {[
+                          { label: "Pending", value: pendingCount, icon: FileClock },
+                          { label: "Completed", value: completedCount, icon: BarChart3 },
+                          { label: "Customers", value: customerCount, icon: Users },
+                          { label: "Products", value: productCount, icon: Package2 },
+                        ].map((item) => (
+                          <div key={item.label} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+                            <div className="flex items-center justify-between">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">{item.label}</p>
+                              <item.icon className="h-4 w-4 text-cyan-300" />
+                            </div>
+                            <p className="mt-3 text-3xl font-semibold text-white">{item.value}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </section>
+
+                  <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+                    <section className="rounded-[26px] border border-white/8 bg-[#111c2d] p-5 shadow-xl shadow-black/10">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Recent Activity</p>
+                          <h3 className="mt-2 text-xl font-semibold text-white">Latest tickets in the queue</h3>
+                        </div>
+                      </div>
+                      <div className="mt-5 space-y-3">
+                        {tickets.slice(0, 6).map((ticket) => (
+                          <button
+                            key={ticket.id}
+                            onClick={() => (isAdminOrManager ? handleSelectTicket(ticket) : handlePreview(ticket))}
+                            className="grid w-full gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-4 text-left transition-colors hover:bg-white/[0.06] md:grid-cols-[1.2fr_1fr_auto]"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-white">#{ticket.jobNumber}</p>
+                              <p className="mt-1 truncate text-sm text-slate-300">{ticket.customer || "No customer"}</p>
+                              <p className="mt-1 truncate text-xs text-slate-500">{ticket.dateTime}</p>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Product / Truck</p>
+                              <p className="mt-1 truncate text-sm text-slate-300">{ticket.product || "No product"}</p>
+                              <p className="truncate text-xs text-slate-500">{ticket.truck || "No truck"}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-lg font-semibold text-white">{ticket.totalAmount}</p>
+                              <p className="text-xs uppercase tracking-[0.18em] text-cyan-300">{ticket.totalUnit}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+
+                    <section className="rounded-[26px] border border-white/8 bg-[#111c2d] p-5 shadow-xl shadow-black/10">
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Workflow Guidance</p>
+                      <h3 className="mt-2 text-xl font-semibold text-white">Desk rhythm</h3>
+                      <div className="mt-5 space-y-3">
+                        {[
+                          "Open a pending or draft ticket from the queue.",
+                          "Confirm customer, PO, truck, and product before saving.",
+                          "Print or email directly from the workbench once the load is confirmed.",
+                          "Use Reports when you need a ticket query view across the full history.",
+                        ].map((step, index) => (
+                          <div key={step} className="flex gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3">
+                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-400/10 text-sm font-semibold text-cyan-200">
+                              {index + 1}
+                            </div>
+                            <p className="text-sm leading-6 text-slate-300">{step}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-5 rounded-2xl border border-white/8 bg-[#0d1726] px-4 py-4">
+                        <div className="flex items-center gap-2">
+                          <Truck className="h-4 w-4 text-cyan-300" />
+                          <p className="text-sm font-semibold text-white">Truck activity is ready in the queue</p>
+                        </div>
+                        <p className="mt-2 text-sm text-slate-400">
+                          Keep the right rail open as your live operational queue, then use the center pane for focused ticket work.
+                        </p>
+                      </div>
+                    </section>
                   </div>
-                  <h2 className="text-lg font-semibold text-foreground">Select a ticket</h2>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {isAdminOrManager ? "Choose a ticket from the sidebar to edit, or create a new one." : "Choose a ticket from the list to preview it."}
-                  </p>
                 </div>
               )}
               {view === "editor" && selectedTicket && (
                 <TicketEditor ticket={selectedTicket} onSave={handleSaveTicket} onPrint={handlePrintTicket} onEmail={handleEmailTicket} templateFields={templateFields} />
               )}
               {view === "preview" && selectedTicket && (
-                <TicketPreview ticket={selectedTicket} canvasElements={canvasElements} emailElements={emailElements} copiesPerPage={copiesPerPage} canvasWidth={canvasWidth} canvasHeight={canvasHeight} printLayouts={printLayouts} />
+                <div className="rounded-[28px] border border-white/8 bg-[#111c2d] p-5 shadow-2xl shadow-black/20">
+                  <TicketPreview ticket={selectedTicket} canvasElements={canvasElements} emailElements={emailElements} copiesPerPage={copiesPerPage} canvasWidth={canvasWidth} canvasHeight={canvasHeight} printLayouts={printLayouts} />
+                </div>
               )}
             </div>
           </div>
