@@ -20,6 +20,7 @@ const Settings = lazy(() => import("./pages/Settings"));
 const AuditLog = lazy(() => import("./pages/AuditLog"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Customers = lazy(() => import("./pages/Customers"));
+const Orders = lazy(() => import("./pages/Orders"));
 const Products = lazy(() => import("./pages/Products"));
 const Trucks = lazy(() => import("./pages/Trucks"));
 const Feedback = lazy(() => import("./pages/Feedback"));
@@ -123,6 +124,7 @@ const App = () => (
             <Route path="/audit-log" element={<AdminRoute><AuditLog /></AdminRoute>} />
             <Route path="/admin" element={<DeveloperRoute><Admin /></DeveloperRoute>} />
             <Route path="/customers" element={<AdminRoute><Customers /></AdminRoute>} />
+            <Route path="/orders" element={<AdminRoute><Orders /></AdminRoute>} />
             <Route path="/products" element={<AdminRoute><Products /></AdminRoute>} />
             <Route path="/trucks" element={<AdminRoute><Trucks /></AdminRoute>} />
             <Route path="/feedback" element={<AdminRoute><Feedback /></AdminRoute>} />

@@ -20,6 +20,7 @@ import {
   BarChart3,
   ClipboardList,
   Home,
+  FolderKanban,
   LogOut,
   Menu,
   MessageSquarePlus,
@@ -48,6 +49,7 @@ const baseNavItems = [
 const managerNavItems = [
   { label: "Reports", icon: BarChart3, href: "/reports" },
   { label: "Customers", icon: Users, href: "/customers" },
+  { label: "Orders", icon: FolderKanban, href: "/orders" },
   { label: "Products", icon: Package, href: "/products" },
   { label: "Trucks", icon: Truck, href: "/trucks" },
   { label: "Feedback", icon: MessageSquarePlus, href: "/feedback" },

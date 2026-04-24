@@ -123,7 +123,7 @@ export function ComboInput({ value, onChange, options, placeholder, className }:
       {open && (
         <div
           ref={listRef}
-          className="absolute z-50 mt-1 w-full max-h-48 overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md"
+          className="absolute z-50 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-white/10 bg-[#132135] text-slate-100 shadow-2xl shadow-black/30"
         >
           {filtered.length > 0 ? (
             <>
@@ -133,9 +133,9 @@ export function ComboInput({ value, onChange, options, placeholder, className }:
                   type="button"
                   data-combo-item
                   className={cn(
-                    "w-full text-left px-3 py-2.5 text-sm hover:bg-accent hover:text-accent-foreground touch-manipulation",
+                    "w-full touch-manipulation px-3 py-2.5 text-left text-sm hover:bg-white/8 hover:text-white",
                     item === value && "font-medium",
-                    i === highlightIndex && "bg-accent text-accent-foreground"
+                    i === highlightIndex && "bg-cyan-400/10 text-white"
                   )}
                   onClick={() => selectItem(item)}
                 >
@@ -143,13 +143,13 @@ export function ComboInput({ value, onChange, options, placeholder, className }:
                 </button>
               ))}
               {hasMoreMatches && (
-                <div className="border-t px-3 py-2 text-xs text-muted-foreground">
+                <div className="border-t border-white/8 px-3 py-2 text-xs text-slate-400">
                   Showing first {MAX_VISIBLE_RESULTS} matches — keep typing to narrow the list.
                 </div>
               )}
             </>
           ) : (
-            <div className="px-3 py-2 text-sm text-muted-foreground">No matching products found.</div>
+            <div className="px-3 py-2 text-sm text-slate-400">No matching results found.</div>
           )}
         </div>
       )}

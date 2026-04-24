@@ -120,7 +120,7 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
               )}
               {visible("truck") && (
                 <FieldShell label="Truck">
-                  <ComboInput value={data.truck} onChange={(v) => updateField("truck", v)} options={trucks} placeholder="Assign truck" />
+                  <ComboInput value={data.truck} onChange={(v) => updateField("truck", v)} options={trucks} placeholder="Assign truck" className={inputClassName} />
                 </FieldShell>
               )}
               {visible("bucket") && (
@@ -143,12 +143,12 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
                     updateField("customer", v);
                     const email = customerEmails[v];
                     if (email) updateField("customerEmail", email);
-                  }} options={customers} placeholder="Select or type customer" />
+                  }} options={customers} placeholder="Select or type customer" className={inputClassName} />
                 </FieldShell>
               )}
               {visible("product") && (
                 <FieldShell label="Product">
-                  <ComboInput value={data.product} onChange={(v) => updateField("product", v)} options={products} placeholder="Select or type product" />
+                  <ComboInput value={data.product} onChange={(v) => updateField("product", v)} options={products} placeholder="Select or type product" className={inputClassName} />
                 </FieldShell>
               )}
               {visible("customerEmail") && (

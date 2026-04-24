@@ -20,6 +20,7 @@ import { AppLayout } from "@/components/AppLayout";
 import companyLogo from "@/assets/Greenhillssupply_logo.png";
 import { useLocation, useNavigate } from "react-router-dom";
 import { isStandardTruckName, normalizeTruckName } from "@/lib/truckName";
+import { Badge } from "@/components/ui/badge";
 
 type View = "list" | "editor" | "preview";
 
@@ -402,11 +403,80 @@ const Index = () => {
                 </div>
               )}
               {view === "editor" && selectedTicket && (
-                <TicketEditor ticket={selectedTicket} onSave={handleSaveTicket} onPrint={handlePrintTicket} onEmail={handleEmailTicket} templateFields={templateFields} />
+                <div className="space-y-5">
+                  <section className="rounded-[28px] border border-white/8 bg-[#111c2d] p-5 shadow-2xl shadow-black/20">
+                    <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <Badge className="border-cyan-300/20 bg-cyan-400/10 text-cyan-200 hover:bg-cyan-400/10">
+                            Active Ticket
+                          </Badge>
+                          <Badge className="border-none bg-white/8 text-slate-200 capitalize hover:bg-white/8">
+                            {selectedTicket.status}
+                          </Badge>
+                        </div>
+                        <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white">
+                          #{selectedTicket.jobNumber}
+                        </h2>
+                        <p className="mt-2 text-sm text-slate-300">
+                          {selectedTicket.customer || "No customer assigned"} · {selectedTicket.product || "No product selected"}
+                        </p>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        {[
+                          { label: "PO", value: selectedTicket.jobName || "No PO" },
+                          { label: "Truck", value: selectedTicket.truck || "No truck" },
+                          { label: "Amount", value: `${selectedTicket.totalAmount} ${selectedTicket.totalUnit}` },
+                          { label: "When", value: selectedTicket.dateTime || "No timestamp" },
+                        ].map((item) => (
+                          <div key={item.label} className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">{item.label}</p>
+                            <p className="mt-2 text-sm font-medium text-slate-200">{item.value}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </section>
+                  <TicketEditor ticket={selectedTicket} onSave={handleSaveTicket} onPrint={handlePrintTicket} onEmail={handleEmailTicket} templateFields={templateFields} />
+                </div>
               )}
               {view === "preview" && selectedTicket && (
-                <div className="rounded-[28px] border border-white/8 bg-[#111c2d] p-5 shadow-2xl shadow-black/20">
-                  <TicketPreview ticket={selectedTicket} canvasElements={canvasElements} emailElements={emailElements} copiesPerPage={copiesPerPage} canvasWidth={canvasWidth} canvasHeight={canvasHeight} printLayouts={printLayouts} />
+                <div className="space-y-5">
+                  <section className="rounded-[28px] border border-white/8 bg-[#111c2d] p-5 shadow-2xl shadow-black/20">
+                    <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <Badge className="border-cyan-300/20 bg-cyan-400/10 text-cyan-200 hover:bg-cyan-400/10">
+                            Print Preview
+                          </Badge>
+                          <Badge className="border-none bg-white/8 text-slate-200 hover:bg-white/8">
+                            {copiesPerPage} per page
+                          </Badge>
+                        </div>
+                        <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white">
+                          Ticket #{selectedTicket.jobNumber}
+                        </h2>
+                        <p className="mt-2 text-sm text-slate-300">
+                          Previewing the shared print template for {selectedTicket.customer || "this customer"}.
+                        </p>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        {[
+                          { label: "Customer", value: selectedTicket.customer || "No customer" },
+                          { label: "Product", value: selectedTicket.product || "No product" },
+                          { label: "Load", value: `${selectedTicket.totalAmount} ${selectedTicket.totalUnit}` },
+                        ].map((item) => (
+                          <div key={item.label} className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">{item.label}</p>
+                            <p className="mt-2 text-sm font-medium text-slate-200">{item.value}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </section>
+                  <div className="rounded-[28px] border border-white/8 bg-[#111c2d] p-5 shadow-2xl shadow-black/20">
+                    <TicketPreview ticket={selectedTicket} canvasElements={canvasElements} emailElements={emailElements} copiesPerPage={copiesPerPage} canvasWidth={canvasWidth} canvasHeight={canvasHeight} printLayouts={printLayouts} />
+                  </div>
                 </div>
               )}
             </div>
