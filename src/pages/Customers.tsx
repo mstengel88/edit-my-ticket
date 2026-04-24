@@ -436,7 +436,7 @@ const Customers = () => {
   );
 
   return (
-    <AppLayout title="Customers" headerExtra={useCompactActions ? undefined : headerExtra}>
+    <AppLayout title="Customers" subtitle="Review customer accounts and their full ticket history" headerExtra={useCompactActions ? undefined : headerExtra}>
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
         {useCompactActions && (
           <div className="mb-4 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -444,14 +444,47 @@ const Customers = () => {
           </div>
         )}
 
-        <div className="relative mb-4 max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search customers..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
+        <div className="mb-6 grid gap-6 xl:grid-cols-[1.1fr_1.25fr]">
+          <section className="rounded-[28px] border border-white/8 bg-[#111c2d] p-6 shadow-xl shadow-black/20">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Customer Console</p>
+            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">
+              See every customer account and every ticket tied to it in one workspace.
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-slate-300">
+              This is now your account-history view: customer details, contact info, recent load activity, and direct
+              ticket actions all live here without kicking you back to the main ticket desk.
+            </p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-4">
+              {[
+                { label: "Customers", value: customers.length },
+                { label: "Visible", value: filtered.length },
+                { label: "Tickets", value: customerTickets.length },
+                { label: "Pending", value: pendingCount },
+              ].map((item) => (
+                <div key={item.label} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">{item.label}</p>
+                  <p className="mt-3 text-3xl font-semibold text-white">{item.value}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-[28px] border border-white/8 bg-[#111c2d] p-6 shadow-xl shadow-black/20">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Search & Focus</p>
+            <h3 className="mt-2 text-xl font-semibold text-white">Find the right account quickly</h3>
+            <div className="relative mt-5 max-w-lg">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <Input
+                placeholder="Search customers..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-11 border-white/10 bg-[#0d1726] pl-9 text-white placeholder:text-slate-500"
+              />
+            </div>
+            <p className="mt-3 text-sm text-slate-400">
+              Search by customer name or email, then use the left list as your account rail.
+            </p>
+          </section>
         </div>
 
         {loading ? (
@@ -464,9 +497,9 @@ const Customers = () => {
           </p>
         ) : (
           <div className="grid gap-6 xl:grid-cols-[minmax(280px,340px)_minmax(0,1fr)]">
-            <Card className="overflow-hidden">
+            <Card className="overflow-hidden border-white/8 bg-[#111c2d] shadow-xl shadow-black/10">
               <CardHeader className="pb-4">
-                <CardTitle className="text-lg">Customer List</CardTitle>
+                <CardTitle className="text-lg text-white">Customer List</CardTitle>
                 <CardDescription>Select a customer to see their information and ticket history.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -479,20 +512,20 @@ const Customers = () => {
                       onClick={() => setSelectedCustomerId(customer.id)}
                       className={`w-full rounded-lg border p-3 text-left transition-colors ${
                         isSelected
-                          ? "border-primary bg-primary/8"
-                          : "border-border bg-background hover:border-primary/40 hover:bg-accent/40"
+                          ? "border-cyan-300/20 bg-cyan-400/8"
+                          : "border-white/8 bg-white/[0.03] hover:bg-white/[0.06]"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="truncate font-medium">{customer.name}</p>
-                          <p className="mt-1 truncate text-sm text-muted-foreground">{customer.email || "No email on file"}</p>
+                          <p className="truncate font-medium text-white">{customer.name}</p>
+                          <p className="mt-1 truncate text-sm text-slate-400">{customer.email || "No email on file"}</p>
                         </div>
                         <div className="flex shrink-0 items-center gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8"
+                            className="h-8 w-8 text-slate-300 hover:bg-white/5 hover:text-white"
                             onClick={(event) => {
                               event.stopPropagation();
                               openEdit(customer);
@@ -503,7 +536,7 @@ const Customers = () => {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8"
+                            className="h-8 w-8 text-rose-300 hover:bg-rose-400/10"
                             onClick={(event) => {
                               event.stopPropagation();
                               handleDelete(customer);
@@ -522,11 +555,11 @@ const Customers = () => {
             <div className="space-y-6">
               {selectedCustomer ? (
                 <>
-                  <Card>
+                  <Card className="border-white/8 bg-[#111c2d] shadow-xl shadow-black/10">
                     <CardHeader className="pb-4">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
-                          <CardTitle className="text-xl">{selectedCustomer.name}</CardTitle>
+                          <CardTitle className="text-xl text-white">{selectedCustomer.name}</CardTitle>
                           <CardDescription className="mt-1">
                             Customer profile and ticket history
                           </CardDescription>
@@ -539,42 +572,42 @@ const Customers = () => {
                       </div>
                     </CardHeader>
                     <CardContent className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                      <div className="rounded-lg border bg-background p-4">
-                        <div className="flex items-center gap-2 text-sm font-medium">
-                          <Mail className="h-4 w-4 text-muted-foreground" />
+                      <div className="rounded-lg border border-white/8 bg-white/[0.03] p-4">
+                        <div className="flex items-center gap-2 text-sm font-medium text-white">
+                          <Mail className="h-4 w-4 text-slate-400" />
                           Email
                         </div>
-                        <p className="mt-2 break-words text-sm text-muted-foreground">{customerEmail || "No email on file"}</p>
+                        <p className="mt-2 break-words text-sm text-slate-400">{customerEmail || "No email on file"}</p>
                       </div>
-                      <div className="rounded-lg border bg-background p-4">
-                        <div className="flex items-center gap-2 text-sm font-medium">
-                          <UserRound className="h-4 w-4 text-muted-foreground" />
+                      <div className="rounded-lg border border-white/8 bg-white/[0.03] p-4">
+                        <div className="flex items-center gap-2 text-sm font-medium text-white">
+                          <UserRound className="h-4 w-4 text-slate-400" />
                           Contact Name
                         </div>
-                        <p className="mt-2 text-sm text-muted-foreground">{customerContact || "No contact captured yet"}</p>
+                        <p className="mt-2 text-sm text-slate-400">{customerContact || "No contact captured yet"}</p>
                       </div>
-                      <div className="rounded-lg border bg-background p-4">
-                        <div className="flex items-center gap-2 text-sm font-medium">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <div className="rounded-lg border border-white/8 bg-white/[0.03] p-4">
+                        <div className="flex items-center gap-2 text-sm font-medium text-white">
+                          <MapPin className="h-4 w-4 text-slate-400" />
                           Address
                         </div>
-                        <p className="mt-2 text-sm text-muted-foreground">{customerAddress || "No address captured yet"}</p>
+                        <p className="mt-2 text-sm text-slate-400">{customerAddress || "No address captured yet"}</p>
                       </div>
-                      <div className="rounded-lg border bg-background p-4">
-                        <div className="flex items-center gap-2 text-sm font-medium">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
+                      <div className="rounded-lg border border-white/8 bg-white/[0.03] p-4">
+                        <div className="flex items-center gap-2 text-sm font-medium text-white">
+                          <FileText className="h-4 w-4 text-slate-400" />
                           Most Recent Ticket
                         </div>
-                        <p className="mt-2 text-sm text-muted-foreground">
+                        <p className="mt-2 text-sm text-slate-400">
                           {latestTicket ? `${latestTicket.job_number} • ${latestTicket.date_time}` : "No tickets yet"}
                         </p>
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card>
+                  <Card className="border-white/8 bg-[#111c2d] shadow-xl shadow-black/10">
                     <CardHeader className="pb-4">
-                      <CardTitle className="text-lg">Ticket History</CardTitle>
+                      <CardTitle className="text-lg text-white">Ticket History</CardTitle>
                       <CardDescription>Every ticket currently linked to this customer.</CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -583,7 +616,7 @@ const Customers = () => {
                           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                         </div>
                       ) : customerTickets.length === 0 ? (
-                        <p className="py-8 text-sm text-muted-foreground">No tickets found for this customer yet.</p>
+                        <p className="py-8 text-sm text-slate-400">No tickets found for this customer yet.</p>
                       ) : (
                         <div className="space-y-3">
                           {customerTickets.map((ticket) => (
@@ -595,40 +628,40 @@ const Customers = () => {
                               onKeyDown={(event) => {
                                 if (event.key === "Enter" || event.key === " ") openTicketEditor(ticket);
                               }}
-                              className="block w-full cursor-pointer rounded-lg border bg-background p-4 text-left transition-colors hover:border-primary/40 hover:bg-accent/30"
+                              className="block w-full cursor-pointer rounded-lg border border-white/8 bg-white/[0.03] p-4 text-left transition-colors hover:bg-white/[0.06]"
                             >
                               <div className="flex flex-wrap items-start justify-between gap-3">
                                 <div className="min-w-0">
                                   <div className="flex flex-wrap items-center gap-2">
-                                    <p className="font-medium">{ticket.job_number}</p>
+                                    <p className="font-medium text-white">{ticket.job_number}</p>
                                     <Badge variant={statusBadgeVariant(ticket.status)}>{ticket.status}</Badge>
                                   </div>
-                                  <p className="mt-1 text-sm text-muted-foreground">{ticket.date_time}</p>
+                                  <p className="mt-1 text-sm text-slate-400">{ticket.date_time}</p>
                                 </div>
                                 <div className="text-right">
-                                  <p className="text-base font-semibold">{ticket.total_amount}</p>
-                                  <p className="text-xs text-muted-foreground">{ticket.total_unit}</p>
+                                  <p className="text-base font-semibold text-white">{ticket.total_amount}</p>
+                                  <p className="text-xs text-cyan-300">{ticket.total_unit}</p>
                                 </div>
                               </div>
 
-                              <div className="mt-4 grid gap-3 text-sm text-muted-foreground md:grid-cols-2 xl:grid-cols-4">
+                              <div className="mt-4 grid gap-3 text-sm text-slate-400 md:grid-cols-2 xl:grid-cols-4">
                                 <div>
-                                  <p className="text-xs font-medium uppercase tracking-wide text-foreground/80">Product</p>
+                                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Product</p>
                                   <p className="mt-1 flex items-center gap-2">
                                     <Package className="h-3.5 w-3.5" />
                                     <span>{ticket.product || "—"}</span>
                                   </p>
                                 </div>
                                 <div>
-                                  <p className="text-xs font-medium uppercase tracking-wide text-foreground/80">PO #</p>
+                                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">PO #</p>
                                   <p className="mt-1">{ticket.job_name || "—"}</p>
                                 </div>
                                 <div>
-                                  <p className="text-xs font-medium uppercase tracking-wide text-foreground/80">Truck</p>
+                                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Truck</p>
                                   <p className="mt-1">{ticket.truck || "—"}</p>
                                 </div>
                                 <div>
-                                  <p className="text-xs font-medium uppercase tracking-wide text-foreground/80">Note</p>
+                                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Note</p>
                                   <p className="mt-1">{ticket.note || "—"}</p>
                                 </div>
                               </div>
@@ -637,7 +670,7 @@ const Customers = () => {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="gap-1.5"
+                                  className="gap-1.5 border-white/10 bg-white/5 text-white hover:bg-white/10"
                                   onClick={(event) => {
                                     event.stopPropagation();
                                     handlePrintTicket(ticket);
@@ -647,7 +680,7 @@ const Customers = () => {
                                 </Button>
                                 <Button
                                   size="sm"
-                                  className="gap-1.5"
+                                  className="gap-1.5 bg-cyan-400 text-slate-950 hover:bg-cyan-300"
                                   onClick={(event) => {
                                     event.stopPropagation();
                                     openTicketEditor(ticket);
@@ -664,8 +697,8 @@ const Customers = () => {
                   </Card>
                 </>
               ) : (
-                <Card>
-                  <CardContent className="py-14 text-center text-muted-foreground">
+                <Card className="border-white/8 bg-[#111c2d] shadow-xl shadow-black/10">
+                  <CardContent className="py-14 text-center text-slate-400">
                     Select a customer to see their details.
                   </CardContent>
                 </Card>
@@ -676,34 +709,36 @@ const Customers = () => {
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="border-white/10 bg-[#111c2d] text-white">
           <DialogHeader>
             <DialogTitle>{editing ? "Edit Customer" : "Add Customer"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <Label className="text-xs text-muted-foreground">Name *</Label>
+              <Label className="text-xs text-slate-500">Name *</Label>
               <Input
                 value={form.name}
                 onChange={(e) => setForm((current) => ({ ...current, name: e.target.value }))}
                 placeholder="Customer name"
+                className="border-white/10 bg-[#0d1726] text-white placeholder:text-slate-500"
               />
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Email</Label>
+              <Label className="text-xs text-slate-500">Email</Label>
               <Input
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm((current) => ({ ...current, email: e.target.value }))}
                 placeholder="customer@example.com"
+                className="border-white/10 bg-[#0d1726] text-white placeholder:text-slate-500"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-white/10 bg-white/5 text-white hover:bg-white/10">
               Cancel
             </Button>
-            <Button onClick={handleSave} disabled={saving}>
+            <Button onClick={handleSave} disabled={saving} className="bg-cyan-400 text-slate-950 hover:bg-cyan-300">
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {editing ? "Update" : "Add"}
             </Button>
@@ -712,7 +747,7 @@ const Customers = () => {
       </Dialog>
 
       <Dialog open={!!editingTicket} onOpenChange={(open) => !open && setEditingTicket(null)}>
-        <DialogContent className="max-h-[90dvh] max-w-5xl overflow-y-auto">
+        <DialogContent className="max-h-[90dvh] max-w-5xl overflow-y-auto border-white/10 bg-[#111c2d] text-white">
           <DialogHeader>
             <DialogTitle>{editingTicket ? `Edit Ticket ${editingTicket.jobNumber}` : "Edit Ticket"}</DialogTitle>
           </DialogHeader>

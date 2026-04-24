@@ -7,7 +7,6 @@ import { getAccessToken } from "@/lib/getAccessToken";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Rocket } from "lucide-react";
-import type { AgentKey } from "@/pages/Admin";
 
 function fmtTime(iso: string | undefined) {
   if (!iso) return "—";
@@ -30,7 +29,7 @@ interface DeployRecord {
 }
 
 interface DeployPanelProps {
-  agentKey: AgentKey;
+  agentKey: string;
   authReady: boolean;
 }
 
@@ -55,6 +54,10 @@ export function DeployPanel({ agentKey, authReady }: DeployPanelProps) {
 
   const authedFetch = useCallback(
     async (path: string, init?: RequestInit) => {
+      if (!agentKey) {
+        throw new Error("No agent selected");
+      }
+
       const token = await getAccessToken();
 
       return fetch(
@@ -76,6 +79,7 @@ export function DeployPanel({ agentKey, authReady }: DeployPanelProps) {
 
   const refreshDeploys = useCallback(async () => {
     if (!authReady) return;
+    if (!agentKey) return;
 
     try {
       const res = await authedFetch("/deploys");
@@ -147,6 +151,10 @@ export function DeployPanel({ agentKey, authReady }: DeployPanelProps) {
     setBusyApp(which);
 
     try {
+      if (!agentKey) {
+        throw new Error("No agent selected");
+      }
+
       const token = await getAccessToken();
 
       const url = `${SUPABASE_URL}/functions/v1/agent-stream?agent=${encodeURIComponent(

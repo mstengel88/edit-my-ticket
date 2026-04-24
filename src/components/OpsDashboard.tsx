@@ -23,7 +23,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { RotateCcw, Trash2 } from "lucide-react";
-import type { AgentKey } from "@/pages/Admin";
 
 function fmtPct(n: number) {
   return `${Math.round(n)}%`;
@@ -63,7 +62,7 @@ interface Container {
 }
 
 interface OpsDashboardProps {
-  agentKey: AgentKey;
+  agentKey: string;
   authReady: boolean;
 }
 
@@ -91,6 +90,9 @@ export function OpsDashboard({ agentKey, authReady }: OpsDashboardProps) {
       if (!authReady) {
         throw new Error("Auth not ready");
       }
+      if (!agentKey) {
+        throw new Error("No agent selected");
+      }
 
       const token = await getAccessToken();
 
@@ -112,7 +114,7 @@ export function OpsDashboard({ agentKey, authReady }: OpsDashboardProps) {
   );
 
   useEffect(() => {
-    if (!authReady) return;
+    if (!authReady || !agentKey) return;
 
     setSeries([]);
     setMetrics({
@@ -167,7 +169,7 @@ export function OpsDashboard({ agentKey, authReady }: OpsDashboardProps) {
   }, [agentKey, authReady, authedFetch]);
 
   useEffect(() => {
-    if (!authReady) return;
+    if (!authReady || !agentKey) return;
 
     setContainers([]);
     setSelected("");
@@ -235,7 +237,7 @@ export function OpsDashboard({ agentKey, authReady }: OpsDashboardProps) {
   }, [agentKey, authReady, authedFetch]);
 
   useEffect(() => {
-    if (!authReady || !selected) return;
+    if (!authReady || !agentKey || !selected) return;
 
     setLogs("");
     const controller = new AbortController();

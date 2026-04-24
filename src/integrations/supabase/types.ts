@@ -44,6 +44,42 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_registry: {
+        Row: {
+          base_url: string
+          created_at: string
+          health_path: string
+          is_active: boolean
+          is_default: boolean
+          key: string
+          label: string
+          priority: number
+          updated_at: string
+        }
+        Insert: {
+          base_url: string
+          created_at?: string
+          health_path?: string
+          is_active?: boolean
+          is_default?: boolean
+          key: string
+          label: string
+          priority?: number
+          updated_at?: string
+        }
+        Update: {
+          base_url?: string
+          created_at?: string
+          health_path?: string
+          is_active?: boolean
+          is_default?: boolean
+          key?: string
+          label?: string
+          priority?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           created_at: string

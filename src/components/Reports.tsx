@@ -108,6 +108,15 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
     return { totalTons, totalYards, byCustomer, byProduct, ticketCount: filtered.length };
   }, [filtered]);
 
+  const queryMeta = useMemo(() => {
+    const trucks = new Set(filtered.map((ticket) => ticket.truck?.trim()).filter(Boolean));
+    const products = new Set(filtered.map((ticket) => ticket.product?.trim()).filter(Boolean));
+    return {
+      trucks: trucks.size,
+      products: products.size,
+    };
+  }, [filtered]);
+
   const periodLabel: Record<TimePeriod, string> = {
     today: "Today",
     yesterday: "Yesterday",
@@ -351,6 +360,21 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
         </CardContent>
       </Card>
 
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+        {[
+          { label: "Matched Tickets", value: filtered.length, hint: "Rows in current result set" },
+          { label: "Customers", value: Object.keys(summary.byCustomer).length, hint: "Accounts in query" },
+          { label: "Products", value: queryMeta.products, hint: "Material types represented" },
+          { label: "Trucks", value: queryMeta.trucks, hint: "Distinct truck records" },
+        ].map((item) => (
+          <div key={item.label} className="rounded-[22px] border border-white/8 bg-[#111c2d] px-5 py-4 shadow-lg shadow-black/10">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">{item.label}</p>
+            <p className="mt-3 text-3xl font-semibold text-white">{item.value}</p>
+            <p className="mt-2 text-xs text-slate-500">{item.hint}</p>
+          </div>
+        ))}
+      </div>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" data-report-section="summary">
         <Card className="border-white/8 bg-[#111c2d]">
@@ -468,7 +492,18 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
       {/* All Tickets Detail */}
       <Card data-report-section="tickets" className="border-white/8 bg-[#111c2d]">
         <CardHeader>
-          <CardTitle className="text-base text-white">Ticket Details</CardTitle>
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Result Grid</p>
+              <CardTitle className="mt-2 text-base text-white">Ticket Details</CardTitle>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs text-slate-400">
+              <span className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1">Dense grid mode</span>
+              <span className="rounded-full border border-white/8 bg-white/[0.03] px-3 py-1">
+                {format(dateRange.from, "MM/dd/yyyy")} - {format(dateRange.to, "MM/dd/yyyy")}
+              </span>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           <Table>
@@ -494,19 +529,25 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
                 .sort((a, b) => a.jobNumber.localeCompare(b.jobNumber))
                 .map((t) => (
                   <TableRow key={t.id}>
-                    {rVisible("jobNumber") && <TableCell className="font-medium">{t.jobNumber}</TableCell>}
-                    {rVisible("jobName") && <TableCell>{t.jobName}</TableCell>}
-                    {rVisible("dateTime") && <TableCell className="whitespace-nowrap">{t.dateTime}</TableCell>}
-                    {rVisible("customer") && <TableCell>{t.customer}</TableCell>}
-                    {rVisible("customerEmail") && <TableCell>{t.customerEmail}</TableCell>}
-                    {rVisible("customerAddress") && <TableCell>{t.customerAddress}</TableCell>}
-                    {rVisible("product") && <TableCell>{t.product}</TableCell>}
-                    {rVisible("truck") && <TableCell>{t.truck}</TableCell>}
-                    {rVisible("bucket") && <TableCell>{t.bucket}</TableCell>}
-                    {rVisible("totalAmount") && <TableCell className="text-right">{t.totalAmount}</TableCell>}
-                    {rVisible("totalUnit") && <TableCell>{t.totalUnit}</TableCell>}
-                    {rVisible("note") && <TableCell>{t.note}</TableCell>}
-                    {rVisible("status") && <TableCell className="capitalize">{t.status}</TableCell>}
+                    {rVisible("jobNumber") && <TableCell className="font-medium text-slate-100">{t.jobNumber}</TableCell>}
+                    {rVisible("jobName") && <TableCell className="text-slate-300">{t.jobName}</TableCell>}
+                    {rVisible("dateTime") && <TableCell className="whitespace-nowrap text-slate-300">{t.dateTime}</TableCell>}
+                    {rVisible("customer") && <TableCell className="text-slate-300">{t.customer}</TableCell>}
+                    {rVisible("customerEmail") && <TableCell className="text-slate-400">{t.customerEmail}</TableCell>}
+                    {rVisible("customerAddress") && <TableCell className="text-slate-400">{t.customerAddress}</TableCell>}
+                    {rVisible("product") && <TableCell className="text-slate-300">{t.product}</TableCell>}
+                    {rVisible("truck") && <TableCell className="text-slate-300">{t.truck}</TableCell>}
+                    {rVisible("bucket") && <TableCell className="text-slate-400">{t.bucket}</TableCell>}
+                    {rVisible("totalAmount") && <TableCell className="text-right font-medium text-slate-100">{t.totalAmount}</TableCell>}
+                    {rVisible("totalUnit") && <TableCell className="text-cyan-300">{t.totalUnit}</TableCell>}
+                    {rVisible("note") && <TableCell className="text-slate-400">{t.note}</TableCell>}
+                    {rVisible("status") && (
+                      <TableCell>
+                        <span className="rounded-full border border-white/8 bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium capitalize text-slate-200">
+                          {t.status}
+                        </span>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               {filtered.length === 0 && (

@@ -1,30 +1,10 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
-const AGENTS: Record<string, string | undefined> = {
-  primary: Deno.env.get("AGENT_URL"),
-  second: Deno.env.get("AGENT2_URL"),
-};
-
-async function hmacSign(secret: string, message: string): Promise<string> {
-  const enc = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw",
-    enc.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(message));
-  return Array.from(new Uint8Array(sig))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
+import {
+  corsHeaders,
+  hmacSign,
+  jsonResponse,
+  requireDeveloper,
+  resolveAgent,
+} from "../_shared/agentRegistry.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -34,45 +14,33 @@ Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
     const path = url.searchParams.get("path");
-    const agentKey = url.searchParams.get("agent") || "primary";
-    const agentBase = AGENTS[agentKey];
+    const requestedAgentKey = url.searchParams.get("agent");
+    const allowFailover = url.searchParams.get("failover") === "1";
 
     if (!path) {
-      return new Response(JSON.stringify({ error: "Missing path" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Missing path" }, 400);
     }
 
-    if (!agentBase) {
-      return new Response(JSON.stringify({ error: `Invalid agent: ${agentKey}` }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const auth = await requireDeveloper(req);
+    if (!auth.ok) {
+      return jsonResponse({ error: auth.message }, auth.status);
     }
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Missing bearer token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } },
+    const { agent, failover, failedAgent } = await resolveAgent(
+      auth.supabase,
+      requestedAgentKey,
+      { allowFailover },
     );
 
-    const token = authHeader.replace("Bearer ", "").trim();
-    const { data: claimsData, error: claimsErr } = await supabase.auth.getClaims(token);
-
-    if (claimsErr || !claimsData?.claims?.sub) {
-      return new Response(JSON.stringify({ error: "Invalid JWT" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!agent.health.ok) {
+      return jsonResponse(
+        {
+          error: `Agent ${agent.key} is unhealthy`,
+          agent: agent.key,
+          health: agent.health,
+        },
+        503,
+      );
     }
 
     const bodyObj = req.method === "POST" ? await req.json().catch(() => ({})) : {};
@@ -80,7 +48,7 @@ Deno.serve(async (req) => {
     const ts = Date.now().toString();
     const sig = await hmacSign(Deno.env.get("AGENT_SECRET")!, `${ts}.${body}`);
 
-    const upstream = await fetch(`${agentBase}${path}`, {
+    const upstream = await fetch(`${agent.base_url}${path}`, {
       method: req.method,
       headers: {
         "Content-Type": "application/json",
@@ -97,12 +65,13 @@ Deno.serve(async (req) => {
       headers: {
         ...corsHeaders,
         "Content-Type": upstream.headers.get("content-type") || "application/json",
+        "x-agent-key": agent.key,
+        ...(failover && failedAgent
+          ? { "x-agent-failover-from": failedAgent.key }
+          : {}),
       },
     });
   } catch (e: any) {
-    return new Response(JSON.stringify({ error: e.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: e.message }, 500);
   }
 });

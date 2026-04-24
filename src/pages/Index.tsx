@@ -474,8 +474,34 @@ const Index = () => {
                       </div>
                     </div>
                   </section>
-                  <div className="rounded-[28px] border border-white/8 bg-[#111c2d] p-5 shadow-2xl shadow-black/20">
-                    <TicketPreview ticket={selectedTicket} canvasElements={canvasElements} emailElements={emailElements} copiesPerPage={copiesPerPage} canvasWidth={canvasWidth} canvasHeight={canvasHeight} printLayouts={printLayouts} />
+                  <div className="grid gap-5 xl:grid-cols-[1.35fr_0.65fr]">
+                    <div className="rounded-[28px] border border-white/8 bg-[#111c2d] p-5 shadow-2xl shadow-black/20">
+                      <TicketPreview ticket={selectedTicket} canvasElements={canvasElements} emailElements={emailElements} copiesPerPage={copiesPerPage} canvasWidth={canvasWidth} canvasHeight={canvasHeight} printLayouts={printLayouts} />
+                    </div>
+                    <aside className="rounded-[28px] border border-white/8 bg-[#111c2d] p-5 shadow-2xl shadow-black/20">
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Print Station</p>
+                      <h3 className="mt-2 text-xl font-semibold text-white">Ready for output</h3>
+                      <div className="mt-5 space-y-3">
+                        {[
+                          { label: "Copies Per Page", value: String(copiesPerPage) },
+                          { label: "PO Number", value: selectedTicket.jobName || "No PO" },
+                          { label: "Truck", value: selectedTicket.truck || "No truck" },
+                          { label: "Customer Email", value: selectedTicket.customerEmail || "No email set" },
+                        ].map((item) => (
+                          <div key={item.label} className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">{item.label}</p>
+                            <p className="mt-2 text-sm font-medium text-slate-200">{item.value}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-5 rounded-2xl border border-cyan-300/10 bg-cyan-400/5 px-4 py-4">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-300">Output Notes</p>
+                        <p className="mt-2 text-sm leading-6 text-slate-300">
+                          This preview is using the shared admin-managed print template, so what you see here is the same
+                          layout other users will print from in the app.
+                        </p>
+                      </div>
+                    </aside>
                   </div>
                 </div>
               )}

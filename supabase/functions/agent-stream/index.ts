@@ -1,17 +1,9 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
-const AGENTS: Record<string, string | undefined> = {
-  primary: Deno.env.get("AGENT_URL"),
-  second: Deno.env.get("AGENT2_URL"),
-};
-
-const AGENT_SECRET = Deno.env.get("AGENT_SECRET")!;
+import {
+  corsHeaders,
+  hmacSign,
+  requireDeveloper,
+  resolveAgent,
+} from "../_shared/agentRegistry.ts";
 
 const ALLOWED_ACTIONS: Record<string, string> = {
   winterwatch: "deploy:winterwatch",
@@ -19,77 +11,7 @@ const ALLOWED_ACTIONS: Record<string, string> = {
   localdelivery: "deploy:localdelivery",
   shipcalc: "deploy:shipcalc",
 };
-
-async function hmacSign(secret: string, message: string): Promise<string> {
-  const enc = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw",
-    enc.encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(message));
-  return Array.from(new Uint8Array(sig))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-async function requireDeveloper(req: Request) {
-  const authHeader = req.headers.get("Authorization");
-
-  if (!authHeader?.startsWith("Bearer ")) {
-    return { ok: false, status: 401, message: "Missing bearer token" };
-  }
-
-  const token = authHeader.replace("Bearer ", "").trim();
-  if (!token) {
-    return { ok: false, status: 401, message: "Empty bearer token" };
-  }
-
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_ANON_KEY")!,
-    {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    },
-  );
-
-  const { data: userData, error: userErr } = await supabase.auth.getUser(token);
-
-  if (userErr || !userData?.user) {
-    return {
-      ok: false,
-      status: 401,
-      message: userErr?.message || "Unauthorized",
-    };
-  }
-
-  const userId = userData.user.id;
-
-  const { data: isDev, error: roleErr } = await supabase.rpc("has_role", {
-    _user_id: userId,
-    _role: "developer",
-  });
-
-  if (roleErr) {
-    return {
-      ok: false,
-      status: 500,
-      message: roleErr.message,
-    };
-  }
-
-  if (!isDev) {
-    return { ok: false, status: 403, message: "Forbidden" };
-  }
-
-  return { ok: true };
-}
+const AGENT_SECRET = Deno.env.get("AGENT_SECRET")!;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -114,14 +36,18 @@ Deno.serve(async (req) => {
 
     const url = new URL(req.url);
     const target = url.searchParams.get("target");
-    const agentKey = url.searchParams.get("agent") || "primary";
-    const agentBase = AGENTS[agentKey];
+    const requestedAgentKey = url.searchParams.get("agent");
     const agentAction = target ? ALLOWED_ACTIONS[target] : undefined;
 
-    if (!agentBase) {
+    const { agent } = await resolveAgent(auth.supabase, requestedAgentKey);
+
+    if (!agent.health.ok) {
       return new Response(
-        `event: error\ndata: ${JSON.stringify({ message: `Unknown agent: ${agentKey}` })}\n\n`,
-        { status: 400, headers: sseHeaders },
+        `event: error\ndata: ${JSON.stringify({
+          message: `Agent ${agent.key} is unhealthy`,
+          health: agent.health,
+        })}\n\n`,
+        { status: 503, headers: sseHeaders },
       );
     }
 
@@ -136,7 +62,7 @@ Deno.serve(async (req) => {
     const sig = await hmacSign(AGENT_SECRET, `${ts}.{}`);
 
     const upstream = await fetch(
-      `${agentBase}/stream?action=${encodeURIComponent(agentAction)}`,
+      `${agent.base_url}/stream?action=${encodeURIComponent(agentAction)}`,
       {
         method: "GET",
         headers: {

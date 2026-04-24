@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { RotateCcw, RefreshCw } from "lucide-react";
 import { DeployPanel } from "@/components/DeployPanel";
 import { OpsDashboard } from "@/components/OpsDashboard";
+import { Badge } from "@/components/ui/badge";
 import { AppLayout } from "@/components/AppLayout";
 import {
   supabase,
@@ -10,6 +11,7 @@ import {
   SUPABASE_URL,
 } from "@/integrations/supabase/client";
 import { getAccessToken } from "@/lib/getAccessToken";
+import { useAgentRegistry } from "@/hooks/useAgentRegistry";
 import {
   Select,
   SelectContent,
@@ -18,17 +20,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export type AgentKey = "primary" | "second";
-
 const Admin = () => {
   const [authReady, setAuthReady] = useState(false);
-  const [agentKey, setAgentKey] = useState<AgentKey>("primary");
+  const [agentKey, setAgentKey] = useState<string>("");
 
   const [restartLoading, setRestartLoading] = useState(false);
   const [restartMsg, setRestartMsg] = useState("");
 
   const [agentRestartLoading, setAgentRestartLoading] = useState(false);
   const [agentRestartMsg, setAgentRestartMsg] = useState("");
+  const [agentNotice, setAgentNotice] = useState("");
+  const {
+    data: registry,
+    isLoading: registryLoading,
+    error: registryError,
+  } = useAgentRegistry(authReady);
 
   useEffect(() => {
     let mounted = true;
@@ -49,6 +55,32 @@ const Admin = () => {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    const agents = registry?.agents || [];
+    if (!agents.length) return;
+
+    const preferredAgent =
+      agents.find((agent) => agent.key === registry?.preferredAgentKey) || agents[0];
+    const selected = agents.find((agent) => agent.key === agentKey);
+
+    if (!selected) {
+      setAgentKey(preferredAgent.key);
+      setAgentNotice("");
+      return;
+    }
+
+    if (!selected.health.ok && preferredAgent.key !== selected.key && preferredAgent.health.ok) {
+      setAgentKey(preferredAgent.key);
+      setAgentNotice(`Switched to ${preferredAgent.label} because ${selected.label} is unhealthy.`);
+      return;
+    }
+
+    setAgentNotice("");
+  }, [registry, agentKey]);
+
+  const selectedAgent =
+    registry?.agents.find((agent) => agent.key === agentKey) || null;
 
   async function postToAgentProxy(path: string) {
     const token = await getAccessToken();
@@ -134,18 +166,55 @@ const Admin = () => {
               <span className="text-sm text-muted-foreground">Server:</span>
               <Select
                 value={agentKey}
-                onValueChange={(value) => setAgentKey(value as AgentKey)}
+                onValueChange={setAgentKey}
+                disabled={registryLoading || !registry?.agents.length}
               >
                 <SelectTrigger className="w-40">
                   <SelectValue placeholder="Select server" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="primary">Primary</SelectItem>
-                  <SelectItem value="second">Second</SelectItem>
+                  {(registry?.agents || []).map((agent) => (
+                    <SelectItem key={agent.key} value={agent.key}>
+                      {agent.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
+
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            {selectedAgent ? (
+              <>
+                <Badge variant={selectedAgent.health.ok ? "default" : "destructive"}>
+                  {selectedAgent.health.ok ? "Healthy" : "Degraded"}
+                </Badge>
+                <span className="text-muted-foreground">
+                  {selectedAgent.label}
+                  {selectedAgent.health.responseTimeMs != null
+                    ? ` • ${selectedAgent.health.responseTimeMs}ms`
+                    : ""}
+                </span>
+                {!selectedAgent.health.ok && selectedAgent.health.error && (
+                  <span className="text-destructive">{selectedAgent.health.error}</span>
+                )}
+              </>
+            ) : registryError ? (
+              <span className="text-destructive">
+                {registryError instanceof Error
+                  ? registryError.message
+                  : "Failed to load agent registry"}
+              </span>
+            ) : (
+              <span className="text-muted-foreground">
+                {registryLoading ? "Loading servers…" : "No active servers configured"}
+              </span>
+            )}
+          </div>
+
+          {agentNotice && (
+            <p className="text-sm text-muted-foreground">{agentNotice}</p>
+          )}
 
           <OpsDashboard agentKey={agentKey} authReady={authReady} />
         </section>
@@ -156,7 +225,7 @@ const Admin = () => {
           <div className="flex flex-wrap items-center gap-3">
             <Button
               onClick={handleRestart}
-              disabled={restartLoading}
+              disabled={restartLoading || !selectedAgent}
               variant="destructive"
               className="gap-1.5"
             >
@@ -172,7 +241,7 @@ const Admin = () => {
           <div className="flex flex-wrap items-center gap-3">
             <Button
               onClick={handleAgentRestart}
-              disabled={agentRestartLoading}
+              disabled={agentRestartLoading || !selectedAgent}
               variant="secondary"
               className="gap-1.5"
             >

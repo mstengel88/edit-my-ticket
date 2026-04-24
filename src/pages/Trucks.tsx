@@ -154,7 +154,7 @@ const Trucks = () => {
   );
 
   return (
-    <AppLayout title="Trucks" headerExtra={useCompactActions ? undefined : headerExtra}>
+    <AppLayout title="Trucks" subtitle="Manage standardized fleet names and watch for duplicates" headerExtra={useCompactActions ? undefined : headerExtra}>
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
         {useCompactActions && (
           <div className="mb-4 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -162,12 +162,49 @@ const Trucks = () => {
           </div>
         )}
 
+        <div className="mb-6 grid gap-6 xl:grid-cols-[1.1fr_1.25fr]">
+          <section className="rounded-[28px] border border-white/8 bg-[#111c2d] p-6 shadow-xl shadow-black/20">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Fleet Console</p>
+            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">
+              Keep truck names standardized before they reach tickets.
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-slate-300">
+              This page protects the truck list used during ticket entry. New trucks must use the `GREENHILLS-TRUCKNUMBER`
+              format, and trucks tied to existing tickets stay protected from deletion.
+            </p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              {[
+                { label: "Trucks", value: trucks.length },
+                { label: "Visible", value: filtered.length },
+                { label: "Duplicates", value: duplicateGroups.length },
+              ].map((item) => (
+                <div key={item.label} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">{item.label}</p>
+                  <p className="mt-3 text-3xl font-semibold text-white">{item.value}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-[28px] border border-white/8 bg-[#111c2d] p-6 shadow-xl shadow-black/20">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Search & Validation</p>
+            <h3 className="mt-2 text-xl font-semibold text-white">Review the active fleet list</h3>
+            <div className="relative mt-5 max-w-lg">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <Input placeholder="Search trucks..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-11 border-white/10 bg-[#0d1726] pl-9 text-white placeholder:text-slate-500" />
+            </div>
+            <p className="mt-3 text-sm text-slate-400">
+              Use search to spot variations quickly, then clean up naming before more ticket records are created.
+            </p>
+          </section>
+        </div>
+
         {duplicateGroups.length > 0 && (
-          <Card className="mb-4 border-amber-300/60 bg-amber-50/60 dark:border-amber-700/60 dark:bg-amber-950/20">
+          <Card className="mb-4 border-amber-300/25 bg-amber-400/8">
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-amber-600" />
-                <CardTitle className="text-base">Truck duplicates detected</CardTitle>
+                <CardTitle className="text-base text-white">Truck duplicates detected</CardTitle>
               </div>
               <CardDescription>
                 Trucks were being saved without consistent normalization, so values with spacing or casing differences could be treated as separate entries.
@@ -175,18 +212,13 @@ const Trucks = () => {
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               {duplicateGroups.map((group) => (
-                <div key={group.map((truck) => truck.id).join("-")} className="rounded-md border bg-background px-3 py-2">
-                  <span className="font-medium">{group.map((truck) => truck.name).join(", ")}</span>
+                <div key={group.map((truck) => truck.id).join("-")} className="rounded-md border border-white/8 bg-white/[0.03] px-3 py-2">
+                  <span className="font-medium text-slate-200">{group.map((truck) => truck.name).join(", ")}</span>
                 </div>
               ))}
             </CardContent>
           </Card>
         )}
-
-        <div className="relative mb-4 max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search trucks..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-        </div>
 
         {loading ? (
           <div className="flex justify-center py-12">
@@ -197,7 +229,7 @@ const Trucks = () => {
             {search ? "No trucks match your search" : "No trucks yet. Add one to get started!"}
           </p>
         ) : (
-          <div className="overflow-x-auto rounded-lg border bg-card">
+          <div className="overflow-x-auto rounded-[24px] border border-white/8 bg-[#111c2d] shadow-xl shadow-black/10">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -211,7 +243,7 @@ const Trucks = () => {
                   const isDuplicate = duplicateGroups.some((group) => group.some((entry) => entry.id === truck.id));
                   return (
                     <TableRow key={truck.id}>
-                      <TableCell className="font-medium">{truck.name}</TableCell>
+                      <TableCell className="font-medium text-white">{truck.name}</TableCell>
                       <TableCell>
                         {isDuplicate ? (
                           <Badge variant="secondary" className="text-xs">Duplicate</Badge>
@@ -221,11 +253,11 @@ const Trucks = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(truck)}>
+                          <Button variant="ghost" size="icon" className="text-slate-300 hover:bg-white/5 hover:text-white" onClick={() => openEdit(truck)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDelete(truck)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
+                          <Button variant="ghost" size="icon" className="text-rose-300 hover:bg-rose-400/10" onClick={() => handleDelete(truck)}>
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -239,26 +271,27 @@ const Trucks = () => {
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="border-white/10 bg-[#111c2d] text-white">
           <DialogHeader>
             <DialogTitle>{editing ? "Edit Truck" : "Add Truck"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <Label className="text-xs text-muted-foreground">Name *</Label>
+              <Label className="text-xs text-slate-500">Name *</Label>
               <Input
                 value={form.name}
                 onChange={(e) => setForm({ name: e.target.value })}
                 placeholder="GREENHILLS-101"
+                className="border-white/10 bg-[#0d1726] text-white placeholder:text-slate-500"
               />
-              <p className="mt-2 text-xs text-muted-foreground">
+              <p className="mt-2 text-xs text-slate-400">
                 New truck names must start with <span className="font-medium">GREENHILLS-</span>.
               </p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={saving}>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} className="border-white/10 bg-white/5 text-white hover:bg-white/10">Cancel</Button>
+            <Button onClick={handleSave} disabled={saving} className="bg-cyan-400 text-slate-950 hover:bg-cyan-300">
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {editing ? "Update" : "Add"}
             </Button>

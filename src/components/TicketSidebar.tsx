@@ -59,6 +59,9 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
   });
 
   const getSidebarUnitLabel = (unit: string) => compactUnitLabel[unit] ?? unit;
+  const pendingCount = tickets.filter((ticket) => ticket.status === "pending").length;
+  const draftCount = tickets.filter((ticket) => ticket.status === "draft").length;
+  const completedCount = tickets.filter((ticket) => ticket.status === "completed").length;
 
   return (
     <>
@@ -74,6 +77,18 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
               <h3 className="mt-1 text-base font-semibold text-white">Tickets</h3>
             </div>
             <span className="rounded-full bg-white/5 px-2.5 py-1 text-xs text-slate-300">{tickets.length}</span>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { label: "Draft", value: draftCount },
+              { label: "Pending", value: pendingCount },
+              { label: "Done", value: completedCount },
+            ].map((item) => (
+              <div key={item.label} className="rounded-xl border border-white/8 bg-white/[0.03] px-2.5 py-2">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">{item.label}</p>
+                <p className="mt-1 text-sm font-semibold text-white">{item.value}</p>
+              </div>
+            ))}
           </div>
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
             <SelectTrigger className="h-9 border-white/10 bg-[#0d1726] text-xs text-white">
@@ -117,6 +132,12 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
                     : "border-white/8 bg-white/[0.03] hover:bg-white/[0.06]"
                 }`}
               >
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    {ticket.status}
+                  </span>
+                  <span className="text-[10px] text-slate-500">{ticket.dateTime}</span>
+                </div>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
