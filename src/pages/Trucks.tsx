@@ -96,7 +96,13 @@ const Trucks = () => {
       const oldName = editing.name;
       const { error } = await supabase.from("trucks").update(buildTruckRecord(normalizedName)).eq("id", editing.id);
       if (error) {
-        toast.error("Failed to update truck");
+        toast.error(
+          error.message.toLowerCase().includes("policy")
+            ? "You do not have permission to edit this truck yet"
+            : error.message.includes("duplicate")
+              ? "Truck already exists"
+              : "Failed to update truck"
+        );
         setSaving(false);
         return;
       }
@@ -140,7 +146,16 @@ const Trucks = () => {
       return;
     }
 
-    await supabase.from("trucks").delete().eq("id", truck.id);
+    const { error } = await supabase.from("trucks").delete().eq("id", truck.id);
+    if (error) {
+      toast.error(
+        error.message.toLowerCase().includes("policy")
+          ? "You do not have permission to delete this truck yet"
+          : "Failed to delete truck"
+      );
+      return;
+    }
+
     toast.success("Truck deleted");
     load();
   };

@@ -39,6 +39,9 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
   };
 
   const selectOnFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    if (typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches) {
+      return;
+    }
     e.target.select();
   };
 

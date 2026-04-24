@@ -113,8 +113,6 @@ export function ComboInput({ value, onChange, options, placeholder, className }:
           openList();
         }}
         onClick={openList}
-        onTouchStart={openList}
-        onPointerDown={openList}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         className={className}
