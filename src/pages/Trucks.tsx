@@ -12,7 +12,7 @@ import { Plus, Pencil, Trash2, Search, Loader2, AlertTriangle } from "lucide-rea
 import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
 import { useIsMobile, useIsTablet } from "@/hooks/use-mobile";
-import { isStandardTruckName, normalizeTruckName, truckNameKey } from "@/lib/truckName";
+import { buildTruckRecord, isStandardTruckName, normalizeTruckName, truckNameKey } from "@/lib/truckName";
 
 interface Truck {
   id: string;
@@ -94,7 +94,7 @@ const Trucks = () => {
 
     if (editing) {
       const oldName = editing.name;
-      const { error } = await supabase.from("trucks").update({ name: normalizedName }).eq("id", editing.id);
+      const { error } = await supabase.from("trucks").update(buildTruckRecord(normalizedName)).eq("id", editing.id);
       if (error) {
         toast.error("Failed to update truck");
         setSaving(false);
@@ -113,7 +113,7 @@ const Trucks = () => {
 
       toast.success("Truck updated");
     } else {
-      const { error } = await supabase.from("trucks").insert({ name: normalizedName, user_id: userId });
+      const { error } = await supabase.from("trucks").insert({ ...buildTruckRecord(normalizedName), user_id: userId });
       if (error) {
         toast.error(error.message.includes("duplicate") ? "Truck already exists" : "Failed to add truck");
         setSaving(false);

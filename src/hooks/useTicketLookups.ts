@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { getProducts, LoadriteProduct } from "@/services/loadrite";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { isStandardTruckName, normalizeTruckName } from "@/lib/truckName";
+import { buildTruckRecord, isStandardTruckName, normalizeTruckName } from "@/lib/truckName";
 
 interface LookupData {
   products: string[];
@@ -167,9 +167,9 @@ export function useTicketLookups(): LookupData {
                   .filter((t) => t && t !== "-" && t !== "NOT SPECIFIED" && isStandardTruckName(t))
               ),
             ];
-            const truckRows = uniqueTruckNames.map((name) => ({ name, user_id: userId }));
+            const truckRows = uniqueTruckNames.map((name) => ({ ...buildTruckRecord(name), user_id: userId }));
             if (truckRows.length > 0) {
-              await supabase.from("trucks").upsert(truckRows, { onConflict: "name,user_id" });
+              await supabase.from("trucks").upsert(truckRows, { onConflict: "normalized_name" });
             }
           }
         }

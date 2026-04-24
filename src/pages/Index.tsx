@@ -19,7 +19,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AppLayout } from "@/components/AppLayout";
 import companyLogo from "@/assets/Greenhillssupply_logo.png";
 import { useLocation, useNavigate } from "react-router-dom";
-import { isStandardTruckName, normalizeTruckName } from "@/lib/truckName";
+import { buildTruckRecord, isStandardTruckName, normalizeTruckName } from "@/lib/truckName";
 import { Badge } from "@/components/ui/badge";
 
 type View = "list" | "editor" | "preview";
@@ -173,8 +173,8 @@ const Index = () => {
         await supabase
           .from("trucks")
           .upsert(
-            { name: normalizedTruck, user_id: userId },
-            { onConflict: "name,user_id" }
+            { ...buildTruckRecord(normalizedTruck), user_id: userId },
+            { onConflict: "normalized_name" }
           );
       }
     }
