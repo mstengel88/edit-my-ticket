@@ -33,6 +33,7 @@ import {
   Users,
   FileText,
 } from "lucide-react";
+import companyLogo from "@/assets/Greenhillssupply_logo.png";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -142,6 +143,9 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
     ...(isAdmin ? adminItems : []),
     ...(role === "developer" ? developerItems : []),
   ];
+  const compactQuickNav = allNav.filter((item) =>
+    ["/home", "/", "/reports", "/customers", "/orders"].includes(item.href),
+  );
 
   return (
     <div
@@ -160,9 +164,11 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
         <aside className="sticky top-0 h-screen w-64 shrink-0 border-r border-white/10 bg-[#0b1524] text-slate-100 flex flex-col shadow-2xl shadow-black/25">
           <div className="border-b border-white/10 px-5 py-5">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-400/10 ring-1 ring-cyan-300/20">
-                <FileText className="h-5 w-5 text-cyan-300" />
-              </div>
+              <img
+                src={companyLogo}
+                alt="Ticket Creator"
+                className="h-10 w-10 rounded-xl border border-cyan-300/15 bg-cyan-400/10 object-contain p-1 ring-1 ring-cyan-300/20"
+              />
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400">Green Hills</p>
                 <h2 className="text-lg font-semibold tracking-tight text-white">Ticket Creator</h2>
@@ -247,9 +253,22 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
         {/* Mobile header */}
         {useCompactLayout && (
           <header className="safe-area-top sticky top-0 z-10 border-b border-white/10 bg-[#0b1524]/95 backdrop-blur-sm no-print">
-            <div className="px-4 py-3">
+            <div className="px-4 py-3 sm:px-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
+                  <div className="mb-2 flex items-center gap-2.5">
+                    <img
+                      src={companyLogo}
+                      alt="Ticket Creator"
+                      className="h-9 w-9 rounded-xl border border-white/10 bg-white/5 object-contain p-1 shadow-lg shadow-black/20"
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                        Green Hills
+                      </p>
+                      <p className="truncate text-sm font-semibold text-white">Ticket Creator</p>
+                    </div>
+                  </div>
                   {title && (
                     <h1 className="truncate text-lg font-bold tracking-tight text-white">{title}</h1>
                   )}
@@ -290,6 +309,22 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
                   </DropdownMenu>
                 </div>
               </div>
+              <div className="-mx-1 mt-3 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="flex min-w-max gap-2">
+                  {compactQuickNav.map((item) => (
+                    <NavLink
+                      key={item.href}
+                      to={item.href}
+                      end={item.end}
+                      className="flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.03] px-3 py-2 text-xs font-medium text-slate-300 transition-colors hover:bg-white/[0.08] hover:text-white"
+                      activeClassName="border-cyan-300/20 bg-cyan-400/10 text-cyan-100"
+                    >
+                      <item.icon className="h-3.5 w-3.5" />
+                      {item.label}
+                    </NavLink>
+                  ))}
+                </div>
+              </div>
               {headerExtra && (
                 <div className="-mx-1 mt-3 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   <div className="min-w-max">{headerExtra}</div>
@@ -318,7 +353,7 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
           </header>
         )}
 
-        <main className="safe-area-bottom flex-1 bg-[#0d1522]">
+        <main className="safe-area-bottom flex-1 bg-[#0d1522] pb-[max(1rem,var(--safe-area-bottom))]">
           {children}
         </main>
       </div>
