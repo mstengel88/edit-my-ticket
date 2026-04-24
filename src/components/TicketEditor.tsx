@@ -20,6 +20,25 @@ interface TicketEditorProps {
   templateFields?: TemplateField[];
 }
 
+function FieldShell({
+  label,
+  children,
+  emphasis,
+}: {
+  label: string;
+  children: React.ReactNode;
+  emphasis?: boolean;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label className={`text-[11px] font-semibold uppercase tracking-[0.22em] ${emphasis ? "text-cyan-300" : "text-slate-500"}`}>
+        {label}
+      </Label>
+      {children}
+    </div>
+  );
+}
+
 export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields }: TicketEditorProps) {
   const [data, setData] = useState<TicketData>(ticket);
   const [showEmailConfirm, setShowEmailConfirm] = useState(false);
@@ -51,23 +70,6 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
     onSave(updated);
     toast.success("Ticket saved!");
   };
-
-  const FieldShell = ({
-    label,
-    children,
-    emphasis,
-  }: {
-    label: string;
-    children: React.ReactNode;
-    emphasis?: boolean;
-  }) => (
-    <div className="space-y-1.5">
-      <Label className={`text-[11px] font-semibold uppercase tracking-[0.22em] ${emphasis ? "text-cyan-300" : "text-slate-500"}`}>
-        {label}
-      </Label>
-      {children}
-    </div>
-  );
 
   const inputClassName =
     "border-white/10 bg-[#0d1726] text-white placeholder:text-slate-500 focus-visible:ring-cyan-400/40";
