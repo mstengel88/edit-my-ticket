@@ -128,6 +128,8 @@
     min-height: 100vh;
     min-height: 100dvh;
     overscroll-behavior-y: none;
+    letter-spacing: -0.01em;
+    text-rendering: optimizeLegibility;
   }
 
   body.keyboard-open {
@@ -165,6 +167,30 @@
 
   .ticket-print-shadow {
     box-shadow: none;
+  }
+
+  .console-panel {
+    @apply rounded-[28px] border border-white/10 bg-[#111c2d] shadow-xl shadow-black/20;
+  }
+
+  .console-panel-soft {
+    @apply rounded-[22px] border border-white/10 bg-white/[0.03];
+  }
+
+  .console-kpi {
+    @apply rounded-2xl border border-white/10 bg-white/[0.03] p-4;
+  }
+
+  .console-eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500;
+  }
+
+  .console-title {
+    @apply text-2xl font-semibold tracking-tight text-white;
+  }
+
+  .console-copy {
+    @apply text-sm leading-6 text-slate-300;
   }
 }
 

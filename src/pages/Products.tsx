@@ -166,31 +166,31 @@ const Products = () => {
           </div>
         )}
         <div className="mb-6 grid gap-6 xl:grid-cols-[1.05fr_1.35fr]">
-          <section className="rounded-[26px] border border-white/8 bg-[#111c2d] p-5 shadow-xl shadow-black/10">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Catalog Control</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">Keep ticket products clean and ready for dispatch.</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-300">
+          <section className="console-panel p-5">
+            <p className="console-eyebrow">Catalog Control</p>
+            <h2 className="console-title mt-2">Keep ticket products clean and ready for dispatch.</h2>
+            <p className="console-copy mt-3">
               This page is where the order-side material catalog stays organized. Sync from Loadrite when needed,
               then add or clean up the manual entries your team uses during ticket creation.
             </p>
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">Products</p>
+              <div className="console-kpi">
+                <p className="console-eyebrow">Products</p>
                 <p className="mt-3 text-3xl font-semibold text-white">{products.length}</p>
               </div>
-              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">Visible</p>
+              <div className="console-kpi">
+                <p className="console-eyebrow">Visible</p>
                 <p className="mt-3 text-3xl font-semibold text-white">{filtered.length}</p>
               </div>
-              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">Search State</p>
+              <div className="console-kpi">
+                <p className="console-eyebrow">Search State</p>
                 <p className="mt-3 text-sm font-medium text-slate-300">{search ? "Filtered" : "All products"}</p>
               </div>
             </div>
           </section>
 
-          <section className="rounded-[26px] border border-white/8 bg-[#111c2d] p-5 shadow-xl shadow-black/10">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Lookup</p>
+          <section className="console-panel p-5">
+            <p className="console-eyebrow">Lookup</p>
             <h3 className="mt-2 text-xl font-semibold text-white">Search the catalog</h3>
             <div className="relative mt-5 max-w-lg">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
@@ -216,7 +216,7 @@ const Products = () => {
             {search ? "No products match your search" : "No products yet. Add one to get started!"}
           </p>
         ) : (
-          <div className="overflow-x-auto rounded-[24px] border border-white/8 bg-[#111c2d] shadow-xl shadow-black/10">
+          <div className="console-panel overflow-x-auto rounded-[24px]">
             <Table>
               <TableHeader>
                 <TableRow>

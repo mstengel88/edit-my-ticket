@@ -175,12 +175,12 @@ const Orders = () => {
     <AppLayout title="Orders" subtitle="Group tickets into reusable order views without pricing data">
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 xl:px-8">
         <div className="mb-6 grid gap-6 xl:grid-cols-[1.1fr_1.25fr]">
-          <section className="rounded-[28px] border border-white/8 bg-[#111c2d] p-6 shadow-xl shadow-black/20">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Order Workspace</p>
+          <section className="console-panel p-6">
+            <p className="console-eyebrow">Order Workspace</p>
             <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">
               View ticket groups like orders so dispatch can work faster.
             </h2>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
+            <p className="console-copy mt-3 max-w-2xl">
               This screen rolls tickets into order-style groups based on PO number and customer. It gives you a cleaner
               way to review related tickets, products, trucks, and load history without bringing pricing into the flow.
             </p>
@@ -191,9 +191,9 @@ const Orders = () => {
                 { label: "Customers", value: summary.customers, icon: Users },
                 { label: "Volume", value: summary.volume, icon: Package2 },
               ].map((item) => (
-                <div key={item.label} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+                <div key={item.label} className="console-kpi">
                   <div className="flex items-center justify-between">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">{item.label}</p>
+                    <p className="console-eyebrow">{item.label}</p>
                     <item.icon className="h-4 w-4 text-cyan-300" />
                   </div>
                   <p className="mt-3 text-3xl font-semibold text-white">{item.value}</p>
@@ -202,8 +202,8 @@ const Orders = () => {
             </div>
           </section>
 
-          <section className="rounded-[28px] border border-white/8 bg-[#111c2d] p-6 shadow-xl shadow-black/20">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Filters</p>
+          <section className="console-panel p-6">
+            <p className="console-eyebrow">Filters</p>
             <h3 className="mt-2 text-xl font-semibold text-white">Query the order groups</h3>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               <div className="relative md:col-span-2">
@@ -267,10 +267,10 @@ const Orders = () => {
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-          <section className="rounded-[26px] border border-white/8 bg-[#111c2d] p-5 shadow-xl shadow-black/10">
+          <section className="console-panel p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Order List</p>
+                <p className="console-eyebrow">Order List</p>
                 <h3 className="mt-2 text-xl font-semibold text-white">Grouped orders</h3>
               </div>
               <Badge className="border-cyan-300/20 bg-cyan-400/10 text-cyan-200 hover:bg-cyan-400/10">
@@ -318,10 +318,10 @@ const Orders = () => {
             </div>
           </section>
 
-          <section className="rounded-[26px] border border-white/8 bg-[#111c2d] p-5 shadow-xl shadow-black/10">
+          <section className="console-panel p-5">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Order Detail</p>
+                <p className="console-eyebrow">Order Detail</p>
                 <h3 className="mt-2 text-xl font-semibold text-white">
                   {selectedOrder ? selectedOrder.orderNumber : "Select an order"}
                 </h3>
@@ -343,16 +343,16 @@ const Orders = () => {
             ) : (
               <div className="mt-6 space-y-6">
                 <div className="grid gap-4 md:grid-cols-3">
-                  <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">Products</p>
+                  <div className="console-kpi">
+                    <p className="console-eyebrow">Products</p>
                     <p className="mt-2 text-sm leading-6 text-slate-300">{selectedOrder.products.join(", ") || "No products"}</p>
                   </div>
-                  <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">Trucks</p>
+                  <div className="console-kpi">
+                    <p className="console-eyebrow">Trucks</p>
                     <p className="mt-2 text-sm leading-6 text-slate-300">{selectedOrder.truckCount}</p>
                   </div>
-                  <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">Last Activity</p>
+                  <div className="console-kpi">
+                    <p className="console-eyebrow">Last Activity</p>
                     <p className="mt-2 text-sm leading-6 text-slate-300">
                       {selectedOrder.latestDate ? format(selectedOrder.latestDate, "MM/dd/yyyy h:mm a") : "No date"}
                     </p>
@@ -368,7 +368,7 @@ const Orders = () => {
                     {selectedOrder.tickets.map((ticket) => (
                       <div
                         key={ticket.id}
-                        className="grid gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-4 md:grid-cols-[1.1fr_1fr_auto_auto]"
+                        className="console-panel-soft grid gap-3 px-4 py-4 md:grid-cols-[1.1fr_1fr_auto_auto]"
                       >
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-white">#{ticket.jobNumber}</p>
