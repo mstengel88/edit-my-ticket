@@ -18,6 +18,7 @@ interface TicketSidebarProps {
   onEmail: (ticket: TicketData) => void;
   onStatusChange?: (ticket: TicketData, status: TicketData["status"]) => void;
   readOnly?: boolean;
+  canDelete?: boolean;
 }
 
 const statusDot: Record<TicketData["status"], string> = {
@@ -33,7 +34,7 @@ const compactUnitLabel: Record<string, string> = {
   Gallons: "Gal",
 };
 
-export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, onPrint, onEmail, onStatusChange, readOnly }: TicketSidebarProps) {
+export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, onPrint, onEmail, onStatusChange, readOnly, canDelete = false }: TicketSidebarProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -190,7 +191,7 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
                      >
                        <Mail className="h-3 w-3" />
                      </Button>
-                     {!readOnly && (
+                     {!readOnly && canDelete && (
                        <Button
                          variant="ghost"
                          size="icon"
@@ -211,7 +212,7 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
         </div>
       </aside>
 
-      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+      <AlertDialog open={canDelete && !!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete ticket?</AlertDialogTitle>

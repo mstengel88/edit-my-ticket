@@ -15,6 +15,7 @@ interface TicketListProps {
   onPrint: (ticket: TicketData) => void;
   onEmail: (ticket: TicketData) => void;
   readOnly?: boolean;
+  canDelete?: boolean;
 }
 
 const statusColors: Record<TicketData["status"], string> = {
@@ -24,7 +25,7 @@ const statusColors: Record<TicketData["status"], string> = {
   completed: "bg-success text-success-foreground",
 };
 
-export function TicketList({ tickets, onSelect, onDelete, onPreview, onPrint, onEmail, readOnly }: TicketListProps) {
+export function TicketList({ tickets, onSelect, onDelete, onPreview, onPrint, onEmail, readOnly, canDelete = false }: TicketListProps) {
   const isTablet = useIsTablet();
   const [search, setSearch] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -115,7 +116,7 @@ export function TicketList({ tickets, onSelect, onDelete, onPreview, onPrint, on
                     <Pencil className="h-4 w-4" />
                   </Button>
                 )}
-                {!readOnly && (
+                {!readOnly && canDelete && (
                   <Button
                     variant="ghost"
                     size="icon"
@@ -135,7 +136,7 @@ export function TicketList({ tickets, onSelect, onDelete, onPreview, onPrint, on
       </div>
       </div>
 
-      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+      <AlertDialog open={canDelete && !!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete ticket?</AlertDialogTitle>

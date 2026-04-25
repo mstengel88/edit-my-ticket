@@ -27,7 +27,7 @@ type View = "list" | "editor" | "preview";
 const Index = () => {
   const { tickets, loading, error, fetchData, loadFromDb } = useLoadriteData();
   const { signOut, session } = useAuth();
-  const { isAdminOrManager } = useUserRole();
+  const { isAdminOrManager, isAdmin } = useUserRole();
   const location = useLocation();
   const navigate = useNavigate();
   const { fields: templateFields, canvasElements, reportFields, copiesPerPage, canvasWidth, canvasHeight, emailElements, reportEmailConfig, printLayouts } = useTicketTemplate();
@@ -206,8 +206,19 @@ const Index = () => {
   };
 
   const handleDeleteTicket = async (id: string) => {
+    if (!isAdmin) {
+      toast.error("Only admins and developers can delete tickets.");
+      return;
+    }
+
     const ticket = tickets.find(t => t.id === id);
-    await supabase.from("tickets").delete().eq("id", id);
+    const { error: err } = await supabase.from("tickets").delete().eq("id", id);
+    if (err) {
+      toast.error("Failed to delete ticket");
+      console.error(err);
+      return;
+    }
+
     logAudit("delete", "ticket", id, { jobNumber: ticket?.jobNumber });
     if (selectedTicket?.id === id) {
       setSelectedTicket(null);
@@ -539,6 +550,7 @@ const Index = () => {
             onEmail={handleEmailTicket}
             onStatusChange={isAdminOrManager ? handleStatusChange : undefined}
             readOnly={!isAdminOrManager}
+            canDelete={isAdmin}
           />
         </div>
       </AppLayout>
@@ -587,7 +599,7 @@ const Index = () => {
               )}
             </TabsList>
             <TabsContent value="tickets">
-              <TicketList tickets={tickets} onSelect={handleSelectTicket} onDelete={handleDeleteTicket} onPreview={handlePreview} onPrint={handlePrintTicket} onEmail={handleEmailTicket} readOnly={!isAdminOrManager} />
+              <TicketList tickets={tickets} onSelect={handleSelectTicket} onDelete={handleDeleteTicket} onPreview={handlePreview} onPrint={handlePrintTicket} onEmail={handleEmailTicket} readOnly={!isAdminOrManager} canDelete={isAdmin} />
             </TabsContent>
             {isAdminOrManager && (
               <TabsContent value="reports">
