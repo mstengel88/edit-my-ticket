@@ -32,6 +32,8 @@ type PlacesLibrary = {
   AutocompleteSessionToken?: new () => unknown;
 };
 
+type AutocompleteMode = "new" | "legacy" | null;
+
 let googleMapsPromise: Promise<void> | null = null;
 
 function loadGoogleMapsPlaces(apiKey: string) {
@@ -77,13 +79,8 @@ function normalizePrediction(prediction: any): Suggestion {
   return {
     placeId: prediction.place_id,
     description: prediction.description,
-    primaryText:
-      prediction.structured_formatting?.main_text ||
-      prediction.description ||
-      "",
-    secondaryText:
-      prediction.structured_formatting?.secondary_text ||
-      "",
+    primaryText: prediction.structured_formatting?.main_text || prediction.description || "",
+    secondaryText: prediction.structured_formatting?.secondary_text || "",
   };
 }
 
@@ -97,6 +94,8 @@ export function AddressAutocompleteInput({
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   const placesLibraryRef = useRef<PlacesLibrary | null>(null);
   const sessionTokenRef = useRef<unknown>(null);
+  const autocompleteModeRef = useRef<AutocompleteMode>(null);
+
   const [status, setStatus] = useState<"idle" | "ready" | "missing-key" | "error">("idle");
   const [inputValue, setInputValue] = useState(value);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -124,26 +123,39 @@ export function AddressAutocompleteInput({
     loadGoogleMapsPlaces(apiKey)
       .then(async () => {
         if (cancelled) return;
+
         const placesLibrary = (await (window as any).google?.maps?.importLibrary?.("places")) as PlacesLibrary;
-        if (!placesLibrary?.AutocompleteSuggestion?.fetchAutocompleteSuggestions) {
-          setStatus("error");
-          setDebugMessage("Google Places library loaded, but AutocompleteSuggestion is unavailable.");
+        placesLibraryRef.current = placesLibrary;
+
+        if (placesLibrary?.AutocompleteSuggestion?.fetchAutocompleteSuggestions) {
+          autocompleteModeRef.current = "new";
+          if (placesLibrary.AutocompleteSessionToken) {
+            sessionTokenRef.current = new placesLibrary.AutocompleteSessionToken();
+          }
+          setStatus("ready");
+          setDebugMessage("Google autocomplete ready (new API). Type at least 3 characters.");
           return;
         }
-        placesLibraryRef.current = placesLibrary;
-        if (placesLibrary.AutocompleteSessionToken) {
-          sessionTokenRef.current = new placesLibrary.AutocompleteSessionToken();
+
+        if ((window as any).google?.maps?.places?.AutocompleteService) {
+          autocompleteModeRef.current = "legacy";
+          setStatus("ready");
+          setDebugMessage("Google autocomplete ready (legacy API). Type at least 3 characters.");
+          return;
         }
-        setStatus("ready");
-        setDebugMessage("Google autocomplete ready. Type at least 3 characters.");
+
+        setStatus("error");
+        setDebugMessage("Google Places loaded, but no compatible autocomplete API is available.");
       })
       .catch((error) => {
         console.warn(
           "Google address autocomplete could not load. Check that Maps JavaScript API and Places are enabled for the key.",
           error,
         );
-        if (!cancelled) setStatus("error");
-        if (!cancelled) setDebugMessage("Google Places failed to load.");
+        if (!cancelled) {
+          setStatus("error");
+          setDebugMessage("Google Places failed to load.");
+        }
       });
 
     return () => {
@@ -156,7 +168,11 @@ export function AddressAutocompleteInput({
       setSuggestions([]);
       setHighlightedIndex(-1);
       if (status === "ready") {
-        setDebugMessage(trimmedValue.length === 0 ? "Google autocomplete ready. Type at least 3 characters." : "Keep typing to get address suggestions.");
+        setDebugMessage(
+          trimmedValue.length === 0
+            ? "Google autocomplete ready. Type at least 3 characters."
+            : "Keep typing to get address suggestions.",
+        );
       }
       return;
     }
@@ -164,58 +180,98 @@ export function AddressAutocompleteInput({
     let cancelled = false;
     const timeout = window.setTimeout(() => {
       const run = async () => {
+        const mode = autocompleteModeRef.current;
         const placesLibrary = placesLibraryRef.current;
-        if (!placesLibrary?.AutocompleteSuggestion?.fetchAutocompleteSuggestions) {
-          if (!cancelled) {
-            setSuggestions([]);
-            setHighlightedIndex(-1);
-            setDebugMessage("AutocompleteSuggestion API is unavailable in this browser session.");
+
+        if (mode === "new" && placesLibrary?.AutocompleteSuggestion?.fetchAutocompleteSuggestions) {
+          try {
+            const response = await placesLibrary.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+              input: trimmedValue,
+              includedPrimaryTypes: ["street_address"],
+              sessionToken: sessionTokenRef.current ?? undefined,
+            });
+
+            if (cancelled) return;
+
+            const predictions = (response.suggestions ?? [])
+              .map((item) => item.placePrediction)
+              .filter(Boolean)
+              .map((prediction: any) =>
+                normalizePrediction({
+                  place_id: prediction.placeId,
+                  description: prediction.text?.text ?? "",
+                  structured_formatting: {
+                    main_text: prediction.mainText?.text ?? prediction.text?.text ?? "",
+                    secondary_text: prediction.secondaryText?.text ?? "",
+                  },
+                }),
+              )
+              .filter((prediction: Suggestion) => prediction.description);
+
+            if (!predictions.length) {
+              setSuggestions([]);
+              setHighlightedIndex(-1);
+              setDebugMessage(`No suggestions returned for "${trimmedValue}".`);
+              return;
+            }
+
+            setSuggestions(predictions.slice(0, 6));
+            setHighlightedIndex(0);
+            setIsOpen(true);
+            setDebugMessage(
+              `Loaded ${Math.min(predictions.length, 6)} suggestion${predictions.length === 1 ? "" : "s"} for "${trimmedValue}" using the new API.`,
+            );
+            return;
+          } catch (error) {
+            console.warn("Address suggestion request failed.", error);
+            if (!cancelled) {
+              setSuggestions([]);
+              setHighlightedIndex(-1);
+              setDebugMessage("New autocomplete API failed. Trying legacy fallback if available.");
+            }
           }
+        }
+
+        if (mode === "legacy" && (window as any).google?.maps?.places?.AutocompleteService) {
+          const service = new (window as any).google.maps.places.AutocompleteService();
+          service.getPlacePredictions(
+            {
+              input: trimmedValue,
+              types: ["address"],
+            },
+            (predictions: any[] | null, predictionStatus: any) => {
+              if (cancelled) return;
+
+              const statusOk =
+                predictionStatus === (window as any).google.maps.places.PlacesServiceStatus.OK;
+
+              if (!statusOk || !predictions?.length) {
+                setSuggestions([]);
+                setHighlightedIndex(-1);
+                setDebugMessage(
+                  statusOk
+                    ? `No suggestions returned for "${trimmedValue}".`
+                    : `Legacy autocomplete returned status: ${predictionStatus}.`,
+                );
+                return;
+              }
+
+              const normalized = predictions.slice(0, 6).map(normalizePrediction);
+              setSuggestions(normalized);
+              setHighlightedIndex(0);
+              setIsOpen(true);
+              setDebugMessage(
+                `Loaded ${normalized.length} suggestion${normalized.length === 1 ? "" : "s"} for "${trimmedValue}" using the legacy API.`,
+              );
+            },
+          );
           return;
         }
 
-        try {
-          const response = await placesLibrary.AutocompleteSuggestion.fetchAutocompleteSuggestions({
-            input: trimmedValue,
-            includedPrimaryTypes: ["street_address"],
-            sessionToken: sessionTokenRef.current ?? undefined,
-          });
-
-          if (cancelled) return;
-
-          const predictions = (response.suggestions ?? [])
-            .map((item) => item.placePrediction)
-            .filter(Boolean)
-            .map((prediction: any) =>
-              normalizePrediction({
-                place_id: prediction.placeId,
-                description: prediction.text?.text ?? "",
-                structured_formatting: {
-                  main_text: prediction.mainText?.text ?? prediction.text?.text ?? "",
-                  secondary_text: prediction.secondaryText?.text ?? "",
-                },
-              }),
-            )
-            .filter((prediction: Suggestion) => prediction.description);
-
-          if (!predictions.length) {
-            setSuggestions([]);
-            setHighlightedIndex(-1);
-            setDebugMessage(`No suggestions returned for "${trimmedValue}".`);
-            return;
-          }
-
-          setSuggestions(predictions.slice(0, 6));
-          setHighlightedIndex(0);
-          setIsOpen(true);
-          setDebugMessage(`Loaded ${Math.min(predictions.length, 6)} suggestion${predictions.length === 1 ? "" : "s"} for "${trimmedValue}".`);
-        } catch (error) {
-          console.warn("Address suggestion request failed.", error);
-          if (!cancelled) {
-            setSuggestions([]);
-            setHighlightedIndex(-1);
-            setDebugMessage("Google suggestion request failed. Check key permissions for Places API (New).");
-          }
+        if (!cancelled) {
+          setSuggestions([]);
+          setHighlightedIndex(-1);
+          setDebugMessage("No compatible autocomplete API is available for this Google setup.");
         }
       };
 
@@ -226,7 +282,7 @@ export function AddressAutocompleteInput({
       cancelled = true;
       window.clearTimeout(timeout);
     };
-  }, [canQuery, trimmedValue]);
+  }, [canQuery, status, trimmedValue]);
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
