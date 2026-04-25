@@ -134,6 +134,57 @@ export type Database = {
         }
         Relationships: []
       }
+      orders: {
+        Row: {
+          created_at: string
+          customer: string
+          customer_email: string
+          id: string
+          job_address: string
+          notes: string
+          po_number: string
+          product: string
+          status: string
+          ticket_count: number
+          total_amount: number
+          total_unit: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer: string
+          customer_email?: string
+          id?: string
+          job_address?: string
+          notes?: string
+          po_number?: string
+          product: string
+          status?: string
+          ticket_count?: number
+          total_amount?: number
+          total_unit?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          customer?: string
+          customer_email?: string
+          id?: string
+          job_address?: string
+          notes?: string
+          po_number?: string
+          product?: string
+          status?: string
+          ticket_count?: number
+          total_amount?: number
+          total_unit?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           created_at: string
@@ -264,9 +315,12 @@ export type Database = {
           customer_name: string
           date_time: string
           id: string
+          issued_at: string | null
           job_name: string
           job_number: string
           note: string
+          order_id: string | null
+          order_sequence: number | null
           product: string
           signature: string
           status: string
@@ -289,9 +343,12 @@ export type Database = {
           customer_name?: string
           date_time: string
           id: string
+          issued_at?: string | null
           job_name?: string
           job_number: string
           note?: string
+          order_id?: string | null
+          order_sequence?: number | null
           product?: string
           signature?: string
           status?: string
@@ -314,9 +371,12 @@ export type Database = {
           customer_name?: string
           date_time?: string
           id?: string
+          issued_at?: string | null
           job_name?: string
           job_number?: string
           note?: string
+          order_id?: string | null
+          order_sequence?: number | null
           product?: string
           signature?: string
           status?: string

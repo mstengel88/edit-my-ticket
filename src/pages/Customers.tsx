@@ -31,6 +31,7 @@ import { TicketEditor } from "@/components/TicketEditor";
 import { TicketPreview } from "@/components/TicketPreview";
 import { useTicketTemplate } from "@/hooks/useTicketTemplate";
 import { TicketData } from "@/types/ticket";
+import { formatTicketDateTime } from "@/types/ticket";
 import companyLogo from "@/assets/Greenhillssupply_logo.png";
 
 interface Customer {
@@ -50,7 +51,10 @@ interface CustomerTicket {
   job_name: string;
   date_time: string;
   created_at: string;
+  issued_at: string | null;
   product: string;
+  order_id: string | null;
+  order_sequence: number | null;
   total_amount: string;
   total_unit: string;
   status: string;
@@ -97,6 +101,9 @@ const Customers = () => {
     jobNumber: ticket.job_number,
     jobName: ticket.job_name,
     dateTime: ticket.date_time,
+    orderId: ticket.order_id,
+    orderSequence: ticket.order_sequence,
+    issuedAt: ticket.issued_at,
     companyName: ticket.company_name,
     companyEmail: ticket.company_email,
     companyWebsite: ticket.company_website,
@@ -342,30 +349,81 @@ const Customers = () => {
   };
 
   const handleSaveTicket = async (updated: TicketData) => {
+    const ticketToSave: TicketData = { ...updated };
     const { error } = await supabase
       .from("tickets")
       .update({
-        job_number: updated.jobNumber,
-        job_name: updated.jobName,
-        date_time: updated.dateTime,
-        company_name: updated.companyName,
-        company_email: updated.companyEmail,
-        company_website: updated.companyWebsite,
-        company_phone: updated.companyPhone,
-        total_amount: updated.totalAmount,
-        total_unit: updated.totalUnit,
-        customer: updated.customer,
-        product: updated.product,
-        truck: updated.truck,
-        note: updated.note,
-        bucket: updated.bucket,
-        customer_name: updated.customerName,
-        customer_email: updated.customerEmail,
-        customer_address: updated.customerAddress,
-        signature: updated.signature,
-        status: updated.status,
+        job_number: ticketToSave.jobNumber,
+        job_name: ticketToSave.jobName,
+        date_time: ticketToSave.dateTime,
+        order_id: ticketToSave.orderId,
+        order_sequence: ticketToSave.orderSequence,
+        issued_at: ticketToSave.issuedAt,
+        company_name: ticketToSave.companyName,
+        company_email: ticketToSave.companyEmail,
+        company_website: ticketToSave.companyWebsite,
+        company_phone: ticketToSave.companyPhone,
+        total_amount: ticketToSave.totalAmount,
+        total_unit: ticketToSave.totalUnit,
+        customer: ticketToSave.customer,
+        product: ticketToSave.product,
+        truck: ticketToSave.truck,
+        note: ticketToSave.note,
+        bucket: ticketToSave.bucket,
+        customer_name: ticketToSave.customerName,
+        customer_email: ticketToSave.customerEmail,
+        customer_address: ticketToSave.customerAddress,
+        signature: ticketToSave.signature,
+        status: ticketToSave.status,
       })
-      .eq("id", updated.id);
+      .eq("id", ticketToSave.id);
+
+    if (error) {
+      toast.error("Failed to save ticket");
+      return;
+    }
+
+    setEditingTicket(null);
+    if (selectedCustomer?.name) {
+      loadCustomerTickets(selectedCustomer.name);
+    }
+  };
+
+  const handleIssueTicket = async (updated: TicketData) => {
+    const ticketToSave: TicketData = {
+      ...updated,
+      issuedAt: updated.issuedAt ?? new Date().toISOString(),
+      dateTime: formatTicketDateTime(),
+      status: updated.status === "draft" ? "pending" : updated.status,
+    };
+
+    const { error } = await supabase
+      .from("tickets")
+      .update({
+        job_number: ticketToSave.jobNumber,
+        job_name: ticketToSave.jobName,
+        date_time: ticketToSave.dateTime,
+        order_id: ticketToSave.orderId,
+        order_sequence: ticketToSave.orderSequence,
+        issued_at: ticketToSave.issuedAt,
+        company_name: ticketToSave.companyName,
+        company_email: ticketToSave.companyEmail,
+        company_website: ticketToSave.companyWebsite,
+        company_phone: ticketToSave.companyPhone,
+        total_amount: ticketToSave.totalAmount,
+        total_unit: ticketToSave.totalUnit,
+        customer: ticketToSave.customer,
+        product: ticketToSave.product,
+        truck: ticketToSave.truck,
+        note: ticketToSave.note,
+        bucket: ticketToSave.bucket,
+        customer_name: ticketToSave.customerName,
+        customer_email: ticketToSave.customerEmail,
+        customer_address: ticketToSave.customerAddress,
+        signature: ticketToSave.signature,
+        status: ticketToSave.status,
+      })
+      .eq("id", ticketToSave.id);
 
     if (error) {
       toast.error("Failed to save ticket");
@@ -755,6 +813,7 @@ const Customers = () => {
             <TicketEditor
               ticket={editingTicket}
               onSave={handleSaveTicket}
+              onIssue={handleIssueTicket}
               onPrint={handlePrintTicket}
               onEmail={handleEmailTicket}
               templateFields={templateFields}

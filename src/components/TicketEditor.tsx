@@ -6,15 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Printer, Mail, Save, Truck, UserRound, Package2, ClipboardList, Building2 } from "lucide-react";
+import { Printer, Mail, Save, Truck, UserRound, Package2, ClipboardList, Building2, PlayCircle } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { ComboInput } from "@/components/ComboInput";
 import { useTicketLookups } from "@/hooks/useTicketLookups";
+import { AddressAutocompleteInput } from "@/components/AddressAutocompleteInput";
 
 interface TicketEditorProps {
   ticket: TicketData;
   onSave: (ticket: TicketData) => void;
+  onIssue?: (ticket: TicketData) => void;
   onPrint: (ticket: TicketData) => void;
   onEmail: (ticket: TicketData) => void;
   templateFields?: TemplateField[];
@@ -39,7 +41,7 @@ function FieldShell({
   );
 }
 
-export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields }: TicketEditorProps) {
+export function TicketEditor({ ticket, onSave, onIssue, onPrint, onEmail, templateFields }: TicketEditorProps) {
   const [data, setData] = useState<TicketData>(ticket);
   const [showEmailConfirm, setShowEmailConfirm] = useState(false);
   const { products, customers, customerEmails, trucks } = useTicketLookups();
@@ -65,10 +67,14 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
   };
 
   const handleSave = () => {
-    const updated = { ...data, status: "pending" as TicketData["status"] };
-    setData(updated);
-    onSave(updated);
+    onSave(data);
     toast.success("Ticket saved!");
+  };
+
+  const handleIssue = () => {
+    if (!onIssue) return;
+    onIssue(data);
+    toast.success("Ticket issued!");
   };
 
   const inputClassName =
@@ -107,6 +113,11 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
             <Button variant="outline" size="sm" onClick={() => setShowEmailConfirm(true)} className="gap-1.5 border-white/10 bg-white/5 text-white hover:bg-white/10">
             <Mail className="h-4 w-4" /> Email
           </Button>
+            {data.orderId && !data.issuedAt && onIssue && (
+              <Button size="sm" onClick={handleIssue} className="gap-1.5 bg-amber-400 text-slate-950 hover:bg-amber-300">
+                <PlayCircle className="h-4 w-4" /> Issue Ticket
+              </Button>
+            )}
             <Button size="sm" onClick={handleSave} className="gap-1.5 bg-cyan-400 text-slate-950 hover:bg-cyan-300">
             <Save className="h-4 w-4" /> Save
           </Button>
@@ -196,7 +207,12 @@ export function TicketEditor({ ticket, onSave, onPrint, onEmail, templateFields 
               <div className="grid gap-4 lg:grid-cols-2">
                 {visible("customerAddress") && (
                   <FieldShell label="Job Address">
-                    <Textarea rows={4} value={data.customerAddress} onChange={(e) => updateField("customerAddress", e.target.value)} onFocus={selectOnFocus} className={inputClassName} />
+                    <AddressAutocompleteInput
+                      value={data.customerAddress}
+                      onChange={(value) => updateField("customerAddress", value)}
+                      placeholder="Start typing an address..."
+                      className={inputClassName}
+                    />
                   </FieldShell>
                 )}
                 {visible("note") && (

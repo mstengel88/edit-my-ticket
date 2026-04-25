@@ -3,6 +3,9 @@ export interface TicketData {
   jobNumber: string;
   jobName: string;
   dateTime: string;
+  orderId?: string | null;
+  orderSequence?: number | null;
+  issuedAt?: string | null;
 
   // Company info
   companyName: string;
@@ -29,11 +32,8 @@ export interface TicketData {
   status: "draft" | "pending" | "sent" | "completed";
 }
 
-export const createEmptyTicket = (jobNumber?: string): TicketData => ({
-  id: crypto.randomUUID(),
-  jobNumber: jobNumber ?? "MT-000001",
-  jobName: "",
-  dateTime: new Date().toLocaleString("en-US", {
+export const formatTicketDateTime = (value: Date = new Date()) =>
+  value.toLocaleString("en-US", {
     month: "2-digit",
     day: "2-digit",
     year: "numeric",
@@ -41,7 +41,16 @@ export const createEmptyTicket = (jobNumber?: string): TicketData => ({
     minute: "2-digit",
     second: undefined,
     hour12: true,
-  }),
+  });
+
+export const createEmptyTicket = (jobNumber?: string): TicketData => ({
+  id: crypto.randomUUID(),
+  jobNumber: jobNumber ?? "MT-000001",
+  jobName: "",
+  dateTime: formatTicketDateTime(),
+  orderId: null,
+  orderSequence: null,
+  issuedAt: null,
   companyName: "Green Hills Supply",
   companyEmail: "order@greenhillsupply.com",
   companyWebsite: "www.GreenHillsSupply.com",
@@ -66,6 +75,9 @@ export const sampleTickets: TicketData[] = [
     jobNumber: "2531",
     jobName: "Job",
     dateTime: "2/19/2026 03:22 PM",
+    orderId: null,
+    orderSequence: null,
+    issuedAt: null,
     companyName: "Green Hills Supply",
     companyEmail: "order@greenhillsupply.com",
     companyWebsite: "www.GreenHillsSupply.com",
@@ -88,6 +100,9 @@ export const sampleTickets: TicketData[] = [
     jobNumber: "2530",
     jobName: "Delivery",
     dateTime: "2/19/2026 01:45 PM",
+    orderId: null,
+    orderSequence: null,
+    issuedAt: null,
     companyName: "Green Hills Supply",
     companyEmail: "order@greenhillsupply.com",
     companyWebsite: "www.GreenHillsSupply.com",

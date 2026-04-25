@@ -1,12 +1,25 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { AppLayout } from "@/components/AppLayout";
-import { useLoadriteData } from "@/hooks/useLoadriteData";
-import { TicketData } from "@/types/ticket";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useTicketLookups } from "@/hooks/useTicketLookups";
+import { TicketData, createEmptyTicket, formatTicketDateTime } from "@/types/ticket";
+import { ComboInput } from "@/components/ComboInput";
+import { AddressAutocompleteInput } from "@/components/AddressAutocompleteInput";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -18,141 +31,232 @@ import {
   ArrowRight,
   ClipboardList,
   FileText,
+  Loader2,
+  MapPin,
   Package2,
+  Plus,
   Search,
   Truck,
   Users,
 } from "lucide-react";
+import { toast } from "sonner";
 
-interface OrderGroup {
+interface OrderRow {
   id: string;
-  orderNumber: string;
   customer: string;
-  products: string[];
-  ticketCount: number;
-  truckCount: number;
-  totalAmount: number;
-  dominantUnit: string;
-  latestDate: Date | null;
-  statuses: TicketData["status"][];
-  tickets: TicketData[];
+  customer_email: string;
+  product: string;
+  po_number: string;
+  job_address: string;
+  total_amount: number;
+  total_unit: string;
+  ticket_count: number;
+  notes: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
 }
+
+interface OrderFormState {
+  customer: string;
+  customerEmail: string;
+  product: string;
+  poNumber: string;
+  jobAddress: string;
+  totalAmount: string;
+  totalUnit: string;
+  ticketCount: string;
+  notes: string;
+}
+
+interface OrderSummary extends OrderRow {
+  tickets: TicketData[];
+  draftCount: number;
+  pendingCount: number;
+  completedCount: number;
+  issuedCount: number;
+  issuedAmount: number;
+  latestActivity: Date | null;
+}
+
+const defaultOrderForm: OrderFormState = {
+  customer: "",
+  customerEmail: "",
+  product: "",
+  poNumber: "",
+  jobAddress: "",
+  totalAmount: "",
+  totalUnit: "Yardage",
+  ticketCount: "1",
+  notes: "",
+};
 
 function parseTicketDate(value: string) {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function groupTicketsIntoOrders(tickets: TicketData[]): OrderGroup[] {
-  const groups = new Map<string, OrderGroup>();
+function mapTicketRow(row: any): TicketData {
+  return {
+    id: row.id,
+    jobNumber: row.job_number,
+    jobName: row.job_name,
+    dateTime: row.date_time,
+    orderId: row.order_id,
+    orderSequence: row.order_sequence,
+    issuedAt: row.issued_at,
+    companyName: row.company_name,
+    companyEmail: row.company_email,
+    companyWebsite: row.company_website,
+    companyPhone: row.company_phone,
+    totalAmount: row.total_amount,
+    totalUnit: row.total_unit,
+    customer: row.customer,
+    product: row.product,
+    truck: row.truck,
+    note: row.note,
+    bucket: row.bucket,
+    customerName: row.customer_name,
+    customerEmail: row.customer_email,
+    customerAddress: row.customer_address,
+    signature: row.signature,
+    status: row.status as TicketData["status"],
+  };
+}
 
-  for (const ticket of tickets) {
-    const orderNumber = ticket.jobName?.trim() || "No PO";
-    const customer = ticket.customer?.trim() || "Unassigned";
-    const key = `${orderNumber}::${customer}`;
-    const amount = Number.parseFloat(ticket.totalAmount) || 0;
-    const ticketDate = parseTicketDate(ticket.dateTime);
+async function getNextMtJobNumbers(count: number) {
+  let nextNumber = 1;
 
-    if (!groups.has(key)) {
-      groups.set(key, {
-        id: key,
-        orderNumber,
-        customer,
-        products: [],
-        ticketCount: 0,
-        truckCount: 0,
-        totalAmount: 0,
-        dominantUnit: ticket.totalUnit || "Ton",
-        latestDate: ticketDate,
-        statuses: [],
-        tickets: [],
-      });
-    }
+  const { data: rows } = await supabase
+    .from("tickets")
+    .select("job_number")
+    .like("job_number", "MT-%")
+    .order("job_number", { ascending: false })
+    .limit(1);
 
-    const group = groups.get(key)!;
-    group.ticketCount += 1;
-    group.totalAmount += amount;
-    group.tickets.push(ticket);
-    group.statuses.push(ticket.status);
-    if (ticket.product?.trim() && !group.products.includes(ticket.product.trim())) {
-      group.products.push(ticket.product.trim());
-    }
-    if (ticketDate && (!group.latestDate || ticketDate > group.latestDate)) {
-      group.latestDate = ticketDate;
-    }
+  if (rows && rows.length > 0) {
+    const match = rows[0].job_number.match(/^MT-(\d+)$/);
+    if (match) nextNumber = Number.parseInt(match[1], 10) + 1;
   }
 
-  for (const group of groups.values()) {
-    group.truckCount = new Set(
-      group.tickets.map((ticket) => ticket.truck?.trim()).filter(Boolean),
-    ).size;
-
-    const unitCounts = new Map<string, number>();
-    for (const ticket of group.tickets) {
-      const unit = ticket.totalUnit || "Ton";
-      unitCounts.set(unit, (unitCounts.get(unit) ?? 0) + 1);
-    }
-    group.dominantUnit = Array.from(unitCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || "Ton";
-  }
-
-  return Array.from(groups.values()).sort((a, b) => {
-    const aTime = a.latestDate?.getTime() ?? 0;
-    const bTime = b.latestDate?.getTime() ?? 0;
-    return bTime - aTime;
-  });
+  return Array.from({ length: count }, (_, index) => `MT-${String(nextNumber + index).padStart(6, "0")}`);
 }
 
 const Orders = () => {
-  const { tickets, loadFromDb } = useLoadriteData();
+  const { session } = useAuth();
+  const { customers, customerEmails, products } = useTicketLookups();
   const navigate = useNavigate();
+  const [orders, setOrders] = useState<OrderRow[]>([]);
+  const [orderTickets, setOrderTickets] = useState<TicketData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [customerFilter, setCustomerFilter] = useState("all");
   const [productFilter, setProductFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState<OrderFormState>(defaultOrderForm);
+
+  const loadOrders = useCallback(async () => {
+    if (!session?.user?.id) {
+      setOrders([]);
+      setOrderTickets([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+
+    const [{ data: orderRows, error: orderError }, { data: ticketRows, error: ticketError }] = await Promise.all([
+      supabase.from("orders").select("*").order("created_at", { ascending: false }),
+      supabase
+        .from("tickets")
+        .select("*")
+        .not("order_id", "is", null)
+        .order("created_at", { ascending: false }),
+    ]);
+
+    if (orderError || ticketError) {
+      toast.error("Failed to load orders");
+      setOrders([]);
+      setOrderTickets([]);
+      setLoading(false);
+      return;
+    }
+
+    setOrders((orderRows as OrderRow[]) ?? []);
+    setOrderTickets(((ticketRows as any[]) ?? []).map(mapTicketRow));
+    setLoading(false);
+  }, [session?.user?.id]);
 
   useEffect(() => {
-    loadFromDb();
-  }, [loadFromDb]);
+    loadOrders();
+  }, [loadOrders]);
 
-  const orderGroups = useMemo(() => groupTicketsIntoOrders(tickets), [tickets]);
+  const summaries = useMemo<OrderSummary[]>(() => {
+    return orders.map((order) => {
+      const tickets = orderTickets.filter((ticket) => ticket.orderId === order.id);
+      const draftCount = tickets.filter((ticket) => ticket.status === "draft").length;
+      const pendingCount = tickets.filter((ticket) => ticket.status === "pending").length;
+      const completedCount = tickets.filter((ticket) => ticket.status === "completed").length;
+      const issuedTickets = tickets.filter((ticket) => Boolean(ticket.issuedAt));
+      const issuedAmount = issuedTickets.reduce(
+        (sum, ticket) => sum + (Number.parseFloat(ticket.totalAmount) || 0),
+        0,
+      );
+      const latestActivity = tickets
+        .map((ticket) => parseTicketDate(ticket.dateTime))
+        .filter((value): value is Date => Boolean(value))
+        .sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
 
-  const customers = useMemo(
-    () => Array.from(new Set(orderGroups.map((order) => order.customer))).sort(),
-    [orderGroups],
-  );
-
-  const products = useMemo(
-    () =>
-      Array.from(
-        new Set(orderGroups.flatMap((order) => order.products)),
-      ).sort(),
-    [orderGroups],
-  );
+      return {
+        ...order,
+        tickets,
+        draftCount,
+        pendingCount,
+        completedCount,
+        issuedCount: issuedTickets.length,
+        issuedAmount,
+        latestActivity,
+      };
+    });
+  }, [orders, orderTickets]);
 
   const filteredOrders = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return orderGroups.filter((order) => {
+
+    return summaries.filter((order) => {
+      const derivedStatus =
+        order.completedCount >= order.ticket_count
+          ? "completed"
+          : order.issuedCount > 0
+            ? "active"
+            : "draft";
+
       if (customerFilter !== "all" && order.customer !== customerFilter) return false;
-      if (productFilter !== "all" && !order.products.includes(productFilter)) return false;
-      if (statusFilter !== "all" && !order.statuses.includes(statusFilter as TicketData["status"])) return false;
+      if (productFilter !== "all" && order.product !== productFilter) return false;
+      if (statusFilter !== "all" && derivedStatus !== statusFilter) return false;
+
       if (!query) return true;
 
       return (
-        order.orderNumber.toLowerCase().includes(query) ||
         order.customer.toLowerCase().includes(query) ||
-        order.products.some((product) => product.toLowerCase().includes(query)) ||
+        order.product.toLowerCase().includes(query) ||
+        order.po_number.toLowerCase().includes(query) ||
+        order.job_address.toLowerCase().includes(query) ||
         order.tickets.some((ticket) => ticket.jobNumber.toLowerCase().includes(query))
       );
     });
-  }, [customerFilter, orderGroups, productFilter, search, statusFilter]);
-
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  }, [customerFilter, productFilter, search, statusFilter, summaries]);
 
   useEffect(() => {
     if (!filteredOrders.length) {
       setSelectedOrderId(null);
       return;
     }
+
     if (!selectedOrderId || !filteredOrders.some((order) => order.id === selectedOrderId)) {
       setSelectedOrderId(filteredOrders[0].id);
     }
@@ -161,35 +265,140 @@ const Orders = () => {
   const selectedOrder = filteredOrders.find((order) => order.id === selectedOrderId) ?? null;
 
   const summary = useMemo(() => {
-    const totalTickets = filteredOrders.reduce((sum, order) => sum + order.ticketCount, 0);
-    const totalVolume = filteredOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+    const totalRequested = filteredOrders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0);
+    const totalIssued = filteredOrders.reduce((sum, order) => sum + order.issuedAmount, 0);
+    const totalDrafts = filteredOrders.reduce((sum, order) => sum + order.draftCount, 0);
+
     return {
       orders: filteredOrders.length,
-      tickets: totalTickets,
       customers: new Set(filteredOrders.map((order) => order.customer)).size,
-      volume: totalVolume.toFixed(2),
+      requested: totalRequested.toFixed(2),
+      issued: totalIssued.toFixed(2),
+      drafts: totalDrafts,
     };
   }, [filteredOrders]);
 
+  const handleCustomerChange = (value: string) => {
+    setForm((current) => ({
+      ...current,
+      customer: value,
+      customerEmail: customerEmails[value] ?? current.customerEmail,
+    }));
+  };
+
+  const handleCreateOrder = async () => {
+    const userId = session?.user?.id;
+    const ticketCount = Number.parseInt(form.ticketCount, 10);
+    const totalAmount = Number.parseFloat(form.totalAmount);
+
+    if (!userId) return;
+    if (!form.customer.trim()) return toast.error("Customer is required");
+    if (!form.product.trim()) return toast.error("Product is required");
+    if (!ticketCount || ticketCount < 1) return toast.error("Ticket count must be at least 1");
+    if (Number.isNaN(totalAmount) || totalAmount <= 0) return toast.error("Total ordered amount is required");
+
+    setSaving(true);
+
+    const orderInsert = {
+      user_id: userId,
+      customer: form.customer.trim(),
+      customer_email: form.customerEmail.trim(),
+      product: form.product.trim(),
+      po_number: form.poNumber.trim(),
+      job_address: form.jobAddress.trim(),
+      total_amount: totalAmount,
+      total_unit: form.totalUnit,
+      ticket_count: ticketCount,
+      notes: form.notes.trim(),
+      status: "open",
+    };
+
+    const { data: createdOrder, error: orderError } = await supabase
+      .from("orders")
+      .insert(orderInsert)
+      .select("*")
+      .single();
+
+    if (orderError || !createdOrder) {
+      toast.error("Failed to create order");
+      setSaving(false);
+      return;
+    }
+
+    const jobNumbers = await getNextMtJobNumbers(ticketCount);
+    const baseTicket = createEmptyTicket();
+    const draftRows = jobNumbers.map((jobNumber, index) => ({
+      id: crypto.randomUUID(),
+      user_id: userId,
+      job_number: jobNumber,
+      job_name: form.poNumber.trim(),
+      date_time: formatTicketDateTime(),
+      order_id: createdOrder.id,
+      order_sequence: index + 1,
+      issued_at: null,
+      company_name: baseTicket.companyName,
+      company_email: baseTicket.companyEmail,
+      company_website: baseTicket.companyWebsite,
+      company_phone: baseTicket.companyPhone,
+      total_amount: "0.00",
+      total_unit: form.totalUnit,
+      customer: form.customer.trim(),
+      product: form.product.trim(),
+      truck: "",
+      note: form.notes.trim(),
+      bucket: "",
+      customer_name: "",
+      customer_email: form.customerEmail.trim(),
+      customer_address: form.jobAddress.trim(),
+      signature: "",
+      status: "draft",
+    }));
+
+    const { error: ticketError } = await supabase.from("tickets").insert(draftRows);
+    if (ticketError) {
+      await supabase.from("orders").delete().eq("id", createdOrder.id);
+      toast.error("Failed to create draft tickets for the order");
+      setSaving(false);
+      return;
+    }
+
+    toast.success(`Order created with ${ticketCount} draft ticket${ticketCount === 1 ? "" : "s"}`);
+    setDialogOpen(false);
+    setForm(defaultOrderForm);
+    await loadOrders();
+    setSelectedOrderId(createdOrder.id);
+    setSaving(false);
+  };
+
   return (
-    <AppLayout title="Orders" subtitle="Group tickets into reusable order views without pricing data">
+    <AppLayout title="Orders" subtitle="Create customer orders and pre-build draft tickets for later issue">
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 xl:px-8">
         <div className="mb-6 grid gap-6 xl:grid-cols-[1.1fr_1.25fr]">
           <section className="console-panel p-6">
-            <p className="console-eyebrow">Order Workspace</p>
-            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">
-              View ticket groups like orders so dispatch can work faster.
-            </h2>
-            <p className="console-copy mt-3 max-w-2xl">
-              This screen rolls tickets into order-style groups based on PO number and customer. It gives you a cleaner
-              way to review related tickets, products, trucks, and load history without bringing pricing into the flow.
-            </p>
-            <div className="mt-6 grid gap-3 sm:grid-cols-4">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="console-eyebrow">Order Desk</p>
+                <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">
+                  Pre-build order tickets before the trucks ever hit the yard.
+                </h2>
+                <p className="console-copy mt-3 max-w-2xl">
+                  Create an order for a customer, generate draft tickets ahead of time, and then issue each ticket as the
+                  load happens. Order-linked tickets stamp their real load date and time the first time they are saved out
+                  of draft.
+                </p>
+              </div>
+              <Button onClick={() => setDialogOpen(true)} className="gap-1.5 bg-cyan-400 text-slate-950 hover:bg-cyan-300">
+                <Plus className="h-4 w-4" />
+                New Order
+              </Button>
+            </div>
+            <div className="mt-6 grid gap-3 sm:grid-cols-5">
               {[
                 { label: "Orders", value: summary.orders, icon: ClipboardList },
-                { label: "Tickets", value: summary.tickets, icon: FileText },
                 { label: "Customers", value: summary.customers, icon: Users },
-                { label: "Volume", value: summary.volume, icon: Package2 },
+                { label: "Requested", value: summary.requested, icon: Package2 },
+                { label: "Issued", value: summary.issued, icon: Truck },
+                { label: "Draft Tickets", value: summary.drafts, icon: FileText },
               ].map((item) => (
                 <div key={item.label} className="console-kpi">
                   <div className="flex items-center justify-between">
@@ -204,14 +413,14 @@ const Orders = () => {
 
           <section className="console-panel p-6">
             <p className="console-eyebrow">Filters</p>
-            <h3 className="mt-2 text-xl font-semibold text-white">Query the order groups</h3>
+            <h3 className="mt-2 text-xl font-semibold text-white">Query open and issued orders</h3>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               <div className="relative md:col-span-2">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                 <Input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search order number, customer, product, or ticket..."
+                  placeholder="Search customer, PO, product, address, or ticket..."
                   className="h-11 border-white/10 bg-[#0d1726] pl-9 text-white placeholder:text-slate-500"
                 />
               </div>
@@ -223,7 +432,7 @@ const Orders = () => {
                   </SelectTrigger>
                   <SelectContent className="border-white/10 bg-[#132135] text-slate-100">
                     <SelectItem value="all">All customers</SelectItem>
-                    {customers.map((customer) => (
+                    {Array.from(new Set(summaries.map((order) => order.customer))).sort().map((customer) => (
                       <SelectItem key={customer} value={customer}>
                         {customer}
                       </SelectItem>
@@ -239,7 +448,7 @@ const Orders = () => {
                   </SelectTrigger>
                   <SelectContent className="border-white/10 bg-[#132135] text-slate-100">
                     <SelectItem value="all">All products</SelectItem>
-                    {products.map((product) => (
+                    {Array.from(new Set(summaries.map((order) => order.product))).sort().map((product) => (
                       <SelectItem key={product} value={product}>
                         {product}
                       </SelectItem>
@@ -248,16 +457,15 @@ const Orders = () => {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Status</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Order State</p>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="h-11 border-white/10 bg-[#0d1726] text-white">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="border-white/10 bg-[#132135] text-slate-100">
-                    <SelectItem value="all">All statuses</SelectItem>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="sent">Sent</SelectItem>
+                    <SelectItem value="all">All states</SelectItem>
+                    <SelectItem value="draft">Draft only</SelectItem>
+                    <SelectItem value="active">Issued / active</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
                   </SelectContent>
                 </Select>
@@ -271,50 +479,61 @@ const Orders = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="console-eyebrow">Order List</p>
-                <h3 className="mt-2 text-xl font-semibold text-white">Grouped orders</h3>
+                <h3 className="mt-2 text-xl font-semibold text-white">Saved customer orders</h3>
               </div>
               <Badge className="border-cyan-300/20 bg-cyan-400/10 text-cyan-200 hover:bg-cyan-400/10">
                 {filteredOrders.length} shown
               </Badge>
             </div>
+
             <div className="mt-5 space-y-3">
-              {filteredOrders.length === 0 && (
+              {loading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                </div>
+              ) : filteredOrders.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-white/10 px-6 py-10 text-center text-sm text-slate-400">
                   No orders match the current query.
                 </div>
+              ) : (
+                filteredOrders.map((order) => {
+                  const statusTone =
+                    order.completedCount >= order.ticket_count
+                      ? "border-emerald-300/20 bg-emerald-400/10 text-emerald-200"
+                      : order.issuedCount > 0
+                        ? "border-amber-300/20 bg-amber-400/10 text-amber-200"
+                        : "border-slate-300/20 bg-slate-400/10 text-slate-200";
+
+                  return (
+                    <button
+                      key={order.id}
+                      onClick={() => setSelectedOrderId(order.id)}
+                      className={`block w-full rounded-2xl border px-4 py-4 text-left transition-colors ${
+                        order.id === selectedOrderId
+                          ? "border-cyan-300/20 bg-cyan-400/8"
+                          : "border-white/8 bg-white/[0.03] hover:bg-white/[0.06]"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-sm font-semibold text-white">{order.customer}</p>
+                            <Badge className={`border ${statusTone}`}>{order.completedCount >= order.ticket_count ? "Completed" : order.issuedCount > 0 ? "Active" : "Draft"}</Badge>
+                          </div>
+                          <p className="mt-1 truncate text-sm text-slate-300">{order.product}</p>
+                          <p className="mt-1 truncate text-xs text-slate-500">
+                            PO: {order.po_number || "No PO"} · {order.ticket_count} ticket{order.ticket_count === 1 ? "" : "s"}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-semibold text-white">{Number(order.total_amount).toFixed(2)}</p>
+                          <p className="text-xs uppercase tracking-[0.18em] text-cyan-300">{order.total_unit}</p>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })
               )}
-              {filteredOrders.map((order) => (
-                <button
-                  key={order.id}
-                  onClick={() => setSelectedOrderId(order.id)}
-                  className={`block w-full rounded-2xl border px-4 py-4 text-left transition-colors ${
-                    order.id === selectedOrderId
-                      ? "border-cyan-300/20 bg-cyan-400/8"
-                      : "border-white/8 bg-white/[0.03] hover:bg-white/[0.06]"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-white">{order.orderNumber}</p>
-                      <p className="mt-1 truncate text-sm text-slate-300">{order.customer}</p>
-                      <p className="mt-1 truncate text-xs text-slate-500">
-                        {order.products.slice(0, 2).join(" · ") || "No product"}{order.products.length > 2 ? ` +${order.products.length - 2}` : ""}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-semibold text-white">{order.totalAmount.toFixed(2)}</p>
-                      <p className="text-xs uppercase tracking-[0.18em] text-cyan-300">{order.dominantUnit}</p>
-                    </div>
-                  </div>
-                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                    <span>{order.ticketCount} tickets</span>
-                    <span>•</span>
-                    <span>{order.truckCount} trucks</span>
-                    <span>•</span>
-                    <span>{order.latestDate ? format(order.latestDate, "MM/dd/yyyy h:mm a") : "No date"}</span>
-                  </div>
-                </button>
-              ))}
             </div>
           </section>
 
@@ -323,79 +542,134 @@ const Orders = () => {
               <div>
                 <p className="console-eyebrow">Order Detail</p>
                 <h3 className="mt-2 text-xl font-semibold text-white">
-                  {selectedOrder ? selectedOrder.orderNumber : "Select an order"}
+                  {selectedOrder ? selectedOrder.customer : "Select an order"}
                 </h3>
                 <p className="mt-1 text-sm text-slate-400">
-                  {selectedOrder ? selectedOrder.customer : "Choose an order group from the left to inspect its tickets."}
+                  {selectedOrder ? `${selectedOrder.product} · PO ${selectedOrder.po_number || "No PO"}` : "Choose an order from the left to review its draft and issued tickets."}
                 </p>
               </div>
               {selectedOrder && (
                 <Badge className="border-cyan-300/20 bg-cyan-400/10 text-cyan-200 hover:bg-cyan-400/10">
-                  {selectedOrder.ticketCount} tickets
+                  {selectedOrder.ticket_count} ticket{selectedOrder.ticket_count === 1 ? "" : "s"}
                 </Badge>
               )}
             </div>
 
             {!selectedOrder ? (
               <div className="mt-6 rounded-2xl border border-dashed border-white/10 px-6 py-12 text-center text-sm text-slate-400">
-                Select an order to review its tickets, trucks, and material flow.
+                Select an order to review the job address, planned quantity, and draft tickets ready to issue.
               </div>
             ) : (
               <div className="mt-6 space-y-6">
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                   <div className="console-kpi">
-                    <p className="console-eyebrow">Products</p>
-                    <p className="mt-2 text-sm leading-6 text-slate-300">{selectedOrder.products.join(", ") || "No products"}</p>
+                    <p className="console-eyebrow">Requested</p>
+                    <p className="mt-2 text-xl font-semibold text-white">
+                      {Number(selectedOrder.total_amount).toFixed(2)} {selectedOrder.total_unit}
+                    </p>
                   </div>
                   <div className="console-kpi">
-                    <p className="console-eyebrow">Trucks</p>
-                    <p className="mt-2 text-sm leading-6 text-slate-300">{selectedOrder.truckCount}</p>
+                    <p className="console-eyebrow">Issued</p>
+                    <p className="mt-2 text-xl font-semibold text-white">
+                      {selectedOrder.issuedAmount.toFixed(2)} {selectedOrder.total_unit}
+                    </p>
+                  </div>
+                  <div className="console-kpi">
+                    <p className="console-eyebrow">Draft Remaining</p>
+                    <p className="mt-2 text-xl font-semibold text-white">{selectedOrder.draftCount}</p>
                   </div>
                   <div className="console-kpi">
                     <p className="console-eyebrow">Last Activity</p>
                     <p className="mt-2 text-sm leading-6 text-slate-300">
-                      {selectedOrder.latestDate ? format(selectedOrder.latestDate, "MM/dd/yyyy h:mm a") : "No date"}
+                      {selectedOrder.latestActivity ? format(selectedOrder.latestActivity, "MM/dd/yyyy h:mm a") : "No issue yet"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+                  <div className="console-panel-soft p-4">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-cyan-300" />
+                      <p className="text-sm font-semibold text-white">Job Address</p>
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-slate-300">
+                      {selectedOrder.job_address || "No job address saved yet"}
+                    </p>
+                  </div>
+                  <div className="console-panel-soft p-4">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-cyan-300" />
+                      <p className="text-sm font-semibold text-white">Customer Contact</p>
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-slate-300">
+                      {selectedOrder.customer_email || "No customer email saved"}
                     </p>
                   </div>
                 </div>
 
                 <div>
                   <div className="flex items-center justify-between gap-3">
-                    <h4 className="text-base font-semibold text-white">Associated tickets</h4>
-                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Open any ticket in the desk</p>
+                    <h4 className="text-base font-semibold text-white">Draft and issued tickets</h4>
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                      Open a draft ticket to issue it at load time
+                    </p>
                   </div>
                   <div className="mt-4 space-y-3">
-                    {selectedOrder.tickets.map((ticket) => (
-                      <div
-                        key={ticket.id}
-                        className="console-panel-soft grid gap-3 px-4 py-4 md:grid-cols-[1.1fr_1fr_auto_auto]"
-                      >
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-white">#{ticket.jobNumber}</p>
-                          <p className="mt-1 text-sm text-slate-300">{ticket.product || "No product"}</p>
-                          <p className="mt-1 text-xs text-slate-500">{ticket.dateTime}</p>
+                    {selectedOrder.tickets
+                      .slice()
+                      .sort((a, b) => (a.orderSequence ?? 0) - (b.orderSequence ?? 0))
+                      .map((ticket) => (
+                        <div
+                          key={ticket.id}
+                          className="console-panel-soft grid gap-3 px-4 py-4 md:grid-cols-[0.9fr_1fr_auto_auto]"
+                        >
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-sm font-semibold text-white">#{ticket.jobNumber}</p>
+                              <Badge
+                                className={`border ${
+                                  ticket.status === "completed"
+                                    ? "border-emerald-300/20 bg-emerald-400/10 text-emerald-200"
+                                    : ticket.status === "pending"
+                                      ? "border-amber-300/20 bg-amber-400/10 text-amber-200"
+                                      : "border-slate-300/20 bg-slate-400/10 text-slate-200"
+                                }`}
+                              >
+                                {ticket.status}
+                              </Badge>
+                              {ticket.orderSequence ? (
+                                <Badge className="border-white/10 bg-white/5 text-slate-200 hover:bg-white/5">
+                                  Ticket {ticket.orderSequence}
+                                </Badge>
+                              ) : null}
+                            </div>
+                            <p className="mt-1 text-sm text-slate-300">{ticket.product || "No product"}</p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              {ticket.issuedAt ? `Issued ${format(new Date(ticket.issuedAt), "MM/dd/yyyy h:mm a")}` : "Not issued yet"}
+                            </p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Truck / Address</p>
+                            <p className="mt-1 truncate text-sm text-slate-300">{ticket.truck || "No truck assigned"}</p>
+                            <p className="mt-1 truncate text-xs text-slate-500">{ticket.customerAddress || "No address"}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-semibold text-white">{ticket.totalAmount}</p>
+                            <p className="text-xs uppercase tracking-[0.18em] text-cyan-300">{ticket.totalUnit}</p>
+                          </div>
+                          <div className="flex items-center justify-end">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1.5 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                              onClick={() => navigate("/", { state: { openTicketId: ticket.id } })}
+                            >
+                              {ticket.issuedAt ? "Open" : "Issue"}
+                              <ArrowRight className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Truck</p>
-                          <p className="mt-1 truncate text-sm text-slate-300">{ticket.truck || "No truck assigned"}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-lg font-semibold text-white">{ticket.totalAmount}</p>
-                          <p className="text-xs uppercase tracking-[0.18em] text-cyan-300">{ticket.totalUnit}</p>
-                        </div>
-                        <div className="flex items-center justify-end">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-1.5 border-white/10 bg-white/5 text-white hover:bg-white/10"
-                            onClick={() => navigate("/", { state: { openTicketId: ticket.id } })}
-                          >
-                            Open
-                            <ArrowRight className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 </div>
               </div>
@@ -403,6 +677,118 @@ const Orders = () => {
           </section>
         </div>
       </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-3xl border-white/10 bg-[#111c2d] text-white">
+          <DialogHeader>
+            <DialogTitle>Create Order</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-2 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-500">Customer</Label>
+              <ComboInput
+                value={form.customer}
+                onChange={handleCustomerChange}
+                options={customers}
+                placeholder="Select or type customer"
+                className="border-white/10 bg-[#0d1726] text-white placeholder:text-slate-500"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-500">Customer Email</Label>
+              <Input
+                type="email"
+                value={form.customerEmail}
+                onChange={(event) => setForm((current) => ({ ...current, customerEmail: event.target.value }))}
+                className="border-white/10 bg-[#0d1726] text-white placeholder:text-slate-500"
+                placeholder="customer@example.com"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-500">Product</Label>
+              <ComboInput
+                value={form.product}
+                onChange={(value) => setForm((current) => ({ ...current, product: value }))}
+                options={products}
+                placeholder="Select or type product"
+                className="border-white/10 bg-[#0d1726] text-white placeholder:text-slate-500"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-500">PO Number</Label>
+              <Input
+                value={form.poNumber}
+                onChange={(event) => setForm((current) => ({ ...current, poNumber: event.target.value }))}
+                className="border-white/10 bg-[#0d1726] text-white placeholder:text-slate-500"
+                placeholder="Optional PO"
+              />
+            </div>
+            <div className="space-y-1.5 md:col-span-2">
+              <Label className="text-xs text-slate-500">Job Address</Label>
+              <AddressAutocompleteInput
+                value={form.jobAddress}
+                onChange={(value) => setForm((current) => ({ ...current, jobAddress: value }))}
+                className="border-white/10 bg-[#0d1726] text-white placeholder:text-slate-500"
+                placeholder="Start typing a job address..."
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-500">Total Ordered Amount</Label>
+              <Input
+                value={form.totalAmount}
+                onChange={(event) => setForm((current) => ({ ...current, totalAmount: event.target.value }))}
+                className="border-white/10 bg-[#0d1726] text-white placeholder:text-slate-500"
+                placeholder="100"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-500">Unit</Label>
+              <Select value={form.totalUnit} onValueChange={(value) => setForm((current) => ({ ...current, totalUnit: value }))}>
+                <SelectTrigger className="border-white/10 bg-[#0d1726] text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="border-white/10 bg-[#132135] text-slate-100">
+                  <SelectItem value="Yardage">Yardage</SelectItem>
+                  <SelectItem value="Ton">Ton</SelectItem>
+                  <SelectItem value="Gallons">Gallons</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-500">Draft Tickets To Create</Label>
+              <Input
+                value={form.ticketCount}
+                onChange={(event) => setForm((current) => ({ ...current, ticketCount: event.target.value }))}
+                className="border-white/10 bg-[#0d1726] text-white placeholder:text-slate-500"
+                placeholder="10"
+              />
+            </div>
+            <div className="space-y-1.5 md:col-span-2">
+              <Label className="text-xs text-slate-500">Order Notes</Label>
+              <Textarea
+                rows={4}
+                value={form.notes}
+                onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
+                className="border-white/10 bg-[#0d1726] text-white placeholder:text-slate-500"
+                placeholder="Anything the loader should know about this order..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+              className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleCreateOrder} disabled={saving} className="bg-cyan-400 text-slate-950 hover:bg-cyan-300">
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Create Order
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { TicketData, createEmptyTicket } from "@/types/ticket";
+import { TicketData, createEmptyTicket, formatTicketDateTime } from "@/types/ticket";
 import { TicketList } from "@/components/TicketList";
 import { TicketSidebar } from "@/components/TicketSidebar";
 import { TicketEditor } from "@/components/TicketEditor";
@@ -92,6 +92,9 @@ const Index = () => {
         job_number: newTicket.jobNumber,
         job_name: newTicket.jobName,
         date_time: newTicket.dateTime,
+        order_id: newTicket.orderId,
+        order_sequence: newTicket.orderSequence,
+        issued_at: newTicket.issuedAt,
         total_amount: newTicket.totalAmount,
         total_unit: newTicket.totalUnit,
         customer: newTicket.customer,
@@ -113,31 +116,34 @@ const Index = () => {
     await loadFromDb();
   };
 
-  const handleSaveTicket = async (updated: TicketData) => {
+  const persistTicket = async (ticketToSave: TicketData, successMessage = "Ticket saved!") => {
     const { error: err } = await supabase
       .from("tickets")
       .update({
-        job_number: updated.jobNumber,
-        job_name: updated.jobName,
-        date_time: updated.dateTime,
-        company_name: updated.companyName,
-        company_email: updated.companyEmail,
-        company_website: updated.companyWebsite,
-        company_phone: updated.companyPhone,
-        total_amount: updated.totalAmount,
-        total_unit: updated.totalUnit,
-        customer: updated.customer,
-        product: updated.product,
-        truck: updated.truck,
-        note: updated.note,
-        bucket: updated.bucket,
-        customer_name: updated.customerName,
-        customer_email: updated.customerEmail,
-        customer_address: updated.customerAddress,
-        signature: updated.signature,
-        status: updated.status,
+        job_number: ticketToSave.jobNumber,
+        job_name: ticketToSave.jobName,
+        date_time: ticketToSave.dateTime,
+        order_id: ticketToSave.orderId,
+        order_sequence: ticketToSave.orderSequence,
+        issued_at: ticketToSave.issuedAt,
+        company_name: ticketToSave.companyName,
+        company_email: ticketToSave.companyEmail,
+        company_website: ticketToSave.companyWebsite,
+        company_phone: ticketToSave.companyPhone,
+        total_amount: ticketToSave.totalAmount,
+        total_unit: ticketToSave.totalUnit,
+        customer: ticketToSave.customer,
+        product: ticketToSave.product,
+        truck: ticketToSave.truck,
+        note: ticketToSave.note,
+        bucket: ticketToSave.bucket,
+        customer_name: ticketToSave.customerName,
+        customer_email: ticketToSave.customerEmail,
+        customer_address: ticketToSave.customerAddress,
+        signature: ticketToSave.signature,
+        status: ticketToSave.status,
       })
-      .eq("id", updated.id);
+      .eq("id", ticketToSave.id);
 
     if (err) {
       toast.error("Failed to save ticket");
@@ -147,23 +153,23 @@ const Index = () => {
 
     const userId = session?.user?.id;
     if (userId) {
-      if (updated.customer?.trim() && updated.customer !== "NOT SPECIFIED") {
+      if (ticketToSave.customer?.trim() && ticketToSave.customer !== "NOT SPECIFIED") {
         await supabase
           .from("customers")
           .upsert(
-            { name: updated.customer, email: updated.customerEmail || "", user_id: userId },
+            { name: ticketToSave.customer, email: ticketToSave.customerEmail || "", user_id: userId },
             { onConflict: "name" }
           );
       }
-      if (updated.product?.trim()) {
+      if (ticketToSave.product?.trim()) {
         await supabase
           .from("products")
           .upsert(
-            { name: updated.product, user_id: userId, source: "manual" },
+            { name: ticketToSave.product, user_id: userId, source: "manual" },
             { onConflict: "name" }
           );
       }
-      const normalizedTruck = normalizeTruckName(updated.truck);
+      const normalizedTruck = normalizeTruckName(ticketToSave.truck);
       if (
         normalizedTruck &&
         normalizedTruck !== "-" &&
@@ -179,10 +185,24 @@ const Index = () => {
       }
     }
 
-    setSelectedTicket(updated);
-    toast.success("Ticket saved!");
-    logAudit("update", "ticket", updated.id, { jobNumber: updated.jobNumber });
+    setSelectedTicket(ticketToSave);
+    logAudit("update", "ticket", ticketToSave.id, { jobNumber: ticketToSave.jobNumber });
     await loadFromDb();
+    toast.success(successMessage);
+  };
+
+  const handleSaveTicket = async (updated: TicketData) => {
+    await persistTicket(updated, "Ticket saved!");
+  };
+
+  const handleIssueTicket = async (updated: TicketData) => {
+    const ticketToSave: TicketData = {
+      ...updated,
+      issuedAt: updated.issuedAt ?? new Date().toISOString(),
+      dateTime: formatTicketDateTime(),
+      status: updated.status === "draft" ? "pending" : updated.status,
+    };
+    await persistTicket(ticketToSave, "Ticket issued!");
   };
 
   const handleDeleteTicket = async (id: string) => {
@@ -437,7 +457,7 @@ const Index = () => {
                       </div>
                     </div>
                   </section>
-                  <TicketEditor ticket={selectedTicket} onSave={handleSaveTicket} onPrint={handlePrintTicket} onEmail={handleEmailTicket} templateFields={templateFields} />
+                  <TicketEditor ticket={selectedTicket} onSave={handleSaveTicket} onIssue={handleIssueTicket} onPrint={handlePrintTicket} onEmail={handleEmailTicket} templateFields={templateFields} />
                 </div>
               )}
               {view === "preview" && selectedTicket && (
@@ -578,7 +598,7 @@ const Index = () => {
         ) : (
           <>
             {view === "editor" && selectedTicket && (
-              <TicketEditor ticket={selectedTicket} onSave={handleSaveTicket} onPrint={handlePrintTicket} onEmail={handleEmailTicket} templateFields={templateFields} />
+              <TicketEditor ticket={selectedTicket} onSave={handleSaveTicket} onIssue={handleIssueTicket} onPrint={handlePrintTicket} onEmail={handleEmailTicket} templateFields={templateFields} />
             )}
             {view === "preview" && selectedTicket && (
               <TicketPreview ticket={selectedTicket} canvasElements={canvasElements} emailElements={emailElements} copiesPerPage={copiesPerPage} canvasWidth={canvasWidth} canvasHeight={canvasHeight} printLayouts={printLayouts} />
