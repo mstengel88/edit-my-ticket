@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { MapPin } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AddressAutocompleteInputProps {
   value: string;
@@ -31,14 +32,13 @@ export function AddressAutocompleteInput({
   className,
 }: AddressAutocompleteInputProps) {
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
-  const [status, setStatus] = useState<"idle" | "ready" | "missing-key" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "ready" | "error">("idle");
   const [inputValue, setInputValue] = useState(value);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const [debugMessage, setDebugMessage] = useState("Waiting for Google Places...");
+  const [debugMessage, setDebugMessage] = useState("Waiting for address autocomplete...");
 
   const trimmedValue = inputValue.trim();
   const canQuery = useMemo(() => trimmedValue.length >= 3 && status === "ready", [trimmedValue, status]);
@@ -48,15 +48,9 @@ export function AddressAutocompleteInput({
   }, [value]);
 
   useEffect(() => {
-    if (!apiKey) {
-      setStatus("missing-key");
-      setDebugMessage("Missing Google API key.");
-      return;
-    }
-
     setStatus("ready");
-    setDebugMessage("Google autocomplete ready (REST API). Type at least 3 characters.");
-  }, [apiKey]);
+    setDebugMessage("Address autocomplete ready. Type at least 3 characters.");
+  }, []);
 
   useEffect(() => {
     if (!canQuery) {
@@ -74,57 +68,46 @@ export function AddressAutocompleteInput({
 
     const controller = new AbortController();
     const timeout = window.setTimeout(() => {
-      const run = async () => {
-        try {
-          const response = await fetch("https://places.googleapis.com/v1/places:autocomplete", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Goog-Api-Key": apiKey,
-              "X-Goog-FieldMask": "suggestions.placePrediction.placeId,suggestions.placePrediction.text.text",
-            },
-            body: JSON.stringify({
-              input: trimmedValue,
-              includedPrimaryTypes: ["street_address"],
-              regionCode: "us",
-            }),
-            signal: controller.signal,
-          });
+        const run = async () => {
+          try {
+            const { data, error } = await supabase.functions.invoke("address-autocomplete", {
+              body: { input: trimmedValue },
+            });
 
-          if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`HTTP ${response.status}: ${errorText}`);
-          }
+            if (controller.signal.aborted) return;
+            if (error) {
+              throw new Error(error.message || "Failed to load address suggestions.");
+            }
 
-          const payload = await response.json();
-          const predictions = (payload?.suggestions ?? [])
-            .map((item: any) => item.placePrediction)
-            .filter(Boolean)
-            .map((prediction: any) => {
-              const description = prediction.text?.text ?? "";
-              const split = splitAddress(description);
-              return {
-                placeId: prediction.placeId ?? description,
-                description,
-                primaryText: split.primaryText,
-                secondaryText: split.secondaryText,
-              } satisfies Suggestion;
-            })
-            .filter((prediction: Suggestion) => prediction.description);
+            if (data?.error) {
+              throw new Error(data.error);
+            }
 
-          if (!predictions.length) {
-            setSuggestions([]);
-            setHighlightedIndex(-1);
-            setDebugMessage(`No suggestions returned for "${trimmedValue}".`);
-            return;
-          }
+            const predictions = (data?.suggestions ?? [])
+              .map((prediction: { placeId: string; description: string }) => {
+                const split = splitAddress(prediction.description);
+                return {
+                  placeId: prediction.placeId || prediction.description,
+                  description: prediction.description,
+                  primaryText: split.primaryText,
+                  secondaryText: split.secondaryText,
+                } satisfies Suggestion;
+              })
+              .filter((prediction: Suggestion) => prediction.description);
 
-          setSuggestions(predictions.slice(0, 6));
-          setHighlightedIndex(0);
-          setIsOpen(true);
-          setDebugMessage(
-            `Loaded ${Math.min(predictions.length, 6)} suggestion${predictions.length === 1 ? "" : "s"} for "${trimmedValue}" using the REST API.`,
-          );
+            if (!predictions.length) {
+              setSuggestions([]);
+              setHighlightedIndex(-1);
+              setDebugMessage(`No suggestions returned for "${trimmedValue}".`);
+              return;
+            }
+
+            setSuggestions(predictions.slice(0, 6));
+            setHighlightedIndex(0);
+            setIsOpen(true);
+            setDebugMessage(
+              `Loaded ${Math.min(predictions.length, 6)} suggestion${predictions.length === 1 ? "" : "s"} for "${trimmedValue}" from the server.`,
+            );
         } catch (error) {
           if (controller.signal.aborted) return;
           console.warn("Address suggestion request failed.", error);
@@ -133,8 +116,8 @@ export function AddressAutocompleteInput({
           const detail =
             error instanceof Error
               ? error.message
-              : "Unknown error from Google autocomplete.";
-          setDebugMessage(`REST autocomplete request failed: ${detail}`);
+              : "Unknown error from address autocomplete.";
+          setDebugMessage(`Address autocomplete request failed: ${detail}`);
           setStatus("error");
         }
       };
@@ -146,7 +129,7 @@ export function AddressAutocompleteInput({
       controller.abort();
       window.clearTimeout(timeout);
     };
-  }, [apiKey, canQuery, status, trimmedValue]);
+  }, [canQuery, status, trimmedValue]);
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -210,7 +193,7 @@ export function AddressAutocompleteInput({
           onChange={(event) => {
             setInputValue(event.target.value);
             setIsOpen(true);
-            if (status === "error" && apiKey) {
+            if (status === "error") {
               setStatus("ready");
             }
           }}
@@ -258,14 +241,9 @@ export function AddressAutocompleteInput({
         )}
       </div>
 
-      {status === "missing-key" && (
-        <p className="text-xs text-amber-300/90">
-          Google autofill is off. Add <code>VITE_GOOGLE_MAPS_API_KEY</code> and rebuild the app.
-        </p>
-      )}
       {status === "error" && (
         <p className="text-xs text-amber-300/90">
-          Google autofill could not load. Check that <code>Places API (New)</code> is enabled and allowed for this key.
+          Address autocomplete could not load from the server. Check the Supabase function secret and Google Places API access.
         </p>
       )}
       <p className="text-[11px] text-slate-500">{debugMessage}</p>

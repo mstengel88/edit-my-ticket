@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.agent-registry]
 verify_jwt = false
+
+[functions.address-autocomplete]
+verify_jwt = false
