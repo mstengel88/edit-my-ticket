@@ -130,7 +130,11 @@ export function AddressAutocompleteInput({
           console.warn("Address suggestion request failed.", error);
           setSuggestions([]);
           setHighlightedIndex(-1);
-          setDebugMessage("REST autocomplete request failed. Check Places API (New) and key restrictions.");
+          const detail =
+            error instanceof Error
+              ? error.message
+              : "Unknown error from Google autocomplete.";
+          setDebugMessage(`REST autocomplete request failed: ${detail}`);
           setStatus("error");
         }
       };
