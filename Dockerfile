@@ -1,7 +1,5 @@
 FROM node:20-bookworm-slim AS build
 WORKDIR /app
-ARG VITE_GOOGLE_MAPS_API_KEY
-ENV VITE_GOOGLE_MAPS_API_KEY=$VITE_GOOGLE_MAPS_API_KEY
 COPY package.json package-lock.json ./
 RUN npm ci --legacy-peer-deps --include=optional
 COPY . .

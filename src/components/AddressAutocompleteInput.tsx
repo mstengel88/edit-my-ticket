@@ -56,9 +56,14 @@ export function AddressAutocompleteInput({
   className,
 }: AddressAutocompleteInputProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const onChangeRef = useRef(onChange);
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   const [status, setStatus] = useState<"idle" | "ready" | "missing-key" | "error">("idle");
   const [inputValue, setInputValue] = useState(value);
+
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   useEffect(() => {
     setInputValue(value);
@@ -91,7 +96,7 @@ export function AddressAutocompleteInput({
           const place = autocomplete.getPlace?.();
           const nextValue = place?.formatted_address || place?.name || inputRef.current?.value || "";
           setInputValue(nextValue);
-          onChange(nextValue);
+          onChangeRef.current(nextValue);
         });
       })
       .catch((error) => {
@@ -108,7 +113,7 @@ export function AddressAutocompleteInput({
         (window as any).google.maps.event.removeListener(listener);
       }
     };
-  }, [apiKey, onChange]);
+  }, [apiKey]);
 
   return (
     <div className="space-y-1.5">
@@ -118,7 +123,7 @@ export function AddressAutocompleteInput({
         onChange={(event) => {
           const nextValue = event.target.value;
           setInputValue(nextValue);
-          onChange(nextValue);
+          onChangeRef.current(nextValue);
         }}
         placeholder={placeholder}
         className={className}
