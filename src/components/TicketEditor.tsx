@@ -46,8 +46,8 @@ export function TicketEditor({ ticket, onSave, onIssue, onPrint, onEmail, templa
   const [showEmailConfirm, setShowEmailConfirm] = useState(false);
   const { products, customers, customerEmails, trucks } = useTicketLookups();
   const fields = templateFields || DEFAULT_TEMPLATE_FIELDS;
-  // customerEmail is always editable in the editor even if hidden from preview
-  const ALWAYS_VISIBLE_IN_EDITOR = ["customerEmail"];
+  // Some fields should stay editable in the editor even if hidden from the printed template.
+  const ALWAYS_VISIBLE_IN_EDITOR = ["customerEmail", "customerAddress"];
   const visible = (key: string) =>
     ALWAYS_VISIBLE_IN_EDITOR.includes(key) || (fields.find((f) => f.id === key)?.visible ?? true);
 
