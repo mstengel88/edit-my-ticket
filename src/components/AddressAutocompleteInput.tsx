@@ -58,6 +58,11 @@ export function AddressAutocompleteInput({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   const [status, setStatus] = useState<"idle" | "ready" | "missing-key" | "error">("idle");
+  const [inputValue, setInputValue] = useState(value);
+
+  useEffect(() => {
+    setInputValue(value);
+  }, [value]);
 
   useEffect(() => {
     if (!apiKey) {
@@ -85,6 +90,7 @@ export function AddressAutocompleteInput({
         listener = autocomplete.addListener("place_changed", () => {
           const place = autocomplete.getPlace?.();
           const nextValue = place?.formatted_address || place?.name || inputRef.current?.value || "";
+          setInputValue(nextValue);
           onChange(nextValue);
         });
       })
@@ -108,11 +114,18 @@ export function AddressAutocompleteInput({
     <div className="space-y-1.5">
       <Input
         ref={inputRef}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
+        value={inputValue}
+        onChange={(event) => {
+          const nextValue = event.target.value;
+          setInputValue(nextValue);
+          onChange(nextValue);
+        }}
         placeholder={placeholder}
         className={className}
-        autoComplete="street-address"
+        autoComplete="off"
+        spellCheck={false}
+        autoCorrect="off"
+        autoCapitalize="words"
       />
       {status === "missing-key" && (
         <p className="text-xs text-amber-300/90">
