@@ -16,6 +16,22 @@ type Suggestion = {
   description: string;
 };
 
+type PlacesLibrary = {
+  AutocompleteSuggestion?: {
+    fetchAutocompleteSuggestions: (request: Record<string, unknown>) => Promise<{
+      suggestions?: Array<{
+        placePrediction?: {
+          placeId?: string;
+          text?: { text?: string };
+          mainText?: { text?: string };
+          secondaryText?: { text?: string };
+        };
+      }>;
+    }>;
+  };
+  AutocompleteSessionToken?: new () => unknown;
+};
+
 let googleMapsPromise: Promise<void> | null = null;
 
 function loadGoogleMapsPlaces(apiKey: string) {
@@ -79,6 +95,8 @@ export function AddressAutocompleteInput({
 }: AddressAutocompleteInputProps) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  const placesLibraryRef = useRef<PlacesLibrary | null>(null);
+  const sessionTokenRef = useRef<unknown>(null);
   const [status, setStatus] = useState<"idle" | "ready" | "missing-key" | "error">("idle");
   const [inputValue, setInputValue] = useState(value);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -102,11 +120,16 @@ export function AddressAutocompleteInput({
     let cancelled = false;
 
     loadGoogleMapsPlaces(apiKey)
-      .then(() => {
+      .then(async () => {
         if (cancelled) return;
-        if (!(window as any).google?.maps?.places?.AutocompleteService) {
+        const placesLibrary = (await (window as any).google?.maps?.importLibrary?.("places")) as PlacesLibrary;
+        if (!placesLibrary?.AutocompleteSuggestion?.fetchAutocompleteSuggestions) {
           setStatus("error");
           return;
+        }
+        placesLibraryRef.current = placesLibrary;
+        if (placesLibrary.AutocompleteSessionToken) {
+          sessionTokenRef.current = new placesLibrary.AutocompleteSessionToken();
         }
         setStatus("ready");
       })
@@ -131,29 +154,60 @@ export function AddressAutocompleteInput({
     }
 
     let cancelled = false;
-    const service = new (window as any).google.maps.places.AutocompleteService();
     const timeout = window.setTimeout(() => {
-      service.getPlacePredictions(
-        {
-          input: trimmedValue,
-          types: ["address"],
-        },
-        (predictions: any[] | null, predictionStatus: any) => {
+      const run = async () => {
+        const placesLibrary = placesLibraryRef.current;
+        if (!placesLibrary?.AutocompleteSuggestion?.fetchAutocompleteSuggestions) {
+          if (!cancelled) {
+            setSuggestions([]);
+            setHighlightedIndex(-1);
+          }
+          return;
+        }
+
+        try {
+          const response = await placesLibrary.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+            input: trimmedValue,
+            includedPrimaryTypes: ["street_address"],
+            sessionToken: sessionTokenRef.current ?? undefined,
+          });
+
           if (cancelled) return;
 
-          const statusOk =
-            predictionStatus === (window as any).google.maps.places.PlacesServiceStatus.OK;
-          if (!statusOk || !predictions?.length) {
+          const predictions = (response.suggestions ?? [])
+            .map((item) => item.placePrediction)
+            .filter(Boolean)
+            .map((prediction: any) =>
+              normalizePrediction({
+                place_id: prediction.placeId,
+                description: prediction.text?.text ?? "",
+                structured_formatting: {
+                  main_text: prediction.mainText?.text ?? prediction.text?.text ?? "",
+                  secondary_text: prediction.secondaryText?.text ?? "",
+                },
+              }),
+            )
+            .filter((prediction: Suggestion) => prediction.description);
+
+          if (!predictions.length) {
             setSuggestions([]);
             setHighlightedIndex(-1);
             return;
           }
 
-          setSuggestions(predictions.slice(0, 6).map(normalizePrediction));
+          setSuggestions(predictions.slice(0, 6));
           setHighlightedIndex(0);
           setIsOpen(true);
-        },
-      );
+        } catch (error) {
+          console.warn("Address suggestion request failed.", error);
+          if (!cancelled) {
+            setSuggestions([]);
+            setHighlightedIndex(-1);
+          }
+        }
+      };
+
+      void run();
     }, 180);
 
     return () => {
