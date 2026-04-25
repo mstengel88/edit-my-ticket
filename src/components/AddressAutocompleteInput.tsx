@@ -102,6 +102,7 @@ export function AddressAutocompleteInput({
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [debugMessage, setDebugMessage] = useState("Waiting for Google Places...");
 
   const trimmedValue = inputValue.trim();
   const canQuery = useMemo(() => trimmedValue.length >= 3 && status === "ready", [trimmedValue, status]);
@@ -114,6 +115,7 @@ export function AddressAutocompleteInput({
     if (!apiKey) {
       console.warn("Google address autocomplete is disabled: missing VITE_GOOGLE_MAPS_API_KEY.");
       setStatus("missing-key");
+      setDebugMessage("Missing Google API key.");
       return;
     }
 
@@ -125,6 +127,7 @@ export function AddressAutocompleteInput({
         const placesLibrary = (await (window as any).google?.maps?.importLibrary?.("places")) as PlacesLibrary;
         if (!placesLibrary?.AutocompleteSuggestion?.fetchAutocompleteSuggestions) {
           setStatus("error");
+          setDebugMessage("Google Places library loaded, but AutocompleteSuggestion is unavailable.");
           return;
         }
         placesLibraryRef.current = placesLibrary;
@@ -132,6 +135,7 @@ export function AddressAutocompleteInput({
           sessionTokenRef.current = new placesLibrary.AutocompleteSessionToken();
         }
         setStatus("ready");
+        setDebugMessage("Google autocomplete ready. Type at least 3 characters.");
       })
       .catch((error) => {
         console.warn(
@@ -139,6 +143,7 @@ export function AddressAutocompleteInput({
           error,
         );
         if (!cancelled) setStatus("error");
+        if (!cancelled) setDebugMessage("Google Places failed to load.");
       });
 
     return () => {
@@ -150,6 +155,9 @@ export function AddressAutocompleteInput({
     if (!canQuery) {
       setSuggestions([]);
       setHighlightedIndex(-1);
+      if (status === "ready") {
+        setDebugMessage(trimmedValue.length === 0 ? "Google autocomplete ready. Type at least 3 characters." : "Keep typing to get address suggestions.");
+      }
       return;
     }
 
@@ -161,6 +169,7 @@ export function AddressAutocompleteInput({
           if (!cancelled) {
             setSuggestions([]);
             setHighlightedIndex(-1);
+            setDebugMessage("AutocompleteSuggestion API is unavailable in this browser session.");
           }
           return;
         }
@@ -192,17 +201,20 @@ export function AddressAutocompleteInput({
           if (!predictions.length) {
             setSuggestions([]);
             setHighlightedIndex(-1);
+            setDebugMessage(`No suggestions returned for "${trimmedValue}".`);
             return;
           }
 
           setSuggestions(predictions.slice(0, 6));
           setHighlightedIndex(0);
           setIsOpen(true);
+          setDebugMessage(`Loaded ${Math.min(predictions.length, 6)} suggestion${predictions.length === 1 ? "" : "s"} for "${trimmedValue}".`);
         } catch (error) {
           console.warn("Address suggestion request failed.", error);
           if (!cancelled) {
             setSuggestions([]);
             setHighlightedIndex(-1);
+            setDebugMessage("Google suggestion request failed. Check key permissions for Places API (New).");
           }
         }
       };
@@ -231,6 +243,7 @@ export function AddressAutocompleteInput({
     setInputValue(nextValue);
     onChange(nextValue);
     setIsOpen(false);
+    setDebugMessage(`Selected address: ${nextValue}`);
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -332,6 +345,7 @@ export function AddressAutocompleteInput({
           Google autofill could not load. Check your API key restrictions and that Maps JavaScript API plus Places are enabled.
         </p>
       )}
+      <p className="text-[11px] text-slate-500">{debugMessage}</p>
     </div>
   );
 }
