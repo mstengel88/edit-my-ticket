@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
+import { MapPin } from "lucide-react";
 
 interface AddressAutocompleteInputProps {
   value: string;
@@ -7,6 +8,13 @@ interface AddressAutocompleteInputProps {
   placeholder?: string;
   className?: string;
 }
+
+type Suggestion = {
+  placeId: string;
+  primaryText: string;
+  secondaryText: string;
+  description: string;
+};
 
 let googleMapsPromise: Promise<void> | null = null;
 
@@ -49,21 +57,36 @@ function loadGoogleMapsPlaces(apiKey: string) {
   return googleMapsPromise;
 }
 
+function normalizePrediction(prediction: any): Suggestion {
+  return {
+    placeId: prediction.place_id,
+    description: prediction.description,
+    primaryText:
+      prediction.structured_formatting?.main_text ||
+      prediction.description ||
+      "",
+    secondaryText:
+      prediction.structured_formatting?.secondary_text ||
+      "",
+  };
+}
+
 export function AddressAutocompleteInput({
   value,
   onChange,
   placeholder,
   className,
 }: AddressAutocompleteInputProps) {
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const onChangeRef = useRef(onChange);
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   const [status, setStatus] = useState<"idle" | "ready" | "missing-key" | "error">("idle");
   const [inputValue, setInputValue] = useState(value);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
-  useEffect(() => {
-    onChangeRef.current = onChange;
-  }, [onChange]);
+  const trimmedValue = inputValue.trim();
+  const canQuery = useMemo(() => trimmedValue.length >= 3 && status === "ready", [trimmedValue, status]);
 
   useEffect(() => {
     setInputValue(value);
@@ -76,62 +99,175 @@ export function AddressAutocompleteInput({
       return;
     }
 
-    if (!inputRef.current) return;
-
-    let autocomplete: any;
     let cancelled = false;
-    let listener: any;
 
     loadGoogleMapsPlaces(apiKey)
       .then(() => {
-        if (cancelled || !inputRef.current || !(window as any).google?.maps?.places) return;
-
-        autocomplete = new (window as any).google.maps.places.Autocomplete(inputRef.current, {
-          fields: ["formatted_address", "name"],
-          types: ["address"],
-        });
+        if (cancelled) return;
+        if (!(window as any).google?.maps?.places?.AutocompleteService) {
+          setStatus("error");
+          return;
+        }
         setStatus("ready");
-
-        listener = autocomplete.addListener("place_changed", () => {
-          const place = autocomplete.getPlace?.();
-          const nextValue = place?.formatted_address || place?.name || inputRef.current?.value || "";
-          setInputValue(nextValue);
-          onChangeRef.current(nextValue);
-        });
       })
       .catch((error) => {
         console.warn(
           "Google address autocomplete could not load. Check that Maps JavaScript API and Places are enabled for the key.",
           error,
         );
-        setStatus("error");
+        if (!cancelled) setStatus("error");
       });
 
     return () => {
       cancelled = true;
-      if (listener && (window as any).google?.maps?.event) {
-        (window as any).google.maps.event.removeListener(listener);
-      }
     };
   }, [apiKey]);
 
+  useEffect(() => {
+    if (!canQuery) {
+      setSuggestions([]);
+      setHighlightedIndex(-1);
+      return;
+    }
+
+    let cancelled = false;
+    const service = new (window as any).google.maps.places.AutocompleteService();
+    const timeout = window.setTimeout(() => {
+      service.getPlacePredictions(
+        {
+          input: trimmedValue,
+          types: ["address"],
+        },
+        (predictions: any[] | null, predictionStatus: any) => {
+          if (cancelled) return;
+
+          const statusOk =
+            predictionStatus === (window as any).google.maps.places.PlacesServiceStatus.OK;
+          if (!statusOk || !predictions?.length) {
+            setSuggestions([]);
+            setHighlightedIndex(-1);
+            return;
+          }
+
+          setSuggestions(predictions.slice(0, 6).map(normalizePrediction));
+          setHighlightedIndex(0);
+          setIsOpen(true);
+        },
+      );
+    }, 180);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, [canQuery, trimmedValue]);
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, []);
+
+  const commitValue = (nextValue: string) => {
+    setInputValue(nextValue);
+    onChange(nextValue);
+    setIsOpen(false);
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!isOpen || !suggestions.length) {
+      if (event.key === "Enter") {
+        onChange(inputValue);
+      }
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setHighlightedIndex((current) => (current < suggestions.length - 1 ? current + 1 : 0));
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setHighlightedIndex((current) => (current > 0 ? current - 1 : suggestions.length - 1));
+      return;
+    }
+
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const suggestion = suggestions[highlightedIndex] ?? suggestions[0];
+      if (suggestion) {
+        commitValue(suggestion.description);
+      } else {
+        onChange(inputValue);
+      }
+      return;
+    }
+
+    if (event.key === "Escape") {
+      setIsOpen(false);
+    }
+  };
+
   return (
-    <div className="space-y-1.5">
-      <Input
-        ref={inputRef}
-        value={inputValue}
-        onChange={(event) => {
-          const nextValue = event.target.value;
-          setInputValue(nextValue);
-        }}
-        onBlur={() => onChangeRef.current(inputValue)}
-        placeholder={placeholder}
-        className={className}
-        autoComplete="off"
-        spellCheck={false}
-        autoCorrect="off"
-        autoCapitalize="words"
-      />
+    <div ref={rootRef} className="space-y-1.5">
+      <div className="relative">
+        <Input
+          value={inputValue}
+          onChange={(event) => {
+            setInputValue(event.target.value);
+            setIsOpen(true);
+          }}
+          onFocus={() => {
+            if (suggestions.length) setIsOpen(true);
+          }}
+          onBlur={() => {
+            window.setTimeout(() => {
+              onChange(inputValue);
+            }, 120);
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          className={className}
+          autoComplete="off"
+          spellCheck={false}
+          autoCorrect="off"
+          autoCapitalize="words"
+        />
+
+        {isOpen && suggestions.length > 0 && (
+          <div className="absolute z-[100000] mt-2 w-full overflow-hidden rounded-2xl border border-white/10 bg-[#132135] shadow-2xl shadow-black/40">
+            {suggestions.map((suggestion, index) => (
+              <button
+                key={suggestion.placeId}
+                type="button"
+                className={`flex w-full items-start gap-3 border-t border-white/5 px-4 py-3 text-left first:border-t-0 ${
+                  index === highlightedIndex ? "bg-cyan-400/10" : "bg-transparent hover:bg-cyan-400/8"
+                }`}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  commitValue(suggestion.description);
+                }}
+              >
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-cyan-300" />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-white">{suggestion.primaryText}</p>
+                  {suggestion.secondaryText && (
+                    <p className="truncate text-xs text-slate-400">{suggestion.secondaryText}</p>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       {status === "missing-key" && (
         <p className="text-xs text-amber-300/90">
           Google autofill is off. Add <code>VITE_GOOGLE_MAPS_API_KEY</code> and rebuild the app.
