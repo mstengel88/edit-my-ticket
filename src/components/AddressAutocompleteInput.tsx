@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 
 interface AddressAutocompleteInputProps {
@@ -57,9 +57,16 @@ export function AddressAutocompleteInput({
 }: AddressAutocompleteInputProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  const [status, setStatus] = useState<"idle" | "ready" | "missing-key" | "error">("idle");
 
   useEffect(() => {
-    if (!apiKey || !inputRef.current) return;
+    if (!apiKey) {
+      console.warn("Google address autocomplete is disabled: missing VITE_GOOGLE_MAPS_API_KEY.");
+      setStatus("missing-key");
+      return;
+    }
+
+    if (!inputRef.current) return;
 
     let autocomplete: any;
     let cancelled = false;
@@ -73,6 +80,7 @@ export function AddressAutocompleteInput({
           fields: ["formatted_address", "name"],
           types: ["address"],
         });
+        setStatus("ready");
 
         listener = autocomplete.addListener("place_changed", () => {
           const place = autocomplete.getPlace?.();
@@ -80,8 +88,12 @@ export function AddressAutocompleteInput({
           onChange(nextValue);
         });
       })
-      .catch(() => {
-        // Fallback to normal text input if Google Places is unavailable.
+      .catch((error) => {
+        console.warn(
+          "Google address autocomplete could not load. Check that Maps JavaScript API and Places are enabled for the key.",
+          error,
+        );
+        setStatus("error");
       });
 
     return () => {
@@ -93,13 +105,25 @@ export function AddressAutocompleteInput({
   }, [apiKey, onChange]);
 
   return (
-    <Input
-      ref={inputRef}
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      placeholder={placeholder}
-      className={className}
-      autoComplete="street-address"
-    />
+    <div className="space-y-1.5">
+      <Input
+        ref={inputRef}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        className={className}
+        autoComplete="street-address"
+      />
+      {status === "missing-key" && (
+        <p className="text-xs text-amber-300/90">
+          Google autofill is off. Add <code>VITE_GOOGLE_MAPS_API_KEY</code> and rebuild the app.
+        </p>
+      )}
+      {status === "error" && (
+        <p className="text-xs text-amber-300/90">
+          Google autofill could not load. Check your API key restrictions and that Maps JavaScript API plus Places are enabled.
+        </p>
+      )}
+    </div>
   );
 }
