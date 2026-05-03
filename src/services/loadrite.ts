@@ -1,12 +1,15 @@
-const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-const BASE_URL = `https://${PROJECT_ID}.supabase.co/functions/v1/loadrite`;
+import {
+  SUPABASE_PUBLISHABLE_KEY,
+  SUPABASE_URL,
+} from "@/integrations/supabase/client";
+
+const BASE_URL = `${SUPABASE_URL}/functions/v1/loadrite`;
 
 async function callLoadrite(endpoint: string, params?: Record<string, string>) {
   const res = await fetch(BASE_URL, {
     method: "POST",
     headers: {
-      apikey: ANON_KEY,
+      apikey: SUPABASE_PUBLISHABLE_KEY,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ endpoint, ...params }),
@@ -14,7 +17,12 @@ async function callLoadrite(endpoint: string, params?: Record<string, string>) {
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`Loadrite API error (${res.status}): ${text}`);
+    try {
+      const parsed = JSON.parse(text);
+      throw new Error(parsed.error || `Loadrite API error (${res.status})`);
+    } catch {
+      throw new Error(`Loadrite API error (${res.status}): ${text}`);
+    }
   }
 
   return res.json();

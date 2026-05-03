@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -17,10 +17,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   BarChart3,
   ClipboardList,
   Home,
   FolderKanban,
+  Loader2,
   LogOut,
   Menu,
   MessageSquarePlus,
@@ -29,11 +40,13 @@ import {
   Settings,
   ShieldCheck,
   Sun,
+  Trash2,
   Truck,
   Users,
   FileText,
 } from "lucide-react";
 import companyLogo from "@/assets/Greenhillssupply_logo.png";
+import { toast } from "sonner";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -77,6 +90,8 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
   const location = useLocation();
   const useCompactLayout = isMobile || (isTablet && isPortrait);
   const currentTheme = theme === "dark" ? "dark" : "light";
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const desktopShellInset = !useCompactLayout && !isPortrait
     ? "max(12px, var(--safe-area-left), var(--safe-area-right))"
     : undefined;
@@ -130,6 +145,41 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
 
     if (error) {
       console.error("Failed to save theme preference", error);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-account", {
+        body: {},
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      toast.success("Your account has been deleted.");
+
+      try {
+        await signOut();
+      } catch (signOutError) {
+        console.warn("Sign out after account deletion failed", signOutError);
+      }
+
+      navigate("/auth", { replace: true });
+    } catch (error) {
+      console.error("Delete account failed", error);
+      const message = error instanceof Error ? error.message : "Failed to delete account";
+      toast.error(message);
+    } finally {
+      setDeletingAccount(false);
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -244,6 +294,13 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
               <LogOut className="h-4 w-4" />
               Sign Out
             </button>
+            <button
+              onClick={() => setDeleteDialogOpen(true)}
+              className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-rose-400 transition-colors hover:bg-rose-400/10"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete Account
+            </button>
           </div>
         </aside>
       )}
@@ -305,6 +362,13 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
                         <LogOut className="mr-2 h-4 w-4" />
                         Sign Out
                       </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setDeleteDialogOpen(true)}
+                        className="text-rose-300 focus:text-rose-100"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete Account
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -357,6 +421,31 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
           {children}
         </main>
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete account?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes your account and removes your app data. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingAccount}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                void handleDeleteAccount();
+              }}
+              disabled={deletingAccount}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingAccount ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+              Delete Account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
