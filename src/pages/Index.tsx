@@ -33,6 +33,10 @@ const Index = () => {
   const { fields: templateFields, canvasElements, reportFields, copiesPerPage, canvasWidth, canvasHeight, emailElements, reportEmailConfig, printLayouts } = useTicketTemplate();
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
+  const isBillableRoute = location.pathname === "/billable";
+  const visibleTickets = isBillableRoute
+    ? tickets.filter((ticket) => ticket.status === "billable")
+    : tickets;
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [view, setView] = useState<View>("list");
   const [activeTab, setActiveTab] = useState<string>("tickets");
@@ -44,14 +48,14 @@ const Index = () => {
     const requestedTicketId = location.state?.openTicketId as string | undefined;
     if (!requestedTicketId || loading) return;
 
-    const requestedTicket = tickets.find((ticket) => ticket.id === requestedTicketId);
+    const requestedTicket = visibleTickets.find((ticket) => ticket.id === requestedTicketId);
     if (!requestedTicket) return;
 
     setSelectedTicket({ ...requestedTicket });
     setView(isAdminOrManager ? "editor" : "preview");
     setActiveTab("tickets");
     navigate(location.pathname, { replace: true, state: null });
-  }, [isAdminOrManager, loading, location.pathname, location.state, navigate, tickets]);
+  }, [isAdminOrManager, loading, location.pathname, location.state, navigate, visibleTickets]);
   useEffect(() => {
     if (!pendingPrint || view !== "preview" || !selectedTicket) return;
 
@@ -148,7 +152,7 @@ const Index = () => {
     if (err) {
       toast.error("Failed to save ticket");
       console.error(err);
-      return;
+      return false;
     }
 
     const userId = session?.user?.id;
@@ -189,6 +193,7 @@ const Index = () => {
     logAudit("update", "ticket", ticketToSave.id, { jobNumber: ticketToSave.jobNumber });
     await loadFromDb();
     toast.success(successMessage);
+    return true;
   };
 
   const handleSaveTicket = async (updated: TicketData) => {
@@ -301,11 +306,13 @@ const Index = () => {
 
   // ─── Desktop split layout ───
   if (!isMobile && !isTablet) {
-    const subtitle = `${tickets.length} ticket${tickets.length !== 1 ? "s" : ""}${loading ? " · syncing..." : ""}`;
-    const pendingCount = tickets.filter((ticket) => ticket.status === "pending").length;
-    const completedCount = tickets.filter((ticket) => ticket.status === "completed").length;
-    const customerCount = new Set(tickets.map((ticket) => ticket.customer?.trim()).filter(Boolean)).size;
-    const productCount = new Set(tickets.map((ticket) => ticket.product?.trim()).filter(Boolean)).size;
+    const pageTitle = isBillableRoute ? "Billable" : "Tickets";
+    const subtitle = `${visibleTickets.length} ticket${visibleTickets.length !== 1 ? "s" : ""}${loading ? " · syncing..." : ""}`;
+    const pendingCount = visibleTickets.filter((ticket) => ticket.status === "pending").length;
+    const completedCount = visibleTickets.filter((ticket) => ticket.status === "completed").length;
+    const billableCount = visibleTickets.filter((ticket) => ticket.status === "billable").length;
+    const customerCount = new Set(visibleTickets.map((ticket) => ticket.customer?.trim()).filter(Boolean)).size;
+    const productCount = new Set(visibleTickets.map((ticket) => ticket.product?.trim()).filter(Boolean)).size;
 
     const headerExtra = (
       <>
@@ -330,7 +337,7 @@ const Index = () => {
     );
 
     return (
-      <AppLayout title="Tickets" subtitle={subtitle} headerExtra={headerExtra}>
+      <AppLayout title={pageTitle} subtitle={subtitle} headerExtra={headerExtra}>
         <div className="flex h-[calc(100dvh-57px)] min-h-0">
           {/* Main content area */}
           <div className="min-w-0 flex-1 overflow-y-auto">
@@ -340,18 +347,19 @@ const Index = () => {
                   <section className="rounded-[30px] border border-white/8 bg-[linear-gradient(135deg,rgba(17,28,45,0.98),rgba(11,21,36,0.98))] p-6 shadow-2xl shadow-black/20">
                     <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
                       <div className="max-w-2xl">
-                        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-300">Ticket Desk</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-300">{isBillableRoute ? "Billing Queue" : "Ticket Desk"}</p>
                         <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white">
-                          Work the queue from one focused ticket console.
+                          {isBillableRoute ? "Review every billable ticket from one focused billing queue." : "Work the queue from one focused ticket console."}
                         </h2>
                         <p className="mt-3 text-sm leading-6 text-slate-300">
-                          Select a ticket from the right to edit or preview it, or create a new one and keep the dispatch,
-                          customer, and material details all in the same workflow.
+                          {isBillableRoute
+                            ? "Use this view to work only the tickets marked billable, then open, print, or update them without mixing them into the live dispatch queue."
+                            : "Select a ticket from the right to edit or preview it, or create a new one and keep the dispatch, customer, and material details all in the same workflow."}
                         </p>
                       </div>
                       <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[320px]">
                         {[
-                          { label: "Pending", value: pendingCount, icon: FileClock },
+                          { label: isBillableRoute ? "Billable" : "Pending", value: isBillableRoute ? billableCount : pendingCount, icon: isBillableRoute ? BarChart3 : FileClock },
                           { label: "Completed", value: completedCount, icon: BarChart3 },
                           { label: "Customers", value: customerCount, icon: Users },
                           { label: "Products", value: productCount, icon: Package2 },
@@ -377,7 +385,7 @@ const Index = () => {
                         </div>
                       </div>
                       <div className="mt-5 space-y-3">
-                        {tickets.slice(0, 6).map((ticket) => (
+                        {visibleTickets.slice(0, 6).map((ticket) => (
                           <button
                             key={ticket.id}
                             onClick={() => (isAdminOrManager ? handleSelectTicket(ticket) : handlePreview(ticket))}
@@ -407,10 +415,10 @@ const Index = () => {
                       <h3 className="mt-2 text-xl font-semibold text-white">Desk rhythm</h3>
                       <div className="mt-5 space-y-3">
                         {[
-                          "Open a pending or draft ticket from the queue.",
+                          isBillableRoute ? "Open a billable ticket from the queue." : "Open a pending or draft ticket from the queue.",
                           "Confirm customer, PO, truck, and product before saving.",
                           "Print or email directly from the workbench once the load is confirmed.",
-                          "Use Reports when you need a ticket query view across the full history.",
+                          isBillableRoute ? "Use this page to separate ready-to-bill work from the live load queue." : "Use Reports when you need a ticket query view across the full history.",
                         ].map((step, index) => (
                           <div key={step} className="flex gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3">
                             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-400/10 text-sm font-semibold text-cyan-200">
@@ -541,7 +549,7 @@ const Index = () => {
 
           {/* Right sidebar with ticket list */}
           <TicketSidebar
-            tickets={tickets}
+            tickets={visibleTickets}
             selectedId={selectedTicket?.id}
             onSelect={isAdminOrManager ? handleSelectTicket : handlePreview}
             onDelete={handleDeleteTicket}
@@ -559,8 +567,9 @@ const Index = () => {
 
   // ─── Mobile layout (unchanged) ───
   const subtitle = view === "list" && activeTab === "tickets"
-    ? `${tickets.length} ticket${tickets.length !== 1 ? "s" : ""}${loading ? " · syncing..." : ""}`
+    ? `${visibleTickets.length} ticket${visibleTickets.length !== 1 ? "s" : ""}${loading ? " · syncing..." : ""}`
     : undefined;
+  const pageTitle = isBillableRoute ? "Billable" : "Tickets";
 
   const headerExtra = (
     <>
@@ -585,7 +594,7 @@ const Index = () => {
   );
 
   return (
-    <AppLayout title="Tickets" subtitle={subtitle} headerExtra={headerExtra}>
+    <AppLayout title={pageTitle} subtitle={subtitle} headerExtra={headerExtra}>
       <div className={`mx-auto w-full px-4 py-6 sm:px-6 ${isTablet ? "max-w-6xl" : "max-w-2xl"}`}>
         {view === "list" ? (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -599,11 +608,11 @@ const Index = () => {
               )}
             </TabsList>
             <TabsContent value="tickets">
-              <TicketList tickets={tickets} onSelect={handleSelectTicket} onDelete={handleDeleteTicket} onPreview={handlePreview} onPrint={handlePrintTicket} onEmail={handleEmailTicket} readOnly={!isAdminOrManager} canDelete={isAdmin} />
+              <TicketList tickets={visibleTickets} onSelect={handleSelectTicket} onDelete={handleDeleteTicket} onPreview={handlePreview} onPrint={handlePrintTicket} onEmail={handleEmailTicket} readOnly={!isAdminOrManager} canDelete={isAdmin} />
             </TabsContent>
             {isAdminOrManager && (
               <TabsContent value="reports">
-                <Reports tickets={tickets} reportFields={reportFields} reportEmailConfig={reportEmailConfig} />
+                <Reports tickets={visibleTickets} reportFields={reportFields} reportEmailConfig={reportEmailConfig} />
               </TabsContent>
             )}
           </Tabs>

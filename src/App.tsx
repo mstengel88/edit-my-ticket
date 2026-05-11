@@ -120,6 +120,7 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+            <Route path="/billable" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/settings" element={<TemplateAdminRoute><Settings /></TemplateAdminRoute>} />
             <Route path="/audit-log" element={<AdminRoute><AuditLog /></AdminRoute>} />
             <Route path="/admin" element={<DeveloperRoute><Admin /></DeveloperRoute>} />

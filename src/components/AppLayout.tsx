@@ -29,6 +29,7 @@ import {
 import {
   BarChart3,
   ClipboardList,
+  DollarSign,
   Home,
   FolderKanban,
   Loader2,
@@ -58,6 +59,7 @@ interface AppLayoutProps {
 const baseNavItems = [
   { label: "Home", icon: Home, href: "/home" },
   { label: "Tickets", icon: FileText, href: "/", end: true },
+  { label: "Billable", icon: DollarSign, href: "/billable" },
 ];
 
 const managerNavItems = [
@@ -194,7 +196,7 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
     ...(role === "developer" ? developerItems : []),
   ];
   const compactQuickNav = allNav.filter((item) =>
-    ["/home", "/", "/reports", "/customers", "/orders"].includes(item.href),
+    ["/home", "/", "/billable", "/reports", "/customers", "/orders"].includes(item.href),
   );
 
   return (

@@ -380,13 +380,14 @@ const Customers = () => {
 
     if (error) {
       toast.error("Failed to save ticket");
-      return;
+      return false;
     }
 
     setEditingTicket(null);
     if (selectedCustomer?.name) {
       loadCustomerTickets(selectedCustomer.name);
     }
+    return true;
   };
 
   const handleIssueTicket = async (updated: TicketData) => {
@@ -427,13 +428,14 @@ const Customers = () => {
 
     if (error) {
       toast.error("Failed to save ticket");
-      return;
+      return false;
     }
 
     setEditingTicket(null);
     if (selectedCustomer?.name) {
       loadCustomerTickets(selectedCustomer.name);
     }
+    return true;
   };
 
   const handleEmailTicket = async (ticket: TicketData) => {

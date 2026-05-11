@@ -15,9 +15,9 @@ import { AddressAutocompleteInput } from "@/components/AddressAutocompleteInput"
 
 interface TicketEditorProps {
   ticket: TicketData;
-  onSave: (ticket: TicketData) => void;
-  onIssue?: (ticket: TicketData) => void;
-  onPrint: (ticket: TicketData) => void;
+  onSave: (ticket: TicketData) => void | Promise<boolean | void>;
+  onIssue?: (ticket: TicketData) => void | Promise<boolean | void>;
+  onPrint: (ticket: TicketData) => void | Promise<void>;
   onEmail: (ticket: TicketData) => void;
   templateFields?: TemplateField[];
 }
@@ -77,6 +77,15 @@ export function TicketEditor({ ticket, onSave, onIssue, onPrint, onEmail, templa
     toast.success("Ticket issued!");
   };
 
+  const handlePrint = async () => {
+    const saveResult = await onSave(data);
+    if (saveResult === false) {
+      return;
+    }
+
+    await onPrint(data);
+  };
+
   const inputClassName =
     "border-white/10 bg-[#0d1726] text-white placeholder:text-slate-500 focus-visible:ring-cyan-400/40";
 
@@ -108,7 +117,7 @@ export function TicketEditor({ ticket, onSave, onIssue, onPrint, onEmail, templa
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => onPrint(data)} className="gap-1.5 border-white/10 bg-white/5 text-white hover:bg-white/10">
+            <Button variant="outline" size="sm" onClick={() => void handlePrint()} className="gap-1.5 border-white/10 bg-white/5 text-white hover:bg-white/10">
             <Printer className="h-4 w-4" /> Print
           </Button>
             <Button variant="outline" size="sm" onClick={() => setShowEmailConfirm(true)} className="gap-1.5 border-white/10 bg-white/5 text-white hover:bg-white/10">
