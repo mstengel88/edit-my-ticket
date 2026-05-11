@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -66,17 +67,19 @@ interface OrderFormState {
   jobAddress: string;
   totalAmount: string;
   totalUnit: string;
-  ticketCount: string;
   notes: string;
+}
+
+interface PullTicketFormState {
+  amount: string;
+  unit: string;
+  note: string;
 }
 
 interface OrderSummary extends OrderRow {
   tickets: TicketData[];
-  draftCount: number;
-  pendingCount: number;
-  completedCount: number;
-  issuedCount: number;
-  issuedAmount: number;
+  allocatedAmount: number;
+  remainingAmount: number;
   latestActivity: Date | null;
 }
 
@@ -88,8 +91,13 @@ const defaultOrderForm: OrderFormState = {
   jobAddress: "",
   totalAmount: "",
   totalUnit: "Yardage",
-  ticketCount: "1",
   notes: "",
+};
+
+const defaultPullTicketForm: PullTicketFormState = {
+  amount: "",
+  unit: "Yardage",
+  note: "",
 };
 
 function parseTicketDate(value: string) {
@@ -143,6 +151,10 @@ async function getNextMtJobNumbers(count: number) {
   return Array.from({ length: count }, (_, index) => `MT-${String(nextNumber + index).padStart(6, "0")}`);
 }
 
+function formatQuantity(value: number) {
+  return value.toFixed(2);
+}
+
 const Orders = () => {
   const { session } = useAuth();
   const { customers, customerEmails, products } = useTicketLookups();
@@ -151,13 +163,16 @@ const Orders = () => {
   const [orderTickets, setOrderTickets] = useState<TicketData[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [pulling, setPulling] = useState(false);
   const [search, setSearch] = useState("");
   const [customerFilter, setCustomerFilter] = useState("all");
   const [productFilter, setProductFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [pullDialogOpen, setPullDialogOpen] = useState(false);
   const [form, setForm] = useState<OrderFormState>(defaultOrderForm);
+  const [pullForm, setPullForm] = useState<PullTicketFormState>(defaultPullTicketForm);
 
   const loadOrders = useCallback(async () => {
     if (!session?.user?.id) {
@@ -198,27 +213,21 @@ const Orders = () => {
   const summaries = useMemo<OrderSummary[]>(() => {
     return orders.map((order) => {
       const tickets = orderTickets.filter((ticket) => ticket.orderId === order.id);
-      const draftCount = tickets.filter((ticket) => ticket.status === "draft").length;
-      const pendingCount = tickets.filter((ticket) => ticket.status === "pending").length;
-      const completedCount = tickets.filter((ticket) => ticket.status === "completed").length;
-      const issuedTickets = tickets.filter((ticket) => Boolean(ticket.issuedAt));
-      const issuedAmount = issuedTickets.reduce(
+      const allocatedAmount = tickets.reduce(
         (sum, ticket) => sum + (Number.parseFloat(ticket.totalAmount) || 0),
         0,
       );
+      const remainingAmount = Math.max(Number(order.total_amount || 0) - allocatedAmount, 0);
       const latestActivity = tickets
-        .map((ticket) => parseTicketDate(ticket.dateTime))
+        .map((ticket) => parseTicketDate(ticket.issuedAt || ticket.dateTime))
         .filter((value): value is Date => Boolean(value))
         .sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
 
       return {
         ...order,
         tickets,
-        draftCount,
-        pendingCount,
-        completedCount,
-        issuedCount: issuedTickets.length,
-        issuedAmount,
+        allocatedAmount,
+        remainingAmount,
         latestActivity,
       };
     });
@@ -229,11 +238,7 @@ const Orders = () => {
 
     return summaries.filter((order) => {
       const derivedStatus =
-        order.completedCount >= order.ticket_count
-          ? "completed"
-          : order.issuedCount > 0
-            ? "active"
-            : "draft";
+        order.remainingAmount <= 0.0001 ? "completed" : order.allocatedAmount > 0 ? "active" : "open";
 
       if (customerFilter !== "all" && order.customer !== customerFilter) return false;
       if (productFilter !== "all" && order.product !== productFilter) return false;
@@ -266,15 +271,15 @@ const Orders = () => {
 
   const summary = useMemo(() => {
     const totalRequested = filteredOrders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0);
-    const totalIssued = filteredOrders.reduce((sum, order) => sum + order.issuedAmount, 0);
-    const totalDrafts = filteredOrders.reduce((sum, order) => sum + order.draftCount, 0);
+    const totalAllocated = filteredOrders.reduce((sum, order) => sum + order.allocatedAmount, 0);
+    const totalRemaining = filteredOrders.reduce((sum, order) => sum + order.remainingAmount, 0);
 
     return {
       orders: filteredOrders.length,
       customers: new Set(filteredOrders.map((order) => order.customer)).size,
       requested: totalRequested.toFixed(2),
-      issued: totalIssued.toFixed(2),
-      drafts: totalDrafts,
+      allocated: totalAllocated.toFixed(2),
+      remaining: totalRemaining.toFixed(2),
     };
   }, [filteredOrders]);
 
@@ -288,13 +293,11 @@ const Orders = () => {
 
   const handleCreateOrder = async () => {
     const userId = session?.user?.id;
-    const ticketCount = Number.parseInt(form.ticketCount, 10);
     const totalAmount = Number.parseFloat(form.totalAmount);
 
     if (!userId) return;
     if (!form.customer.trim()) return toast.error("Customer is required");
     if (!form.product.trim()) return toast.error("Product is required");
-    if (!ticketCount || ticketCount < 1) return toast.error("Ticket count must be at least 1");
     if (Number.isNaN(totalAmount) || totalAmount <= 0) return toast.error("Total ordered amount is required");
 
     setSaving(true);
@@ -308,7 +311,7 @@ const Orders = () => {
       job_address: form.jobAddress.trim(),
       total_amount: totalAmount,
       total_unit: form.totalUnit,
-      ticket_count: ticketCount,
+      ticket_count: 0,
       notes: form.notes.trim(),
       status: "open",
     };
@@ -325,44 +328,7 @@ const Orders = () => {
       return;
     }
 
-    const jobNumbers = await getNextMtJobNumbers(ticketCount);
-    const baseTicket = createEmptyTicket();
-    const draftRows = jobNumbers.map((jobNumber, index) => ({
-      id: crypto.randomUUID(),
-      user_id: userId,
-      job_number: jobNumber,
-      job_name: form.poNumber.trim(),
-      date_time: formatTicketDateTime(),
-      order_id: createdOrder.id,
-      order_sequence: index + 1,
-      issued_at: null,
-      company_name: baseTicket.companyName,
-      company_email: baseTicket.companyEmail,
-      company_website: baseTicket.companyWebsite,
-      company_phone: baseTicket.companyPhone,
-      total_amount: "0.00",
-      total_unit: form.totalUnit,
-      customer: form.customer.trim(),
-      product: form.product.trim(),
-      truck: "",
-      note: form.notes.trim(),
-      bucket: "",
-      customer_name: "",
-      customer_email: form.customerEmail.trim(),
-      customer_address: form.jobAddress.trim(),
-      signature: "",
-      status: "draft",
-    }));
-
-    const { error: ticketError } = await supabase.from("tickets").insert(draftRows);
-    if (ticketError) {
-      await supabase.from("orders").delete().eq("id", createdOrder.id);
-      toast.error("Failed to create draft tickets for the order");
-      setSaving(false);
-      return;
-    }
-
-    toast.success(`Order created with ${ticketCount} draft ticket${ticketCount === 1 ? "" : "s"}`);
+    toast.success("Order created");
     setDialogOpen(false);
     setForm(defaultOrderForm);
     await loadOrders();
@@ -370,8 +336,100 @@ const Orders = () => {
     setSaving(false);
   };
 
+  const handleOpenPullDialog = () => {
+    if (!selectedOrder) return;
+
+    setPullForm({
+      amount: selectedOrder.remainingAmount > 0 ? formatQuantity(selectedOrder.remainingAmount) : "",
+      unit: selectedOrder.total_unit || "Yardage",
+      note: selectedOrder.notes || "",
+    });
+    setPullDialogOpen(true);
+  };
+
+  const handlePullTicket = async () => {
+    const userId = session?.user?.id;
+
+    if (!userId || !selectedOrder) return;
+
+    const requestedAmount = Number.parseFloat(pullForm.amount);
+    const remainingAmount = selectedOrder.remainingAmount;
+
+    if (Number.isNaN(requestedAmount) || requestedAmount <= 0) {
+      return toast.error("Enter a quantity to pull from the order");
+    }
+
+    if (requestedAmount - remainingAmount > 0.0001) {
+      return toast.error(`This order only has ${formatQuantity(remainingAmount)} ${selectedOrder.total_unit} remaining`);
+    }
+
+    setPulling(true);
+
+    const [jobNumber] = await getNextMtJobNumbers(1);
+    const baseTicket = createEmptyTicket();
+    const nextSequence = selectedOrder.tickets.length + 1;
+    const ticketId = crypto.randomUUID();
+    const ticketNote = pullForm.note.trim() || selectedOrder.notes || "";
+
+    const ticketInsert = {
+      id: ticketId,
+      user_id: userId,
+      job_number: jobNumber,
+      job_name: selectedOrder.po_number.trim(),
+      date_time: formatTicketDateTime(),
+      order_id: selectedOrder.id,
+      order_sequence: nextSequence,
+      issued_at: null,
+      company_name: baseTicket.companyName,
+      company_email: baseTicket.companyEmail,
+      company_website: baseTicket.companyWebsite,
+      company_phone: baseTicket.companyPhone,
+      total_amount: requestedAmount.toFixed(2),
+      total_unit: pullForm.unit,
+      customer: selectedOrder.customer,
+      product: selectedOrder.product,
+      truck: "",
+      note: ticketNote,
+      bucket: "",
+      customer_name: "",
+      customer_email: selectedOrder.customer_email,
+      customer_address: selectedOrder.job_address,
+      signature: "",
+      status: "draft",
+    };
+
+    const { error: ticketError } = await supabase.from("tickets").insert(ticketInsert);
+
+    if (ticketError) {
+      toast.error("Failed to pull a ticket from the order");
+      setPulling(false);
+      return;
+    }
+
+    const { error: orderUpdateError } = await supabase
+      .from("orders")
+      .update({
+        ticket_count: nextSequence,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", selectedOrder.id);
+
+    if (orderUpdateError) {
+      toast.error("Ticket created, but the order count could not be updated");
+      setPulling(false);
+      return;
+    }
+
+    toast.success(`Pulled ${requestedAmount.toFixed(2)} ${pullForm.unit} onto ticket ${jobNumber}`);
+    setPullDialogOpen(false);
+    setPullForm(defaultPullTicketForm);
+    await loadOrders();
+    setPulling(false);
+    navigate("/", { state: { openTicketId: ticketId } });
+  };
+
   return (
-    <AppLayout title="Orders" subtitle="Create customer orders and pre-build draft tickets for later issue">
+    <AppLayout title="Orders" subtitle="Track customer order balances and pull tickets as loads happen">
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 xl:px-8">
         <div className="mb-6 grid gap-6 xl:grid-cols-[1.1fr_1.25fr]">
           <section className="console-panel p-6">
@@ -379,12 +437,11 @@ const Orders = () => {
               <div>
                 <p className="console-eyebrow">Order Desk</p>
                 <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">
-                  Pre-build order tickets before the trucks ever hit the yard.
+                  Build the order once, then pull loads off it as the customer gets served.
                 </h2>
                 <p className="console-copy mt-3 max-w-2xl">
-                  Create an order for a customer, generate draft tickets ahead of time, and then issue each ticket as the
-                  load happens. Order-linked tickets stamp their real load date and time the first time they are saved out
-                  of draft.
+                  Create the customer order with its total quantity, then pull exact load amounts into tickets whenever a
+                  truck is ready. Every pulled ticket reduces what is left on the order automatically.
                 </p>
               </div>
               <Button onClick={() => setDialogOpen(true)} className="gap-1.5 bg-cyan-400 text-slate-950 hover:bg-cyan-300">
@@ -397,8 +454,8 @@ const Orders = () => {
                 { label: "Orders", value: summary.orders, icon: ClipboardList },
                 { label: "Customers", value: summary.customers, icon: Users },
                 { label: "Requested", value: summary.requested, icon: Package2 },
-                { label: "Issued", value: summary.issued, icon: Truck },
-                { label: "Draft Tickets", value: summary.drafts, icon: FileText },
+                { label: "Allocated", value: summary.allocated, icon: Truck },
+                { label: "Remaining", value: summary.remaining, icon: FileText },
               ].map((item) => (
                 <div key={item.label} className="console-kpi">
                   <div className="flex items-center justify-between">
@@ -413,7 +470,7 @@ const Orders = () => {
 
           <section className="console-panel p-6">
             <p className="console-eyebrow">Filters</p>
-            <h3 className="mt-2 text-xl font-semibold text-white">Query open and issued orders</h3>
+            <h3 className="mt-2 text-xl font-semibold text-white">Query open and worked orders</h3>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               <div className="relative md:col-span-2">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
@@ -464,9 +521,9 @@ const Orders = () => {
                   </SelectTrigger>
                   <SelectContent className="border-white/10 bg-[#132135] text-slate-100">
                     <SelectItem value="all">All states</SelectItem>
-                    <SelectItem value="draft">Draft only</SelectItem>
-                    <SelectItem value="active">Issued / active</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="open">Not pulled yet</SelectItem>
+                    <SelectItem value="active">Partially pulled</SelectItem>
+                    <SelectItem value="completed">Fully allocated</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -497,12 +554,13 @@ const Orders = () => {
                 </div>
               ) : (
                 filteredOrders.map((order) => {
-                  const statusTone =
-                    order.completedCount >= order.ticket_count
-                      ? "border-emerald-300/20 bg-emerald-400/10 text-emerald-200"
-                      : order.issuedCount > 0
-                        ? "border-amber-300/20 bg-amber-400/10 text-amber-200"
-                        : "border-slate-300/20 bg-slate-400/10 text-slate-200";
+                  const isCompleted = order.remainingAmount <= 0.0001;
+                  const isActive = order.allocatedAmount > 0 && !isCompleted;
+                  const statusTone = isCompleted
+                    ? "border-emerald-300/20 bg-emerald-400/10 text-emerald-200"
+                    : isActive
+                      ? "border-amber-300/20 bg-amber-400/10 text-amber-200"
+                      : "border-slate-300/20 bg-slate-400/10 text-slate-200";
 
                   return (
                     <button
@@ -518,16 +576,18 @@ const Orders = () => {
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <p className="text-sm font-semibold text-white">{order.customer}</p>
-                            <Badge className={`border ${statusTone}`}>{order.completedCount >= order.ticket_count ? "Completed" : order.issuedCount > 0 ? "Active" : "Draft"}</Badge>
+                            <Badge className={`border ${statusTone}`}>
+                              {isCompleted ? "Completed" : isActive ? "Active" : "Open"}
+                            </Badge>
                           </div>
                           <p className="mt-1 truncate text-sm text-slate-300">{order.product}</p>
                           <p className="mt-1 truncate text-xs text-slate-500">
-                            PO: {order.po_number || "No PO"} · {order.ticket_count} ticket{order.ticket_count === 1 ? "" : "s"}
+                            PO: {order.po_number || "No PO"} · {order.tickets.length} pulled ticket{order.tickets.length === 1 ? "" : "s"}
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-lg font-semibold text-white">{Number(order.total_amount).toFixed(2)}</p>
-                          <p className="text-xs uppercase tracking-[0.18em] text-cyan-300">{order.total_unit}</p>
+                          <p className="text-lg font-semibold text-white">{formatQuantity(order.remainingAmount)}</p>
+                          <p className="text-xs uppercase tracking-[0.18em] text-cyan-300">Left {order.total_unit}</p>
                         </div>
                       </div>
                     </button>
@@ -545,19 +605,26 @@ const Orders = () => {
                   {selectedOrder ? selectedOrder.customer : "Select an order"}
                 </h3>
                 <p className="mt-1 text-sm text-slate-400">
-                  {selectedOrder ? `${selectedOrder.product} · PO ${selectedOrder.po_number || "No PO"}` : "Choose an order from the left to review its draft and issued tickets."}
+                  {selectedOrder
+                    ? `${selectedOrder.product} · PO ${selectedOrder.po_number || "No PO"}`
+                    : "Choose an order from the left to review the running balance and linked tickets."}
                 </p>
               </div>
-              {selectedOrder && (
-                <Badge className="border-cyan-300/20 bg-cyan-400/10 text-cyan-200 hover:bg-cyan-400/10">
-                  {selectedOrder.ticket_count} ticket{selectedOrder.ticket_count === 1 ? "" : "s"}
-                </Badge>
-              )}
+              {selectedOrder ? (
+                <Button
+                  onClick={handleOpenPullDialog}
+                  disabled={selectedOrder.remainingAmount <= 0.0001}
+                  className="gap-1.5 bg-cyan-400 text-slate-950 hover:bg-cyan-300 disabled:bg-white/10 disabled:text-slate-500"
+                >
+                  <Plus className="h-4 w-4" />
+                  Pull Ticket
+                </Button>
+              ) : null}
             </div>
 
             {!selectedOrder ? (
               <div className="mt-6 rounded-2xl border border-dashed border-white/10 px-6 py-12 text-center text-sm text-slate-400">
-                Select an order to review the job address, planned quantity, and draft tickets ready to issue.
+                Select an order to review the job address, allocated quantity, remaining balance, and pulled tickets.
               </div>
             ) : (
               <div className="mt-6 space-y-6">
@@ -565,23 +632,25 @@ const Orders = () => {
                   <div className="console-kpi">
                     <p className="console-eyebrow">Requested</p>
                     <p className="mt-2 text-xl font-semibold text-white">
-                      {Number(selectedOrder.total_amount).toFixed(2)} {selectedOrder.total_unit}
+                      {formatQuantity(Number(selectedOrder.total_amount))} {selectedOrder.total_unit}
                     </p>
                   </div>
                   <div className="console-kpi">
-                    <p className="console-eyebrow">Issued</p>
+                    <p className="console-eyebrow">Allocated</p>
                     <p className="mt-2 text-xl font-semibold text-white">
-                      {selectedOrder.issuedAmount.toFixed(2)} {selectedOrder.total_unit}
+                      {formatQuantity(selectedOrder.allocatedAmount)} {selectedOrder.total_unit}
                     </p>
                   </div>
                   <div className="console-kpi">
-                    <p className="console-eyebrow">Draft Remaining</p>
-                    <p className="mt-2 text-xl font-semibold text-white">{selectedOrder.draftCount}</p>
+                    <p className="console-eyebrow">Remaining</p>
+                    <p className="mt-2 text-xl font-semibold text-white">
+                      {formatQuantity(selectedOrder.remainingAmount)} {selectedOrder.total_unit}
+                    </p>
                   </div>
                   <div className="console-kpi">
                     <p className="console-eyebrow">Last Activity</p>
                     <p className="mt-2 text-sm leading-6 text-slate-300">
-                      {selectedOrder.latestActivity ? format(selectedOrder.latestActivity, "MM/dd/yyyy h:mm a") : "No issue yet"}
+                      {selectedOrder.latestActivity ? format(selectedOrder.latestActivity, "MM/dd/yyyy h:mm a") : "No tickets pulled yet"}
                     </p>
                   </div>
                 </div>
@@ -609,69 +678,77 @@ const Orders = () => {
 
                 <div>
                   <div className="flex items-center justify-between gap-3">
-                    <h4 className="text-base font-semibold text-white">Draft and issued tickets</h4>
+                    <h4 className="text-base font-semibold text-white">Pulled tickets</h4>
                     <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                      Open a draft ticket to issue it at load time
+                      Pull a quantity off this order whenever a load is ready
                     </p>
                   </div>
                   <div className="mt-4 space-y-3">
-                    {selectedOrder.tickets
-                      .slice()
-                      .sort((a, b) => (a.orderSequence ?? 0) - (b.orderSequence ?? 0))
-                      .map((ticket) => (
-                        <div
-                          key={ticket.id}
-                          className="console-panel-soft grid gap-3 px-4 py-4 md:grid-cols-[0.9fr_1fr_auto_auto]"
-                        >
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="text-sm font-semibold text-white">#{ticket.jobNumber}</p>
-                              <Badge
-                                className={`border ${
-                                  ticket.status === "completed"
-                                    ? "border-emerald-300/20 bg-emerald-400/10 text-emerald-200"
-                                    : ticket.status === "billable"
-                                      ? "border-sky-300/20 bg-sky-400/10 text-sky-200"
-                                    : ticket.status === "pending"
-                                      ? "border-amber-300/20 bg-amber-400/10 text-amber-200"
-                                      : "border-slate-300/20 bg-slate-400/10 text-slate-200"
-                                }`}
-                              >
-                                {ticket.status}
-                              </Badge>
-                              {ticket.orderSequence ? (
-                                <Badge className="border-white/10 bg-white/5 text-slate-200 hover:bg-white/5">
-                                  Ticket {ticket.orderSequence}
+                    {selectedOrder.tickets.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-white/10 px-6 py-10 text-center text-sm text-slate-400">
+                        No tickets have been pulled from this order yet.
+                      </div>
+                    ) : (
+                      selectedOrder.tickets
+                        .slice()
+                        .sort((a, b) => (a.orderSequence ?? 0) - (b.orderSequence ?? 0))
+                        .map((ticket) => (
+                          <div
+                            key={ticket.id}
+                            className="console-panel-soft grid gap-3 px-4 py-4 md:grid-cols-[0.9fr_1fr_auto_auto]"
+                          >
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="text-sm font-semibold text-white">#{ticket.jobNumber}</p>
+                                <Badge
+                                  className={`border ${
+                                    ticket.status === "completed"
+                                      ? "border-emerald-300/20 bg-emerald-400/10 text-emerald-200"
+                                      : ticket.status === "billable"
+                                        ? "border-sky-300/20 bg-sky-400/10 text-sky-200"
+                                        : ticket.status === "pending"
+                                          ? "border-amber-300/20 bg-amber-400/10 text-amber-200"
+                                          : "border-slate-300/20 bg-slate-400/10 text-slate-200"
+                                  }`}
+                                >
+                                  {ticket.status}
                                 </Badge>
-                              ) : null}
+                                {ticket.orderSequence ? (
+                                  <Badge className="border-white/10 bg-white/5 text-slate-200 hover:bg-white/5">
+                                    Ticket {ticket.orderSequence}
+                                  </Badge>
+                                ) : null}
+                              </div>
+                              <p className="mt-1 text-sm text-slate-300">{ticket.product || "No product"}</p>
+                              <p className="mt-1 text-xs text-slate-500">
+                                {ticket.issuedAt
+                                  ? `Issued ${format(new Date(ticket.issuedAt), "MM/dd/yyyy h:mm a")}`
+                                  : "Draft ticket not issued yet"}
+                              </p>
                             </div>
-                            <p className="mt-1 text-sm text-slate-300">{ticket.product || "No product"}</p>
-                            <p className="mt-1 text-xs text-slate-500">
-                              {ticket.issuedAt ? `Issued ${format(new Date(ticket.issuedAt), "MM/dd/yyyy h:mm a")}` : "Not issued yet"}
-                            </p>
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Truck / Address</p>
+                              <p className="mt-1 truncate text-sm text-slate-300">{ticket.truck || "No truck assigned"}</p>
+                              <p className="mt-1 truncate text-xs text-slate-500">{ticket.customerAddress || "No address"}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-lg font-semibold text-white">{ticket.totalAmount}</p>
+                              <p className="text-xs uppercase tracking-[0.18em] text-cyan-300">{ticket.totalUnit}</p>
+                            </div>
+                            <div className="flex items-center justify-end">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-1.5 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                                onClick={() => navigate("/", { state: { openTicketId: ticket.id } })}
+                              >
+                                {ticket.issuedAt ? "Open" : "Issue"}
+                                <ArrowRight className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Truck / Address</p>
-                            <p className="mt-1 truncate text-sm text-slate-300">{ticket.truck || "No truck assigned"}</p>
-                            <p className="mt-1 truncate text-xs text-slate-500">{ticket.customerAddress || "No address"}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-lg font-semibold text-white">{ticket.totalAmount}</p>
-                            <p className="text-xs uppercase tracking-[0.18em] text-cyan-300">{ticket.totalUnit}</p>
-                          </div>
-                          <div className="flex items-center justify-end">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="gap-1.5 border-white/10 bg-white/5 text-white hover:bg-white/10"
-                              onClick={() => navigate("/", { state: { openTicketId: ticket.id } })}
-                            >
-                              {ticket.issuedAt ? "Open" : "Issue"}
-                              <ArrowRight className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
+                        ))
+                    )}
                   </div>
                 </div>
               </div>
@@ -684,6 +761,9 @@ const Orders = () => {
         <DialogContent className="max-w-3xl border-white/10 bg-[#111c2d] text-white">
           <DialogHeader>
             <DialogTitle>Create Order</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Save the full order once, then pull individual ticket quantities off it as trucks are loaded.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-2 md:grid-cols-2">
             <div className="space-y-1.5">
@@ -756,15 +836,6 @@ const Orders = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs text-slate-500">Draft Tickets To Create</Label>
-              <Input
-                value={form.ticketCount}
-                onChange={(event) => setForm((current) => ({ ...current, ticketCount: event.target.value }))}
-                className="border-white/10 bg-[#0d1726] text-white placeholder:text-slate-500"
-                placeholder="10"
-              />
-            </div>
             <div className="space-y-1.5 md:col-span-2">
               <Label className="text-xs text-slate-500">Order Notes</Label>
               <Textarea
@@ -787,6 +858,91 @@ const Orders = () => {
             <Button onClick={handleCreateOrder} disabled={saving} className="bg-cyan-400 text-slate-950 hover:bg-cyan-300">
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create Order
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={pullDialogOpen} onOpenChange={setPullDialogOpen}>
+        <DialogContent className="max-w-2xl border-white/10 bg-[#111c2d] text-white">
+          <DialogHeader>
+            <DialogTitle>Pull Ticket From Order</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Create one draft ticket for the amount being loaded right now. The remaining quantity on the order will
+              update automatically.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedOrder ? (
+            <div className="space-y-5 py-2">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="console-panel-soft p-4">
+                  <p className="console-eyebrow">Requested</p>
+                  <p className="mt-2 text-lg font-semibold text-white">
+                    {formatQuantity(Number(selectedOrder.total_amount))} {selectedOrder.total_unit}
+                  </p>
+                </div>
+                <div className="console-panel-soft p-4">
+                  <p className="console-eyebrow">Allocated</p>
+                  <p className="mt-2 text-lg font-semibold text-white">
+                    {formatQuantity(selectedOrder.allocatedAmount)} {selectedOrder.total_unit}
+                  </p>
+                </div>
+                <div className="console-panel-soft p-4">
+                  <p className="console-eyebrow">Remaining</p>
+                  <p className="mt-2 text-lg font-semibold text-white">
+                    {formatQuantity(selectedOrder.remainingAmount)} {selectedOrder.total_unit}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-[1fr_180px]">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-slate-500">Quantity To Pull</Label>
+                  <Input
+                    value={pullForm.amount}
+                    onChange={(event) => setPullForm((current) => ({ ...current, amount: event.target.value }))}
+                    className="border-white/10 bg-[#0d1726] text-white placeholder:text-slate-500"
+                    placeholder="25"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-slate-500">Unit</Label>
+                  <Select value={pullForm.unit} onValueChange={(value) => setPullForm((current) => ({ ...current, unit: value }))}>
+                    <SelectTrigger className="border-white/10 bg-[#0d1726] text-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="border-white/10 bg-[#132135] text-slate-100">
+                      <SelectItem value="Yardage">Yardage</SelectItem>
+                      <SelectItem value="Ton">Ton</SelectItem>
+                      <SelectItem value="Gallons">Gallons</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs text-slate-500">Ticket Note</Label>
+                <Textarea
+                  rows={4}
+                  value={pullForm.note}
+                  onChange={(event) => setPullForm((current) => ({ ...current, note: event.target.value }))}
+                  className="border-white/10 bg-[#0d1726] text-white placeholder:text-slate-500"
+                  placeholder="Optional note to carry onto this pulled ticket..."
+                />
+              </div>
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setPullDialogOpen(false)}
+              className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+            >
+              Cancel
+            </Button>
+            <Button onClick={handlePullTicket} disabled={pulling} className="bg-cyan-400 text-slate-950 hover:bg-cyan-300">
+              {pulling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Pull Ticket
             </Button>
           </DialogFooter>
         </DialogContent>
