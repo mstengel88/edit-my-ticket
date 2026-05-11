@@ -23,7 +23,6 @@ import { buildTruckRecord, isStandardTruckName, normalizeTruckName } from "@/lib
 import { Badge } from "@/components/ui/badge";
 
 type View = "list" | "editor" | "preview";
-const AUTO_SYNC_INTERVAL_MS = 5 * 60 * 1000;
 
 const Index = () => {
   const { tickets, loading, error, fetchData, loadFromDb } = useLoadriteData();
@@ -44,17 +43,6 @@ const Index = () => {
   const [pendingPrint, setPendingPrint] = useState(false);
 
   useEffect(() => { if (session) loadFromDb(); }, [loadFromDb, session]);
-  useEffect(() => {
-    if (!session?.user?.id) return;
-
-    void fetchData();
-
-    const intervalId = window.setInterval(() => {
-      void fetchData();
-    }, AUTO_SYNC_INTERVAL_MS);
-
-    return () => window.clearInterval(intervalId);
-  }, [fetchData, session?.user?.id]);
   useEffect(() => { if (error) toast.error(error); }, [error]);
   useEffect(() => {
     const requestedTicketId = location.state?.openTicketId as string | undefined;
@@ -209,7 +197,11 @@ const Index = () => {
   };
 
   const handleSaveTicket = async (updated: TicketData) => {
-    await persistTicket(updated, "Ticket saved!");
+    const ticketToSave: TicketData = {
+      ...updated,
+      status: updated.status === "draft" ? "pending" : updated.status,
+    };
+    await persistTicket(ticketToSave, "Ticket saved!");
   };
 
   const handleIssueTicket = async (updated: TicketData) => {

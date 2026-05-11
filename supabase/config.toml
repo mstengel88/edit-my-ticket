@@ -3,6 +3,9 @@ project_id = "dlayrpnmfnbjlxgnkczv"
 [functions.loadrite]
 verify_jwt = false
 
+[functions.loadrite-sync]
+verify_jwt = false
+
 [functions.send-ticket-email]
 verify_jwt = false
 

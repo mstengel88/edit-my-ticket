@@ -349,7 +349,10 @@ const Customers = () => {
   };
 
   const handleSaveTicket = async (updated: TicketData) => {
-    const ticketToSave: TicketData = { ...updated };
+    const ticketToSave: TicketData = {
+      ...updated,
+      status: updated.status === "draft" ? "pending" : updated.status,
+    };
     const { error } = await supabase
       .from("tickets")
       .update({
