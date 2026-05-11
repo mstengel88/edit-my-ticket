@@ -29,7 +29,7 @@ export interface TicketData {
   signature: string;
 
   // Status
-  status: "draft" | "pending" | "sent" | "completed";
+  status: "draft" | "pending" | "billable" | "sent" | "completed";
 }
 
 export const formatTicketDateTime = (value: Date = new Date()) =>

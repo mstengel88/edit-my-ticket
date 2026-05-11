@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Trash2, Search, Plus, Printer, Mail, CheckCircle2 } from "lucide-react";
 
-type StatusFilter = "all" | "draft" | "pending" | "sent" | "completed";
+type StatusFilter = "all" | "draft" | "pending" | "billable" | "sent" | "completed";
 
 interface TicketSidebarProps {
   tickets: TicketData[];
@@ -24,6 +24,7 @@ interface TicketSidebarProps {
 const statusDot: Record<TicketData["status"], string> = {
   draft: "bg-muted-foreground",
   pending: "bg-warning",
+  billable: "bg-sky-300",
   sent: "bg-accent-foreground",
   completed: "bg-success",
 };
@@ -62,6 +63,7 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
   const getSidebarUnitLabel = (unit: string) => compactUnitLabel[unit] ?? unit;
   const pendingCount = tickets.filter((ticket) => ticket.status === "pending").length;
   const draftCount = tickets.filter((ticket) => ticket.status === "draft").length;
+  const billableCount = tickets.filter((ticket) => ticket.status === "billable").length;
   const completedCount = tickets.filter((ticket) => ticket.status === "completed").length;
 
   return (
@@ -79,16 +81,26 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
             </div>
             <span className="rounded-full bg-white/5 px-2.5 py-1 text-xs text-slate-300">{tickets.length}</span>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {[
-              { label: "Draft", value: draftCount },
-              { label: "Pending", value: pendingCount },
-              { label: "Done", value: completedCount },
+              { label: "Draft", value: draftCount, filter: "draft" as const },
+              { label: "Pending", value: pendingCount, filter: "pending" as const },
+              { label: "Billable", value: billableCount, filter: "billable" as const },
+              { label: "Done", value: completedCount, filter: "completed" as const },
             ].map((item) => (
-              <div key={item.label} className="rounded-xl border border-white/8 bg-white/[0.03] px-2.5 py-2">
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => setStatusFilter(item.filter)}
+                className={`rounded-xl border px-2.5 py-2 text-left transition-colors ${
+                  statusFilter === item.filter
+                    ? "border-cyan-300/20 bg-cyan-400/10"
+                    : "border-white/8 bg-white/[0.03] hover:bg-white/[0.06]"
+                }`}
+              >
                 <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">{item.label}</p>
                 <p className="mt-1 text-sm font-semibold text-white">{item.value}</p>
-              </div>
+              </button>
             ))}
           </div>
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
@@ -99,6 +111,7 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
               <SelectItem value="all">All statuses</SelectItem>
               <SelectItem value="draft">Draft</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="billable">Billable</SelectItem>
               <SelectItem value="sent">Sent</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
             </SelectContent>

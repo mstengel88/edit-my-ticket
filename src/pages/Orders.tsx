@@ -630,6 +630,8 @@ const Orders = () => {
                                 className={`border ${
                                   ticket.status === "completed"
                                     ? "border-emerald-300/20 bg-emerald-400/10 text-emerald-200"
+                                    : ticket.status === "billable"
+                                      ? "border-sky-300/20 bg-sky-400/10 text-sky-200"
                                     : ticket.status === "pending"
                                       ? "border-amber-300/20 bg-amber-400/10 text-amber-200"
                                       : "border-slate-300/20 bg-slate-400/10 text-slate-200"

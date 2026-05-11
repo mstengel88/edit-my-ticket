@@ -21,6 +21,7 @@ interface TicketListProps {
 const statusColors: Record<TicketData["status"], string> = {
   draft: "bg-muted text-muted-foreground",
   pending: "bg-warning text-warning-foreground",
+  billable: "bg-sky-500/15 text-sky-200",
   sent: "bg-accent text-accent-foreground",
   completed: "bg-success text-success-foreground",
 };

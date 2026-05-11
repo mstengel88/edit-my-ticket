@@ -86,6 +86,7 @@ export function TicketEditor({ ticket, onSave, onIssue, onPrint, onEmail, templa
   const statusTone: Record<TicketData["status"], string> = {
     draft: "bg-slate-500/15 text-slate-200 border-slate-400/20",
     pending: "bg-amber-400/15 text-amber-200 border-amber-300/20",
+    billable: "bg-sky-400/15 text-sky-200 border-sky-300/20",
     sent: "bg-sky-400/15 text-sky-200 border-sky-300/20",
     completed: "bg-emerald-400/15 text-emerald-200 border-emerald-300/20",
   };
@@ -275,6 +276,7 @@ export function TicketEditor({ ticket, onSave, onIssue, onPrint, onEmail, templa
                   >
                     <option value="draft">Draft</option>
                     <option value="pending">Pending</option>
+                    <option value="billable">Billable</option>
                     <option value="sent">Sent</option>
                     <option value="completed">Completed</option>
                   </select>
