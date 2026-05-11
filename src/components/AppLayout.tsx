@@ -30,6 +30,7 @@ import {
   BarChart3,
   ClipboardList,
   DollarSign,
+  ExternalLink,
   Home,
   FolderKanban,
   Loader2,
@@ -63,6 +64,7 @@ const baseNavItems = [
 ];
 
 const managerNavItems = [
+  { label: "Dispatch", icon: ExternalLink, href: "https://contractor.ghstickets.com/classic", external: true },
   { label: "Reports", icon: BarChart3, href: "/reports" },
   { label: "Customers", icon: Users, href: "/customers" },
   { label: "Orders", icon: FolderKanban, href: "/orders" },
@@ -230,16 +232,29 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
 
           <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5">
             {navItems.map((item) => (
-              <NavLink
-                key={item.href}
-                to={item.href}
-                end={item.end}
-                className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
-                activeClassName="bg-cyan-400/12 text-white shadow-[inset_0_0_0_1px_rgba(103,232,249,0.18)]"
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-              </NavLink>
+              item.external ? (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                </a>
+              ) : (
+                <NavLink
+                  key={item.href}
+                  to={item.href}
+                  end={item.end}
+                  className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+                  activeClassName="bg-cyan-400/12 text-white shadow-[inset_0_0_0_1px_rgba(103,232,249,0.18)]"
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                </NavLink>
+              )
             ))}
 
             {isAdmin && (
@@ -349,7 +364,16 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
                       className="w-64 max-w-[calc(100vw-var(--safe-area-left)-var(--safe-area-right)-1rem)] border-white/10 bg-[#132135] text-slate-100"
                     >
                       {allNav.map((item) => (
-                        <DropdownMenuItem key={item.href} onClick={() => navigate(item.href)}>
+                        <DropdownMenuItem
+                          key={item.href}
+                          onClick={() => {
+                            if (item.external) {
+                              window.open(item.href, "_blank", "noopener,noreferrer");
+                              return;
+                            }
+                            navigate(item.href);
+                          }}
+                        >
                           <item.icon className="mr-2 h-4 w-4" />
                           {item.label}
                         </DropdownMenuItem>
