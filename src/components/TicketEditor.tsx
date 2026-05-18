@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { TicketData } from "@/types/ticket";
 import { TemplateField, DEFAULT_TEMPLATE_FIELDS } from "@/types/template";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,7 @@ function FieldShell({
 export function TicketEditor({ ticket, onSave, onIssue, onPrint, onEmail, templateFields }: TicketEditorProps) {
   const [data, setData] = useState<TicketData>(ticket);
   const [showEmailConfirm, setShowEmailConfirm] = useState(false);
+  const lastRejectedQuantityRef = useRef<string | null>(null);
   const { products, customers, customerEmails, trucks } = useTicketLookups();
   const fields = templateFields || DEFAULT_TEMPLATE_FIELDS;
   // Some fields should stay editable in the editor even if hidden from the printed template.
@@ -55,8 +56,37 @@ export function TicketEditor({ ticket, onSave, onIssue, onPrint, onEmail, templa
     setData(ticket);
   }, [ticket]);
 
+  const isWholeNumberQuantity = (value: string) => /^\d+$/.test(value.trim());
+
+  const validateWholeNumberQuantity = () => {
+    if (!visible("totalAmount")) return true;
+
+    const quantity = data.totalAmount.trim();
+    if (!quantity || isWholeNumberQuantity(quantity)) {
+      return true;
+    }
+
+    toast.error("Whole Numbers Only Allowed.");
+    return false;
+  };
+
   const updateField = <K extends keyof TicketData>(key: K, value: TicketData[K]) => {
     setData((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleTotalAmountChange = (value: string) => {
+    const trimmedValue = value.trim();
+
+    if (trimmedValue === "" || isWholeNumberQuantity(trimmedValue)) {
+      lastRejectedQuantityRef.current = null;
+      updateField("totalAmount", value);
+      return;
+    }
+
+    if (lastRejectedQuantityRef.current !== value) {
+      lastRejectedQuantityRef.current = value;
+      toast.error("Whole Numbers Only Allowed.");
+    }
   };
 
   const selectOnFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -66,18 +96,28 @@ export function TicketEditor({ ticket, onSave, onIssue, onPrint, onEmail, templa
     e.target.select();
   };
 
-  const handleSave = () => {
-    onSave(data);
+  const handleSave = async () => {
+    if (!validateWholeNumberQuantity()) return;
+
+    const saveResult = await onSave(data);
+    if (saveResult === false) return;
     toast.success("Ticket saved!");
   };
 
-  const handleIssue = () => {
+  const handleIssue = async () => {
     if (!onIssue) return;
-    onIssue(data);
+    if (!validateWholeNumberQuantity()) return;
+
+    const issueResult = await onIssue(data);
+    if (issueResult === false) return;
     toast.success("Ticket issued!");
   };
 
   const handlePrint = async () => {
+    if (!validateWholeNumberQuantity()) {
+      return;
+    }
+
     const saveResult = await onSave(data);
     if (saveResult === false) {
       return;
@@ -247,8 +287,10 @@ export function TicketEditor({ ticket, onSave, onIssue, onPrint, onEmail, templa
                   {visible("totalAmount") && (
                     <Input
                       value={data.totalAmount}
-                      onChange={(e) => updateField("totalAmount", e.target.value)}
+                      onChange={(e) => handleTotalAmountChange(e.target.value)}
                       onFocus={selectOnFocus}
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       className="h-16 border-none bg-transparent px-0 text-5xl font-semibold tracking-tight text-white shadow-none focus-visible:ring-0"
                     />
                   )}

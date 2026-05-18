@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: `${report.companyName || "Ticket Manager"} <tickets@ticketing.ghstickets.info>`,
+        from: `${report.companyName || "Ticket Manager"} <info@greenhillssupply.com>`,
         to: [to],
         subject,
         html,

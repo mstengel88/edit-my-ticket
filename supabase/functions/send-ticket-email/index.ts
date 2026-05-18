@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: `${ticket.companyName || "Ticket Printer"} <tickets@ticketing.ghstickets.info>`,
+        from: `${ticket.companyName || "Ticket Printer"} <info@greenhillssupply.com>`,
         to: [to],
         subject,
         html,
