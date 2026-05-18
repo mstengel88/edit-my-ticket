@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { to, subject, ticket, logoBase64, emailElements } = await req.json();
+    const { to, subject, ticket, logoBase64, emailElements, senderEmail } = await req.json();
 
     if (!to || !subject || !ticket) {
       return new Response(JSON.stringify({ error: "Missing required fields: to, subject, ticket" }), {
@@ -56,6 +56,10 @@ Deno.serve(async (req) => {
       ? buildFromCanvasElements(ticket, logoBase64, emailElements)
       : buildTicketEmailHtml(ticket, logoBase64);
 
+    const fromEmail = typeof senderEmail === "string" && senderEmail.trim()
+      ? senderEmail.trim()
+      : "info@greenhillssupply.com";
+
     const resendRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -63,7 +67,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: `${ticket.companyName || "Ticket Printer"} <info@greenhillssupply.com>`,
+        from: `${ticket.companyName || "Ticket Printer"} <${fromEmail}>`,
         to: [to],
         subject,
         html,

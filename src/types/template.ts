@@ -108,6 +108,7 @@ export const EMAIL_CANVAS_HEIGHT = 260;
 
 // Report email config (section-based, not full canvas)
 export interface ReportEmailConfig {
+  senderEmail: string;
   showSummaryCards: boolean;
   showCustomerBreakdown: boolean;
   showProductBreakdown: boolean;
@@ -117,6 +118,7 @@ export interface ReportEmailConfig {
 }
 
 export const DEFAULT_REPORT_EMAIL_CONFIG: ReportEmailConfig = {
+  senderEmail: "info@greenhillssupply.com",
   showSummaryCards: true,
   showCustomerBreakdown: true,
   showProductBreakdown: true,

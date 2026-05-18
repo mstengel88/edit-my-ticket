@@ -53,6 +53,7 @@ Deno.serve(async (req) => {
     }
 
     const config = {
+      senderEmail: "info@greenhillssupply.com",
       showSummaryCards: true,
       showCustomerBreakdown: true,
       showProductBreakdown: true,
@@ -64,6 +65,10 @@ Deno.serve(async (req) => {
 
     const html = buildReportEmailHtml(report, config);
 
+    const fromEmail = typeof config.senderEmail === "string" && config.senderEmail.trim()
+      ? config.senderEmail.trim()
+      : "info@greenhillssupply.com";
+
     const resendRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -71,7 +76,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: `${report.companyName || "Ticket Manager"} <info@greenhillssupply.com>`,
+        from: `${report.companyName || "Ticket Manager"} <${fromEmail}>`,
         to: [to],
         subject,
         html,

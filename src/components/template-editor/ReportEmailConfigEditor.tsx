@@ -15,6 +15,17 @@ export function ReportEmailConfigEditor({ config, onChange }: Props) {
 
   return (
     <div className="max-w-md space-y-4">
+      <h2 className="text-sm font-semibold text-foreground mb-3">Delivery</h2>
+      <div className="space-y-2">
+        <Label className="text-xs text-muted-foreground">Sender Email</Label>
+        <Input
+          type="email"
+          value={config.senderEmail}
+          onChange={(e) => onChange({ ...config, senderEmail: e.target.value })}
+          placeholder="info@greenhillssupply.com"
+        />
+      </div>
+
       <h2 className="text-sm font-semibold text-foreground mb-3">Report Email Sections</h2>
 
       <div className="space-y-2">

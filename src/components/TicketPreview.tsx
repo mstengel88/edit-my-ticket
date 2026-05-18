@@ -13,6 +13,7 @@ interface TicketPreviewProps {
   ticket: TicketData;
   canvasElements?: CanvasElement[];
   emailElements?: CanvasElement[];
+  senderEmail?: string;
   templateFields?: TemplateField[];
   copiesPerPage?: number;
   canvasWidth?: number;
@@ -20,7 +21,7 @@ interface TicketPreviewProps {
   printLayouts?: PrintLayouts;
 }
 
-export function TicketPreview({ ticket, canvasElements, emailElements, copiesPerPage = 2, canvasWidth = CANVAS_WIDTH, canvasHeight = CANVAS_HEIGHT, printLayouts }: TicketPreviewProps) {
+export function TicketPreview({ ticket, canvasElements, emailElements, senderEmail, copiesPerPage = 2, canvasWidth = CANVAS_WIDTH, canvasHeight = CANVAS_HEIGHT, printLayouts }: TicketPreviewProps) {
   const elements = canvasElements || DEFAULT_CANVAS_ELEMENTS;
   const [sending, setSending] = useState(false);
 
@@ -299,6 +300,7 @@ export function TicketPreview({ ticket, canvasElements, emailElements, copiesPer
           ticket,
           logoBase64,
           emailElements: emailElements || undefined,
+          senderEmail: senderEmail || undefined,
         },
       });
       if (error) throw error;

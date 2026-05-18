@@ -172,6 +172,18 @@ const Settings = () => {
             <p className="text-sm text-muted-foreground mb-4">
               Design the email layout sent when emailing individual tickets to customers.
             </p>
+            <div className="mb-4 max-w-md space-y-2">
+              <Label className="text-xs text-muted-foreground">Sender Email</Label>
+              <Input
+                type="email"
+                value={localReportEmailConfig.senderEmail}
+                onChange={(event) => {
+                  setLocalReportEmailConfig((current) => ({ ...current, senderEmail: event.target.value }));
+                  setDirty(true);
+                }}
+                placeholder="info@greenhillssupply.com"
+              />
+            </div>
             <CanvasEditor
               elements={localEmailElements}
               onChange={handleEmailCanvasChange}

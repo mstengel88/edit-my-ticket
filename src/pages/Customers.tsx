@@ -76,7 +76,7 @@ const statusBadgeVariant = (status: string): "default" | "secondary" | "outline"
 const Customers = () => {
   const { session } = useAuth();
   const { isDeveloper } = useUserRole();
-  const { fields: templateFields, canvasElements, copiesPerPage, canvasWidth, canvasHeight, emailElements, printLayouts } = useTicketTemplate();
+  const { fields: templateFields, canvasElements, copiesPerPage, canvasWidth, canvasHeight, emailElements, reportEmailConfig, printLayouts } = useTicketTemplate();
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
   const useCompactActions = isMobile || isTablet;
@@ -468,6 +468,7 @@ const Customers = () => {
           ticket,
           logoBase64,
           emailElements: emailElements || undefined,
+          senderEmail: reportEmailConfig?.senderEmail || undefined,
         },
       });
 
@@ -829,13 +830,14 @@ const Customers = () => {
 
       {printTicket && (
         <div className="hidden">
-          <TicketPreview
-            ticket={printTicket}
-            canvasElements={canvasElements}
-            emailElements={emailElements}
-            copiesPerPage={copiesPerPage}
-            canvasWidth={canvasWidth}
-            canvasHeight={canvasHeight}
+              <TicketPreview
+                ticket={printTicket}
+                canvasElements={canvasElements}
+                emailElements={emailElements}
+                senderEmail={reportEmailConfig?.senderEmail}
+                copiesPerPage={copiesPerPage}
+                canvasWidth={canvasWidth}
+                canvasHeight={canvasHeight}
             printLayouts={printLayouts}
           />
         </div>

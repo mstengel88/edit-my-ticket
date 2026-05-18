@@ -298,6 +298,7 @@ const Index = () => {
           ticket,
           logoBase64,
           emailElements: emailElements || undefined,
+          senderEmail: reportEmailConfig?.senderEmail || undefined,
         },
       });
       if (error) throw error;
@@ -519,7 +520,7 @@ const Index = () => {
                   </section>
                   <div className="grid gap-5 xl:grid-cols-[1.35fr_0.65fr]">
                     <div className="rounded-[28px] border border-white/8 bg-[#111c2d] p-5 shadow-2xl shadow-black/20">
-                      <TicketPreview ticket={selectedTicket} canvasElements={canvasElements} emailElements={emailElements} copiesPerPage={copiesPerPage} canvasWidth={canvasWidth} canvasHeight={canvasHeight} printLayouts={printLayouts} />
+                      <TicketPreview ticket={selectedTicket} canvasElements={canvasElements} emailElements={emailElements} senderEmail={reportEmailConfig?.senderEmail} copiesPerPage={copiesPerPage} canvasWidth={canvasWidth} canvasHeight={canvasHeight} printLayouts={printLayouts} />
                     </div>
                     <aside className="rounded-[28px] border border-white/8 bg-[#111c2d] p-5 shadow-2xl shadow-black/20">
                       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Print Station</p>
@@ -626,7 +627,7 @@ const Index = () => {
               <TicketEditor ticket={selectedTicket} onSave={handleSaveTicket} onIssue={handleIssueTicket} onPrint={handlePrintTicket} onEmail={handleEmailTicket} templateFields={templateFields} />
             )}
             {view === "preview" && selectedTicket && (
-              <TicketPreview ticket={selectedTicket} canvasElements={canvasElements} emailElements={emailElements} copiesPerPage={copiesPerPage} canvasWidth={canvasWidth} canvasHeight={canvasHeight} printLayouts={printLayouts} />
+              <TicketPreview ticket={selectedTicket} canvasElements={canvasElements} emailElements={emailElements} senderEmail={reportEmailConfig?.senderEmail} copiesPerPage={copiesPerPage} canvasWidth={canvasWidth} canvasHeight={canvasHeight} printLayouts={printLayouts} />
             )}
           </>
         )}
