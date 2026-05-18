@@ -12,6 +12,9 @@ verify_jwt = false
 [functions.send-report-email]
 verify_jwt = false
 
+[functions.send-order-delivered-email]
+verify_jwt = false
+
 [functions.agent-action]
 verify_jwt = false
 

@@ -5,6 +5,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTicketLookups } from "@/hooks/useTicketLookups";
+import { useTicketTemplate } from "@/hooks/useTicketTemplate";
 import { TicketData, createEmptyTicket, formatTicketDateTime } from "@/types/ticket";
 import { ComboInput } from "@/components/ComboInput";
 import { AddressAutocompleteInput } from "@/components/AddressAutocompleteInput";
@@ -33,6 +34,7 @@ import {
   ClipboardList,
   FileText,
   Loader2,
+  Mail,
   MapPin,
   Package2,
   Plus,
@@ -158,12 +160,14 @@ function formatQuantity(value: number) {
 const Orders = () => {
   const { session } = useAuth();
   const { customers, customerEmails, products } = useTicketLookups();
+  const { reportEmailConfig } = useTicketTemplate();
   const navigate = useNavigate();
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [orderTickets, setOrderTickets] = useState<TicketData[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [pulling, setPulling] = useState(false);
+  const [resendingDeliveredEmail, setResendingDeliveredEmail] = useState(false);
   const [search, setSearch] = useState("");
   const [customerFilter, setCustomerFilter] = useState("all");
   const [productFilter, setProductFilter] = useState("all");
@@ -428,6 +432,70 @@ const Orders = () => {
     navigate("/", { state: { openTicketId: ticketId } });
   };
 
+  const handleResendDeliveredEmail = async () => {
+    if (!selectedOrder) return;
+    if (!selectedOrder.customer_email?.trim()) {
+      toast.error("This order does not have a customer email.");
+      return;
+    }
+    if (selectedOrder.remainingAmount > 0.0001) {
+      toast.error("Only delivered orders can resend the delivered email.");
+      return;
+    }
+
+    setResendingDeliveredEmail(true);
+
+    try {
+      const orderPayload = {
+        companyName: selectedOrder.tickets[0]?.companyName || "Green Hills Supply",
+        customer: selectedOrder.customer,
+        customerEmail: selectedOrder.customer_email,
+        product: selectedOrder.product,
+        poNumber: selectedOrder.po_number,
+        jobAddress: selectedOrder.job_address,
+        totalAmount: formatQuantity(Number(selectedOrder.total_amount)),
+        totalUnit: selectedOrder.total_unit,
+        allocatedAmount: formatQuantity(selectedOrder.allocatedAmount),
+        remainingAmount: formatQuantity(selectedOrder.remainingAmount),
+        deliveredAt: selectedOrder.latestActivity ? format(selectedOrder.latestActivity, "MM/dd/yyyy h:mm a") : "",
+        notes: selectedOrder.notes,
+        tickets: selectedOrder.tickets
+          .slice()
+          .sort((a, b) => (a.orderSequence ?? 0) - (b.orderSequence ?? 0))
+          .map((ticket) => ({
+            jobNumber: ticket.jobNumber,
+            dateTime: ticket.dateTime,
+            issuedAt: ticket.issuedAt,
+            amount: ticket.totalAmount,
+            unit: ticket.totalUnit,
+            truck: ticket.truck,
+            status: ticket.status,
+          })),
+      };
+
+      const { error } = await supabase.functions.invoke("send-order-delivered-email", {
+        body: {
+          to: selectedOrder.customer_email.trim(),
+          subject: `Delivered Order - ${selectedOrder.customer} - ${selectedOrder.product}`,
+          order: orderPayload,
+          senderEmail: reportEmailConfig?.senderEmail || undefined,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success(`Delivered email resent to ${selectedOrder.customer_email}`);
+    } catch (error) {
+      console.error("Resend delivered email failed", error);
+      const message = error instanceof Error ? error.message : "Failed to resend delivered email";
+      toast.error(message);
+    } finally {
+      setResendingDeliveredEmail(false);
+    }
+  };
+
   return (
     <AppLayout title="Orders" subtitle="Track customer order balances and pull tickets as loads happen">
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 xl:px-8">
@@ -611,14 +679,27 @@ const Orders = () => {
                 </p>
               </div>
               {selectedOrder ? (
-                <Button
-                  onClick={handleOpenPullDialog}
-                  disabled={selectedOrder.remainingAmount <= 0.0001}
-                  className="gap-1.5 bg-cyan-400 text-slate-950 hover:bg-cyan-300 disabled:bg-white/10 disabled:text-slate-500"
-                >
-                  <Plus className="h-4 w-4" />
-                  Pull Ticket
-                </Button>
+                <div className="flex flex-wrap justify-end gap-2">
+                  {selectedOrder.remainingAmount <= 0.0001 ? (
+                    <Button
+                      variant="outline"
+                      onClick={handleResendDeliveredEmail}
+                      disabled={resendingDeliveredEmail || !selectedOrder.customer_email?.trim()}
+                      className="gap-1.5 border-white/10 bg-white/5 text-white hover:bg-white/10 disabled:text-slate-500"
+                    >
+                      {resendingDeliveredEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                      Resend Delivered Email
+                    </Button>
+                  ) : null}
+                  <Button
+                    onClick={handleOpenPullDialog}
+                    disabled={selectedOrder.remainingAmount <= 0.0001}
+                    className="gap-1.5 bg-cyan-400 text-slate-950 hover:bg-cyan-300 disabled:bg-white/10 disabled:text-slate-500"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Pull Ticket
+                  </Button>
+                </div>
               ) : null}
             </div>
 
