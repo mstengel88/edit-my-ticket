@@ -33,6 +33,33 @@ async function configureNativeShell() {
 
 void configureNativeShell();
 
+if (!Capacitor.isNativePlatform() && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    const announceUpdate = (registration: ServiceWorkerRegistration) => {
+      window.dispatchEvent(new CustomEvent("pwa:update-ready", { detail: registration }));
+    };
+
+    void navigator.serviceWorker.register("/sw.js").then((registration) => {
+      if (registration.waiting) {
+        announceUpdate(registration);
+      }
+
+      registration.addEventListener("updatefound", () => {
+        const installingWorker = registration.installing;
+        if (!installingWorker) return;
+
+        installingWorker.addEventListener("statechange", () => {
+          if (installingWorker.state === "installed" && navigator.serviceWorker.controller) {
+            announceUpdate(registration);
+          }
+        });
+      });
+    }).catch((error) => {
+      console.error("Service worker registration failed", error);
+    });
+  });
+}
+
 const root = createRoot(document.getElementById("root")!);
 root.render(<App />);
 

@@ -1,0 +1,19 @@
+{
+  "name": "Ticket Creator",
+  "short_name": "Tickets",
+  "description": "Green Hills Supply ticketing and dispatch workspace.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b1524",
+  "theme_color": "#0b1524",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
