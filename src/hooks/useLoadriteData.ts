@@ -30,6 +30,39 @@ function dbRowToTicket(row: any): TicketData {
   };
 }
 
+async function getInvokeErrorMessage(err: unknown): Promise<string> {
+  const fallback = err instanceof Error ? err.message : "Failed to fetch data";
+
+  if (!err || typeof err !== "object" || !("context" in err)) {
+    return fallback;
+  }
+
+  const context = (err as { context?: unknown }).context;
+  if (!(context instanceof Response)) {
+    return fallback;
+  }
+
+  try {
+    const payload = await context.clone().json();
+    if (payload && typeof payload === "object" && "error" in payload && typeof payload.error === "string") {
+      return payload.error;
+    }
+  } catch {
+    // Fall through to text parsing below.
+  }
+
+  try {
+    const text = await context.clone().text();
+    if (text.trim()) {
+      return text;
+    }
+  } catch {
+    // Keep the original error message when response parsing fails.
+  }
+
+  return fallback;
+}
+
 export function useLoadriteData() {
   const [tickets, setTickets] = useState<TicketData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -69,7 +102,7 @@ export function useLoadriteData() {
 
       await loadFromDb();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to fetch data";
+      const msg = await getInvokeErrorMessage(err);
       setError(msg);
       console.error("Loadrite fetch error:", err);
     } finally {
