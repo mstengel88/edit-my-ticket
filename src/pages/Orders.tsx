@@ -31,7 +31,9 @@ import {
 } from "@/components/ui/select";
 import {
   ArrowRight,
+  CheckCircle2,
   ClipboardList,
+  Edit3,
   FileText,
   Loader2,
   Mail,
@@ -174,9 +176,12 @@ const Orders = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [pullDialogOpen, setPullDialogOpen] = useState(false);
   const [form, setForm] = useState<OrderFormState>(defaultOrderForm);
   const [pullForm, setPullForm] = useState<PullTicketFormState>(defaultPullTicketForm);
+  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<OrderFormState>(defaultOrderForm);
 
   const loadOrders = useCallback(async () => {
     if (!session?.user?.id) {
@@ -242,7 +247,11 @@ const Orders = () => {
 
     return summaries.filter((order) => {
       const derivedStatus =
-        order.remainingAmount <= 0.0001 ? "completed" : order.allocatedAmount > 0 ? "active" : "open";
+        order.status === "closed" || order.remainingAmount <= 0.0001
+          ? "completed"
+          : order.allocatedAmount > 0
+            ? "active"
+            : "open";
 
       if (customerFilter !== "all" && order.customer !== customerFilter) return false;
       if (productFilter !== "all" && order.product !== productFilter) return false;
@@ -349,6 +358,99 @@ const Orders = () => {
       note: selectedOrder.notes || "",
     });
     setPullDialogOpen(true);
+  };
+
+  const handleOpenEditDialog = () => {
+    if (!selectedOrder) return;
+
+    setEditingOrderId(selectedOrder.id);
+    setEditForm({
+      customer: selectedOrder.customer,
+      customerEmail: selectedOrder.customer_email,
+      product: selectedOrder.product,
+      poNumber: selectedOrder.po_number,
+      jobAddress: selectedOrder.job_address,
+      totalAmount: formatQuantity(Number(selectedOrder.total_amount)),
+      totalUnit: selectedOrder.total_unit || "Yardage",
+      notes: selectedOrder.notes || "",
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleEditCustomerChange = (value: string) => {
+    setEditForm((current) => ({
+      ...current,
+      customer: value,
+      customerEmail: customerEmails[value] ?? current.customerEmail,
+    }));
+  };
+
+  const handleUpdateOrder = async () => {
+    if (!editingOrderId || !selectedOrder) return;
+
+    const totalAmount = Number.parseFloat(editForm.totalAmount);
+    if (!editForm.customer.trim()) return toast.error("Customer is required");
+    if (!editForm.product.trim()) return toast.error("Product is required");
+    if (Number.isNaN(totalAmount) || totalAmount < 0) return toast.error("Enter a valid ordered amount");
+    if (totalAmount + 0.0001 < selectedOrder.allocatedAmount) {
+      return toast.error(`Ordered amount cannot be less than the ${formatQuantity(selectedOrder.allocatedAmount)} already allocated.`);
+    }
+
+    setSaving(true);
+
+    const nextStatus = totalAmount - selectedOrder.allocatedAmount <= 0.0001 ? "closed" : "open";
+    const { error } = await supabase
+      .from("orders")
+      .update({
+        customer: editForm.customer.trim(),
+        customer_email: editForm.customerEmail.trim(),
+        product: editForm.product.trim(),
+        po_number: editForm.poNumber.trim(),
+        job_address: editForm.jobAddress.trim(),
+        total_amount: totalAmount,
+        total_unit: editForm.totalUnit,
+        notes: editForm.notes.trim(),
+        status: nextStatus,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", editingOrderId);
+
+    if (error) {
+      toast.error("Failed to update order");
+      setSaving(false);
+      return;
+    }
+
+    toast.success(nextStatus === "closed" ? "Order updated and closed out" : "Order updated");
+    setEditDialogOpen(false);
+    setEditingOrderId(null);
+    await loadOrders();
+    setSaving(false);
+  };
+
+  const handleCloseOutOrder = async () => {
+    if (!selectedOrder) return;
+
+    setSaving(true);
+
+    const { error } = await supabase
+      .from("orders")
+      .update({
+        total_amount: selectedOrder.allocatedAmount,
+        status: "closed",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", selectedOrder.id);
+
+    if (error) {
+      toast.error("Failed to close out order");
+      setSaving(false);
+      return;
+    }
+
+    toast.success("Order closed out");
+    await loadOrders();
+    setSaving(false);
   };
 
   const handlePullTicket = async () => {
@@ -622,7 +724,7 @@ const Orders = () => {
                 </div>
               ) : (
                 filteredOrders.map((order) => {
-                  const isCompleted = order.remainingAmount <= 0.0001;
+                  const isCompleted = order.status === "closed" || order.remainingAmount <= 0.0001;
                   const isActive = order.allocatedAmount > 0 && !isCompleted;
                   const statusTone = isCompleted
                     ? "border-emerald-300/20 bg-emerald-400/10 text-emerald-200"
@@ -680,6 +782,25 @@ const Orders = () => {
               </div>
               {selectedOrder ? (
                 <div className="flex flex-wrap justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={handleOpenEditDialog}
+                    className="gap-1.5 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                  >
+                    <Edit3 className="h-4 w-4" />
+                    Edit Order
+                  </Button>
+                  {selectedOrder.remainingAmount > 0.0001 ? (
+                    <Button
+                      variant="outline"
+                      onClick={handleCloseOutOrder}
+                      disabled={saving}
+                      className="gap-1.5 border-amber-300/20 bg-amber-400/10 text-amber-100 hover:bg-amber-400/20"
+                    >
+                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                      Close Out Order
+                    </Button>
+                  ) : null}
                   {selectedOrder.remainingAmount <= 0.0001 ? (
                     <Button
                       variant="outline"
@@ -693,7 +814,7 @@ const Orders = () => {
                   ) : null}
                   <Button
                     onClick={handleOpenPullDialog}
-                    disabled={selectedOrder.remainingAmount <= 0.0001}
+                    disabled={selectedOrder.remainingAmount <= 0.0001 || selectedOrder.status === "closed"}
                     className="gap-1.5 bg-cyan-400 text-slate-950 hover:bg-cyan-300 disabled:bg-white/10 disabled:text-slate-500"
                   >
                     <Plus className="h-4 w-4" />
@@ -939,6 +1060,117 @@ const Orders = () => {
             <Button onClick={handleCreateOrder} disabled={saving} className="bg-cyan-400 text-slate-950 hover:bg-cyan-300">
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create Order
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-3xl border-white/10 bg-[#111c2d] text-white">
+          <DialogHeader>
+            <DialogTitle>Edit Order</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Update the order details or reduce the ordered quantity to match what the customer still needs. You cannot reduce it below what has already been pulled.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-2 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-500">Customer</Label>
+              <ComboInput
+                value={editForm.customer}
+                onChange={handleEditCustomerChange}
+                options={customers}
+                placeholder="Select or type customer"
+                className="border-white/10 bg-[#0d1726] text-white placeholder:text-slate-500"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-500">Customer Email</Label>
+              <Input
+                type="email"
+                value={editForm.customerEmail}
+                onChange={(event) => setEditForm((current) => ({ ...current, customerEmail: event.target.value }))}
+                className="border-white/10 bg-[#0d1726] text-white placeholder:text-slate-500"
+                placeholder="customer@example.com"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-500">Product</Label>
+              <ComboInput
+                value={editForm.product}
+                onChange={(value) => setEditForm((current) => ({ ...current, product: value }))}
+                options={products}
+                placeholder="Select or type product"
+                className="border-white/10 bg-[#0d1726] text-white placeholder:text-slate-500"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-500">PO Number</Label>
+              <Input
+                value={editForm.poNumber}
+                onChange={(event) => setEditForm((current) => ({ ...current, poNumber: event.target.value }))}
+                className="border-white/10 bg-[#0d1726] text-white placeholder:text-slate-500"
+                placeholder="Optional PO"
+              />
+            </div>
+            <div className="space-y-1.5 md:col-span-2">
+              <Label className="text-xs text-slate-500">Job Address</Label>
+              <AddressAutocompleteInput
+                value={editForm.jobAddress}
+                onChange={(value) => setEditForm((current) => ({ ...current, jobAddress: value }))}
+                className="border-white/10 bg-[#0d1726] text-white placeholder:text-slate-500"
+                placeholder="Start typing a job address..."
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-500">Ordered Amount</Label>
+              <Input
+                value={editForm.totalAmount}
+                onChange={(event) => setEditForm((current) => ({ ...current, totalAmount: event.target.value }))}
+                className="border-white/10 bg-[#0d1726] text-white placeholder:text-slate-500"
+                placeholder="100"
+              />
+              {selectedOrder ? (
+                <p className="text-xs text-slate-500">
+                  Already allocated: {formatQuantity(selectedOrder.allocatedAmount)} {selectedOrder.total_unit}
+                </p>
+              ) : null}
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-500">Unit</Label>
+              <Select value={editForm.totalUnit} onValueChange={(value) => setEditForm((current) => ({ ...current, totalUnit: value }))}>
+                <SelectTrigger className="border-white/10 bg-[#0d1726] text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="border-white/10 bg-[#132135] text-slate-100">
+                  <SelectItem value="Yardage">Yardage</SelectItem>
+                  <SelectItem value="Ton">Ton</SelectItem>
+                  <SelectItem value="Gallons">Gallons</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5 md:col-span-2">
+              <Label className="text-xs text-slate-500">Order Notes</Label>
+              <Textarea
+                rows={4}
+                value={editForm.notes}
+                onChange={(event) => setEditForm((current) => ({ ...current, notes: event.target.value }))}
+                className="border-white/10 bg-[#0d1726] text-white placeholder:text-slate-500"
+                placeholder="Anything the loader should know about this order..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditDialogOpen(false)}
+              className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateOrder} disabled={saving} className="bg-cyan-400 text-slate-950 hover:bg-cyan-300">
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Order Changes
             </Button>
           </DialogFooter>
         </DialogContent>
