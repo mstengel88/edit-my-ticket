@@ -44,7 +44,7 @@ function FieldShell({
 export function TicketEditor({ ticket, onSave, onIssue, onPrint, onEmail, templateFields }: TicketEditorProps) {
   const [data, setData] = useState<TicketData>(ticket);
   const [showEmailConfirm, setShowEmailConfirm] = useState(false);
-  const lastRejectedQuantityRef = useRef<string | null>(null);
+  const lastRejectedAmountRef = useRef<string | null>(null);
   const { products, customers, customerEmails, trucks } = useTicketLookups();
   const fields = templateFields || DEFAULT_TEMPLATE_FIELDS;
   // Some fields should stay editable in the editor even if hidden from the printed template.
@@ -56,17 +56,17 @@ export function TicketEditor({ ticket, onSave, onIssue, onPrint, onEmail, templa
     setData(ticket);
   }, [ticket]);
 
-  const isWholeNumberQuantity = (value: string) => /^\d+$/.test(value.trim());
+  const isValidAcceptedAmount = (value: string) => /^\d+(\.\d+)?$/.test(value.trim());
 
-  const validateWholeNumberQuantity = () => {
+  const validateAcceptedAmount = () => {
     if (!visible("totalAmount")) return true;
 
     const quantity = data.totalAmount.trim();
-    if (!quantity || isWholeNumberQuantity(quantity)) {
+    if (!quantity || isValidAcceptedAmount(quantity)) {
       return true;
     }
 
-    toast.error("Whole Numbers Only Allowed.");
+    toast.error("Enter a valid weight or volume.");
     return false;
   };
 
@@ -77,15 +77,15 @@ export function TicketEditor({ ticket, onSave, onIssue, onPrint, onEmail, templa
   const handleTotalAmountChange = (value: string) => {
     const trimmedValue = value.trim();
 
-    if (trimmedValue === "" || isWholeNumberQuantity(trimmedValue)) {
-      lastRejectedQuantityRef.current = null;
+    if (trimmedValue === "" || /^\d*\.?\d*$/.test(trimmedValue)) {
+      lastRejectedAmountRef.current = null;
       updateField("totalAmount", value);
       return;
     }
 
-    if (lastRejectedQuantityRef.current !== value) {
-      lastRejectedQuantityRef.current = value;
-      toast.error("Whole Numbers Only Allowed.");
+    if (lastRejectedAmountRef.current !== value) {
+      lastRejectedAmountRef.current = value;
+      toast.error("Enter a valid weight or volume.");
     }
   };
 
@@ -97,7 +97,7 @@ export function TicketEditor({ ticket, onSave, onIssue, onPrint, onEmail, templa
   };
 
   const handleSave = async () => {
-    if (!validateWholeNumberQuantity()) return;
+    if (!validateAcceptedAmount()) return;
 
     const saveResult = await onSave(data);
     if (saveResult === false) return;
@@ -106,7 +106,7 @@ export function TicketEditor({ ticket, onSave, onIssue, onPrint, onEmail, templa
 
   const handleIssue = async () => {
     if (!onIssue) return;
-    if (!validateWholeNumberQuantity()) return;
+    if (!validateAcceptedAmount()) return;
 
     const issueResult = await onIssue(data);
     if (issueResult === false) return;
@@ -114,7 +114,7 @@ export function TicketEditor({ ticket, onSave, onIssue, onPrint, onEmail, templa
   };
 
   const handlePrint = async () => {
-    if (!validateWholeNumberQuantity()) {
+    if (!validateAcceptedAmount()) {
       return;
     }
 
@@ -289,8 +289,8 @@ export function TicketEditor({ ticket, onSave, onIssue, onPrint, onEmail, templa
                       value={data.totalAmount}
                       onChange={(e) => handleTotalAmountChange(e.target.value)}
                       onFocus={selectOnFocus}
-                      inputMode="numeric"
-                      pattern="[0-9]*"
+                      inputMode="decimal"
+                      pattern="[0-9]*[.,]?[0-9]+"
                       className="h-16 border-none bg-transparent px-0 text-5xl font-semibold tracking-tight text-white shadow-none focus-visible:ring-0"
                     />
                   )}
