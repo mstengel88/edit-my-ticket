@@ -142,12 +142,6 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
       return;
     }
 
-    const printWindow = window.open("", "_blank", "noopener,noreferrer,width=1200,height=900");
-    if (!printWindow) {
-      toast.error("Unable to open the print window. Please allow pop-ups and try again.");
-      return;
-    }
-
     const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
       .map((node) => node.outerHTML)
       .join("\n");
@@ -186,8 +180,7 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
       </section>
     `;
 
-    printWindow.document.open();
-    printWindow.document.write(`
+    const printHtml = `
       <!doctype html>
       <html lang="en">
         <head>
@@ -362,16 +355,49 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
           </main>
         </body>
       </html>
-    `);
-    printWindow.document.close();
+    `;
 
-    printWindow.onload = () => {
-      printWindow.focus();
-      printWindow.print();
-      printWindow.onafterprint = () => {
-        printWindow.close();
-      };
+    const existingFrame = document.getElementById("report-print-frame");
+    if (existingFrame) existingFrame.remove();
+
+    const printFrame = document.createElement("iframe");
+    printFrame.id = "report-print-frame";
+    printFrame.setAttribute("aria-hidden", "true");
+    printFrame.style.position = "fixed";
+    printFrame.style.right = "0";
+    printFrame.style.bottom = "0";
+    printFrame.style.width = "0";
+    printFrame.style.height = "0";
+    printFrame.style.border = "0";
+    printFrame.style.opacity = "0";
+    document.body.appendChild(printFrame);
+
+    const frameWindow = printFrame.contentWindow;
+    if (!frameWindow) {
+      printFrame.remove();
+      toast.error("Unable to start the report print preview.");
+      return;
+    }
+
+    const cleanup = () => {
+      window.setTimeout(() => {
+        printFrame.remove();
+      }, 250);
     };
+
+    printFrame.addEventListener(
+      "load",
+      () => {
+        window.setTimeout(() => {
+          frameWindow.focus();
+          frameWindow.print();
+        }, 300);
+      },
+      { once: true },
+    );
+
+    frameWindow.addEventListener("afterprint", cleanup, { once: true });
+    printFrame.srcdoc = printHtml;
   };
 
   const handleEmail = () => {
