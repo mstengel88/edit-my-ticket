@@ -189,6 +189,10 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
           <title>Report - ${periodLabel[period]}</title>
           ${styles}
           <style>
+            @page {
+              size: letter landscape;
+              margin: 0.35in;
+            }
             html, body {
               background: #ffffff !important;
               color: #111827 !important;
@@ -199,20 +203,21 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
             }
             body {
               font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-              padding: 24px;
+              padding: 16px;
             }
             .no-print, .print-hidden {
               display: none !important;
             }
             .report-print-root {
               display: grid;
-              gap: 18px;
+              gap: 14px;
+              max-width: 100%;
             }
             .report-print-header {
               border: 1px solid rgba(15, 23, 42, 0.12);
               border-radius: 18px;
               background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
-              padding: 20px 22px;
+              padding: 18px 20px;
             }
             .report-print-eyebrow {
               margin: 0;
@@ -236,14 +241,14 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
             .report-print-meta {
               display: grid;
               grid-template-columns: repeat(4, minmax(0, 1fr));
-              gap: 10px;
-              margin-top: 16px;
+              gap: 8px;
+              margin-top: 14px;
             }
             .report-print-meta div {
               border: 1px solid rgba(15, 23, 42, 0.08);
               border-radius: 14px;
               background: #ffffff;
-              padding: 10px 12px;
+              padding: 9px 10px;
             }
             .report-print-meta span {
               display: block;
@@ -266,6 +271,7 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
             [data-report-section] {
               break-inside: avoid;
               page-break-inside: avoid;
+              max-width: 100%;
             }
             [data-report-section] {
               border: 1px solid rgba(15, 23, 42, 0.12) !important;
@@ -277,7 +283,7 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
             [data-report-section].grid {
               display: grid !important;
               grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-              gap: 12px !important;
+              gap: 10px !important;
               border: none !important;
               background: transparent !important;
             }
@@ -317,15 +323,21 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
             table {
               width: 100% !important;
               border-collapse: collapse !important;
+              table-layout: fixed !important;
             }
             th, td {
               border-bottom: 1px solid rgba(15, 23, 42, 0.08) !important;
-              padding: 10px 12px !important;
+              padding: 8px 10px !important;
               vertical-align: top;
+              font-size: 11px !important;
+              line-height: 1.35 !important;
+              white-space: normal !important;
+              overflow-wrap: anywhere !important;
+              word-break: break-word !important;
             }
             th {
               background: #f8fafc !important;
-              font-size: 11px !important;
+              font-size: 10px !important;
               font-weight: 700 !important;
               letter-spacing: 0.08em;
               text-transform: uppercase;
@@ -338,12 +350,24 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
               background: #eef2ff !important;
               font-weight: 700 !important;
             }
+            [data-report-section="tickets"] table th,
+            [data-report-section="tickets"] table td {
+              font-size: 9.5px !important;
+              padding: 6px 7px !important;
+            }
+            [data-report-section="tickets"] h3,
+            [data-report-section="tickets"] .text-base {
+              font-size: 14px !important;
+            }
             @media print {
               body {
                 padding: 0;
               }
               .report-print-meta {
                 grid-template-columns: repeat(4, minmax(0, 1fr));
+              }
+              [data-report-section].grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
               }
             }
           </style>
