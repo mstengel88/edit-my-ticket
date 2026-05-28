@@ -269,13 +269,15 @@
     --border: 0 0% 80% !important;
   }
 
-  /* Hide everything */
-  body > *, #root, #root > * {
+  /* Legacy ticket print mode only */
+  body.ticket-print-mode > *,
+  body.ticket-print-mode #root,
+  body.ticket-print-mode #root > * {
     display: none !important;
   }
 
-  /* Show only the print container */
-  #print-area {
+  /* Show only the ticket print container when that mode is active */
+  body.ticket-print-mode #print-area {
     display: flex !important;
     justify-content: center !important;
     align-items: flex-start !important;
@@ -287,7 +289,7 @@
     padding: 0 !important;
   }
 
-  #print-area .print-sheet {
+  body.ticket-print-mode #print-area .print-sheet {
     position: relative !important;
     overflow: hidden !important;
     margin: 0 !important;
@@ -297,7 +299,7 @@
     break-inside: avoid !important;
   }
 
-  #print-area .ticket-copy {
+  body.ticket-print-mode #print-area .ticket-copy {
     position: absolute !important;
     overflow: hidden !important;
     margin: 0 !important;
