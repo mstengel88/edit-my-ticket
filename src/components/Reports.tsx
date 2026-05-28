@@ -132,23 +132,246 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
   const [sendingEmail, setSendingEmail] = useState(false);
 
   const handlePrint = () => {
-    const sections = document.querySelectorAll("[data-report-section]");
-    sections.forEach((el) => {
+    const sections = Array.from(document.querySelectorAll<HTMLElement>("[data-report-section]")).filter((el) => {
       const section = el.getAttribute("data-report-section");
-      if (printSection === "all") {
-        (el as HTMLElement).classList.remove("print-hidden");
-      } else {
-        if (section === printSection || section === "summary") {
-          (el as HTMLElement).classList.remove("print-hidden");
-        } else {
-          (el as HTMLElement).classList.add("print-hidden");
-        }
-      }
+      return printSection === "all" || section === "summary" || section === printSection;
     });
-    setTimeout(() => {
-      window.print();
-      sections.forEach((el) => (el as HTMLElement).classList.remove("print-hidden"));
-    }, 100);
+
+    if (sections.length === 0) {
+      toast.error("Nothing to print for the current report.");
+      return;
+    }
+
+    const printWindow = window.open("", "_blank", "noopener,noreferrer,width=1200,height=900");
+    if (!printWindow) {
+      toast.error("Unable to open the print window. Please allow pop-ups and try again.");
+      return;
+    }
+
+    const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+      .map((node) => node.outerHTML)
+      .join("\n");
+
+    const reportMarkup = sections
+      .map((section) => {
+        const clone = section.cloneNode(true) as HTMLElement;
+        clone.classList.remove("print-hidden");
+        return clone.outerHTML;
+      })
+      .join("\n");
+
+    const headerMarkup = `
+      <section class="report-print-header">
+        <p class="report-print-eyebrow">Ticket Query Report</p>
+        <h1>${periodLabel[period]}${customerFilter === "all" ? "" : ` · ${customerFilter}`}</h1>
+        <p>${format(dateRange.from, "MM/dd/yyyy")} - ${format(dateRange.to, "MM/dd/yyyy")}</p>
+        <div class="report-print-meta">
+          <div>
+            <span>Generated</span>
+            <strong>${format(new Date(), "MM/dd/yyyy h:mm a")}</strong>
+          </div>
+          <div>
+            <span>Tickets</span>
+            <strong>${summary.ticketCount}</strong>
+          </div>
+          <div>
+            <span>Customers</span>
+            <strong>${Object.keys(summary.byCustomer).length}</strong>
+          </div>
+          <div>
+            <span>Products</span>
+            <strong>${queryMeta.products}</strong>
+          </div>
+        </div>
+      </section>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(`
+      <!doctype html>
+      <html lang="en">
+        <head>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <title>Report - ${periodLabel[period]}</title>
+          ${styles}
+          <style>
+            html, body {
+              background: #ffffff !important;
+              color: #111827 !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            body {
+              font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+              padding: 24px;
+            }
+            .no-print, .print-hidden {
+              display: none !important;
+            }
+            .report-print-root {
+              display: grid;
+              gap: 18px;
+            }
+            .report-print-header {
+              border: 1px solid rgba(15, 23, 42, 0.12);
+              border-radius: 18px;
+              background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+              padding: 20px 22px;
+            }
+            .report-print-eyebrow {
+              margin: 0;
+              font-size: 11px;
+              font-weight: 700;
+              letter-spacing: 0.22em;
+              text-transform: uppercase;
+              color: #475569;
+            }
+            .report-print-header h1 {
+              margin: 10px 0 4px;
+              font-size: 28px;
+              line-height: 1.2;
+              color: #0f172a;
+            }
+            .report-print-header p {
+              margin: 0;
+              font-size: 13px;
+              color: #475569;
+            }
+            .report-print-meta {
+              display: grid;
+              grid-template-columns: repeat(4, minmax(0, 1fr));
+              gap: 10px;
+              margin-top: 16px;
+            }
+            .report-print-meta div {
+              border: 1px solid rgba(15, 23, 42, 0.08);
+              border-radius: 14px;
+              background: #ffffff;
+              padding: 10px 12px;
+            }
+            .report-print-meta span {
+              display: block;
+              font-size: 10px;
+              font-weight: 700;
+              letter-spacing: 0.18em;
+              text-transform: uppercase;
+              color: #64748b;
+            }
+            .report-print-meta strong {
+              display: block;
+              margin-top: 6px;
+              font-size: 15px;
+              color: #0f172a;
+            }
+            [data-report-section],
+            [data-report-section] * {
+              color: inherit !important;
+            }
+            [data-report-section] {
+              break-inside: avoid;
+              page-break-inside: avoid;
+            }
+            [data-report-section] {
+              border: 1px solid rgba(15, 23, 42, 0.12) !important;
+              border-radius: 18px !important;
+              background: #ffffff !important;
+              overflow: hidden !important;
+              box-shadow: none !important;
+            }
+            [data-report-section].grid {
+              display: grid !important;
+              grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+              gap: 12px !important;
+              border: none !important;
+              background: transparent !important;
+            }
+            [data-report-section].grid > * {
+              border: 1px solid rgba(15, 23, 42, 0.12) !important;
+              border-radius: 18px !important;
+              background: #ffffff !important;
+            }
+            [data-report-section] .text-slate-500,
+            [data-report-section] .text-slate-400 {
+              color: #64748b !important;
+            }
+            [data-report-section] .text-white,
+            [data-report-section] .text-slate-100,
+            [data-report-section] .text-slate-300 {
+              color: #0f172a !important;
+            }
+            [data-report-section] .text-cyan-300 {
+              color: #0f766e !important;
+            }
+            [data-report-section] .border-white\\/8,
+            [data-report-section] .border-white\\/10 {
+              border-color: rgba(15, 23, 42, 0.12) !important;
+            }
+            [data-report-section] .bg-\\[\\#111c2d\\],
+            [data-report-section] .bg-white\\/\\[0\\.03\\] {
+              background: #ffffff !important;
+            }
+            [data-report-section] .card-header,
+            [data-report-section] [class*="CardHeader"] {
+              padding-bottom: 0 !important;
+            }
+            [data-report-section] .card-content,
+            [data-report-section] [class*="CardContent"] {
+              padding-top: 16px !important;
+            }
+            table {
+              width: 100% !important;
+              border-collapse: collapse !important;
+            }
+            th, td {
+              border-bottom: 1px solid rgba(15, 23, 42, 0.08) !important;
+              padding: 10px 12px !important;
+              vertical-align: top;
+            }
+            th {
+              background: #f8fafc !important;
+              font-size: 11px !important;
+              font-weight: 700 !important;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              color: #475569 !important;
+            }
+            tr:nth-child(even) td {
+              background: rgba(248, 250, 252, 0.7) !important;
+            }
+            tfoot td {
+              background: #eef2ff !important;
+              font-weight: 700 !important;
+            }
+            @media print {
+              body {
+                padding: 0;
+              }
+              .report-print-meta {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <main class="report-print-root">
+            ${headerMarkup}
+            ${reportMarkup}
+          </main>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+
+    printWindow.onload = () => {
+      printWindow.focus();
+      printWindow.print();
+      printWindow.onafterprint = () => {
+        printWindow.close();
+      };
+    };
   };
 
   const handleEmail = () => {
