@@ -35,6 +35,7 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
   const [customFrom, setCustomFrom] = useState<Date | undefined>();
   const [customTo, setCustomTo] = useState<Date | undefined>();
   const [customerFilter, setCustomerFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const rFields = reportFields || DEFAULT_REPORT_FIELDS;
   const rVisible = (id: string) => rFields.find((f) => f.id === id)?.visible ?? true;
 
@@ -68,15 +69,24 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
     return Array.from(set).sort();
   }, [tickets]);
 
+  const statuses = useMemo(() => {
+    const set = new Set<string>();
+    tickets.forEach((ticket) => {
+      if (ticket.status?.trim()) set.add(ticket.status.trim());
+    });
+    return Array.from(set).sort();
+  }, [tickets]);
+
   const filtered = useMemo(() => {
     return tickets.filter((t) => {
       const d = parseTicketDate(t.dateTime);
       if (!d) return false;
       if (d < dateRange.from || d > dateRange.to) return false;
       if (customerFilter !== "all" && t.customer.trim() !== customerFilter) return false;
+      if (statusFilter !== "all" && t.status.trim() !== statusFilter) return false;
       return true;
     });
-  }, [tickets, dateRange, customerFilter]);
+  }, [tickets, dateRange, customerFilter, statusFilter]);
 
   const summary = useMemo(() => {
     let totalTons = 0;
@@ -448,6 +458,7 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
         dateFrom: format(dateRange.from, "MM/dd/yyyy"),
         dateTo: format(dateRange.to, "MM/dd/yyyy"),
         customerFilter: customerFilter !== "all" ? customerFilter : undefined,
+        statusFilter: statusFilter !== "all" ? statusFilter : undefined,
         totalTickets: summary.ticketCount,
         totalTons: summary.totalTons.toFixed(2),
         totalYards: summary.totalYards.toFixed(2),
@@ -618,6 +629,23 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
               </Select>
             </div>
 
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Status</label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-11 w-full border-white/10 bg-[#0d1726] text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="border-white/10 bg-[#132135] text-slate-100">
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  {statuses.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="flex items-end">
               <div className="w-full rounded-2xl border border-cyan-300/10 bg-cyan-400/5 px-4 py-3">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-300">Current Query</p>
@@ -625,6 +653,7 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
                   {periodLabel[period]} · {customerFilter === "all" ? "All customers" : customerFilter}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
+                  {statusFilter === "all" ? "All statuses" : `${statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)} only`} ·{" "}
                   {format(dateRange.from, "MM/dd/yyyy")} to {format(dateRange.to, "MM/dd/yyyy")}
                 </p>
               </div>
