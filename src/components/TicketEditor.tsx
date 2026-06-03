@@ -6,6 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Printer, Mail, Save, Truck, UserRound, Package2, ClipboardList, Building2, PlayCircle } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
@@ -44,6 +52,9 @@ function FieldShell({
 export function TicketEditor({ ticket, onSave, onIssue, onPrint, onEmail, templateFields }: TicketEditorProps) {
   const [data, setData] = useState<TicketData>(ticket);
   const [showEmailConfirm, setShowEmailConfirm] = useState(false);
+  const [statusPromptOpen, setStatusPromptOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"save" | "print" | null>(null);
+  const [promptStatus, setPromptStatus] = useState<TicketData["status"]>(ticket.status);
   const lastRejectedAmountRef = useRef<string | null>(null);
   const { products, customers, customerEmails, trucks } = useTicketLookups();
   const fields = templateFields || DEFAULT_TEMPLATE_FIELDS;
@@ -54,6 +65,7 @@ export function TicketEditor({ ticket, onSave, onIssue, onPrint, onEmail, templa
 
   useEffect(() => {
     setData(ticket);
+    setPromptStatus(ticket.status);
   }, [ticket]);
 
   const isValidAcceptedAmount = (value: string) => /^\d+(\.\d+)?$/.test(value.trim());
@@ -96,11 +108,12 @@ export function TicketEditor({ ticket, onSave, onIssue, onPrint, onEmail, templa
     e.target.select();
   };
 
-  const handleSave = async () => {
+  const handleSave = async (nextStatus = data.status) => {
     if (!validateAcceptedAmount()) return;
 
-    const saveResult = await onSave(data);
+    const saveResult = await onSave({ ...data, status: nextStatus });
     if (saveResult === false) return;
+    updateField("status", nextStatus);
     toast.success("Ticket saved!");
   };
 
@@ -113,17 +126,39 @@ export function TicketEditor({ ticket, onSave, onIssue, onPrint, onEmail, templa
     toast.success("Ticket issued!");
   };
 
-  const handlePrint = async () => {
+  const handlePrint = async (nextStatus = data.status) => {
     if (!validateAcceptedAmount()) {
       return;
     }
 
-    const saveResult = await onSave(data);
+    const ticketToPrint = { ...data, status: nextStatus };
+    const saveResult = await onSave(ticketToPrint);
     if (saveResult === false) {
       return;
     }
 
-    await onPrint(data);
+    updateField("status", nextStatus);
+    await onPrint(ticketToPrint);
+  };
+
+  const openStatusPrompt = (action: "save" | "print") => {
+    setPromptStatus(data.status);
+    setPendingAction(action);
+    setStatusPromptOpen(true);
+  };
+
+  const handleConfirmStatusPrompt = async () => {
+    if (!pendingAction) return;
+
+    setStatusPromptOpen(false);
+
+    if (pendingAction === "save") {
+      await handleSave(promptStatus);
+    } else {
+      await handlePrint(promptStatus);
+    }
+
+    setPendingAction(null);
   };
 
   const inputClassName =
@@ -157,7 +192,7 @@ export function TicketEditor({ ticket, onSave, onIssue, onPrint, onEmail, templa
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => void handlePrint()} className="gap-1.5 border-white/10 bg-white/5 text-white hover:bg-white/10">
+            <Button variant="outline" size="sm" onClick={() => openStatusPrompt("print")} className="gap-1.5 border-white/10 bg-white/5 text-white hover:bg-white/10">
             <Printer className="h-4 w-4" /> Print
           </Button>
             <Button variant="outline" size="sm" onClick={() => setShowEmailConfirm(true)} className="gap-1.5 border-white/10 bg-white/5 text-white hover:bg-white/10">
@@ -168,7 +203,7 @@ export function TicketEditor({ ticket, onSave, onIssue, onPrint, onEmail, templa
                 <PlayCircle className="h-4 w-4" /> Issue Ticket
               </Button>
             )}
-            <Button size="sm" onClick={handleSave} className="gap-1.5 bg-cyan-400 text-slate-950 hover:bg-cyan-300">
+            <Button size="sm" onClick={() => openStatusPrompt("save")} className="gap-1.5 bg-cyan-400 text-slate-950 hover:bg-cyan-300">
             <Save className="h-4 w-4" /> Save
           </Button>
           </div>
@@ -394,6 +429,49 @@ export function TicketEditor({ ticket, onSave, onIssue, onPrint, onEmail, templa
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <Dialog open={statusPromptOpen} onOpenChange={setStatusPromptOpen}>
+        <DialogContent className="border-white/10 bg-[#111c2d] text-white">
+          <DialogHeader>
+            <DialogTitle>Choose ticket status</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              {pendingAction === "print"
+                ? "Pick the status you want saved before printing this ticket."
+                : "Pick the status you want saved on this ticket."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+              Status
+            </Label>
+            <select
+              value={promptStatus}
+              onChange={(e) => setPromptStatus(e.target.value as TicketData["status"])}
+              className={selectClassName}
+            >
+              <option value="draft">Draft</option>
+              <option value="pending">Pending</option>
+              <option value="billable">Billable</option>
+              <option value="sent">Sent</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setStatusPromptOpen(false);
+                setPendingAction(null);
+              }}
+              className="border-white/10 bg-white/5 text-white hover:bg-white/10"
+            >
+              Cancel
+            </Button>
+            <Button onClick={() => void handleConfirmStatusPrompt()} className="bg-cyan-400 text-slate-950 hover:bg-cyan-300">
+              {pendingAction === "print" ? "Save & Print" : "Save Ticket"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
