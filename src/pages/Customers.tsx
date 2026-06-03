@@ -98,6 +98,7 @@ const Customers = () => {
 
   const mapTicket = (ticket: CustomerTicket): TicketData => ({
     id: ticket.id,
+    source: (ticket as any).source ?? "manual",
     jobNumber: ticket.job_number,
     jobName: ticket.job_name,
     dateTime: ticket.date_time,

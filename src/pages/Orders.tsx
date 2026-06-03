@@ -112,6 +112,7 @@ function parseTicketDate(value: string) {
 function mapTicketRow(row: any): TicketData {
   return {
     id: row.id,
+    source: (row.source as TicketData["source"]) ?? "manual",
     jobNumber: row.job_number,
     jobName: row.job_name,
     dateTime: row.date_time,
@@ -479,6 +480,7 @@ const Orders = () => {
 
     const ticketInsert = {
       id: ticketId,
+      source: "manual",
       user_id: userId,
       job_number: jobNumber,
       job_name: selectedOrder.po_number.trim(),

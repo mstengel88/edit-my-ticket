@@ -322,6 +322,7 @@ export type Database = {
           order_id: string | null
           order_sequence: number | null
           product: string
+          source: string
           signature: string
           status: string
           total_amount: string
@@ -350,6 +351,7 @@ export type Database = {
           order_id?: string | null
           order_sequence?: number | null
           product?: string
+          source?: string
           signature?: string
           status?: string
           total_amount?: string
@@ -378,6 +380,7 @@ export type Database = {
           order_id?: string | null
           order_sequence?: number | null
           product?: string
+          source?: string
           signature?: string
           status?: string
           total_amount?: string

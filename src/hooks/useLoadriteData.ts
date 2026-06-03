@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 function dbRowToTicket(row: any): TicketData {
   return {
     id: row.id,
+    source: (row.source as TicketData["source"]) ?? "manual",
     jobNumber: row.job_number,
     jobName: row.job_name,
     dateTime: row.date_time,

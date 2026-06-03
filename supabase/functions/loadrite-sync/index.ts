@@ -87,6 +87,7 @@ function groupRecordsIntoTickets(records: LoadriteLoadingRecord[]): LoadGroup[] 
 function groupToTicketRow(group: LoadGroup, userId: string) {
   return {
     id: group.ticketNumber,
+    source: "loadrite",
     user_id: userId,
     job_number: group.ticketNumber,
     job_name: group.note,

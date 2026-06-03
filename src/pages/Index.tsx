@@ -23,6 +23,7 @@ import { buildTruckRecord, isStandardTruckName, normalizeTruckName } from "@/lib
 import { Badge } from "@/components/ui/badge";
 
 type View = "list" | "editor" | "preview";
+type TicketSourceView = "all" | "manual" | "loadrite";
 
 const Index = () => {
   const { tickets, loading, error, fetchData, loadFromDb } = useLoadriteData();
@@ -34,9 +35,13 @@ const Index = () => {
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
   const isBillableRoute = location.pathname === "/billable";
+  const [sourceView, setSourceView] = useState<TicketSourceView>("all");
+  const sourceFilteredTickets = sourceView === "all"
+    ? tickets
+    : tickets.filter((ticket) => (ticket.source ?? "manual") === sourceView);
   const visibleTickets = isBillableRoute
-    ? tickets.filter((ticket) => ticket.status === "billable")
-    : tickets;
+    ? sourceFilteredTickets.filter((ticket) => ticket.status === "billable")
+    : sourceFilteredTickets;
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [view, setView] = useState<View>("list");
   const [activeTab, setActiveTab] = useState<string>("tickets");
@@ -99,6 +104,7 @@ const Index = () => {
         order_id: newTicket.orderId,
         order_sequence: newTicket.orderSequence,
         issued_at: newTicket.issuedAt,
+        source: newTicket.source ?? "manual",
         total_amount: newTicket.totalAmount,
         total_unit: newTicket.totalUnit,
         customer: newTicket.customer,
@@ -268,6 +274,10 @@ const Index = () => {
     await loadFromDb();
   };
 
+  const manualTicketCount = tickets.filter((ticket) => (ticket.source ?? "manual") === "manual").length;
+  const loadriteTicketCount = tickets.filter((ticket) => (ticket.source ?? "manual") === "loadrite").length;
+  const sourceViewLabel = sourceView === "all" ? "All tickets" : sourceView === "manual" ? "Manual tickets" : "Loadrite tickets";
+
   const handlePrintTicket = (ticket: TicketData) => {
     setSelectedTicket(ticket);
     setView("preview");
@@ -361,6 +371,30 @@ const Index = () => {
                             ? "Use this view to work only the tickets marked billable, then open, print, or update them without mixing them into the live dispatch queue."
                             : "Select a ticket from the right to edit or preview it, or create a new one and keep the dispatch, customer, and material details all in the same workflow."}
                         </p>
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {([
+                            { key: "all", label: "All Tickets", count: tickets.length },
+                            { key: "manual", label: "Manual", count: manualTicketCount },
+                            { key: "loadrite", label: "Loadrite", count: loadriteTicketCount },
+                          ] as const).map((item) => (
+                            <Button
+                              key={item.key}
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSourceView(item.key)}
+                              className={`gap-2 border-white/10 ${
+                                sourceView === item.key
+                                  ? "bg-cyan-400 text-slate-950 hover:bg-cyan-300"
+                                  : "bg-white/5 text-white hover:bg-white/10"
+                              }`}
+                            >
+                              {item.label}
+                              <Badge className={`border-none ${sourceView === item.key ? "bg-slate-950/10 text-slate-900" : "bg-white/10 text-slate-200"} hover:bg-inherit`}>
+                                {item.count}
+                              </Badge>
+                            </Button>
+                          ))}
+                        </div>
                       </div>
                       <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[320px]">
                         {[
@@ -386,7 +420,7 @@ const Index = () => {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Recent Activity</p>
-                          <h3 className="mt-2 text-xl font-semibold text-white">Latest tickets in the queue</h3>
+                          <h3 className="mt-2 text-xl font-semibold text-white">Latest {sourceViewLabel.toLowerCase()} in the queue</h3>
                         </div>
                       </div>
                       <div className="mt-5 space-y-3">
@@ -400,6 +434,9 @@ const Index = () => {
                               <p className="text-sm font-semibold text-white">#{ticket.jobNumber}</p>
                               <p className="mt-1 truncate text-sm text-slate-300">{ticket.customer || "No customer"}</p>
                               <p className="mt-1 truncate text-xs text-slate-500">{ticket.dateTime}</p>
+                              <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-300">
+                                {(ticket.source ?? "manual") === "loadrite" ? "Loadrite" : "Manual"}
+                              </p>
                             </div>
                             <div className="min-w-0">
                               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Product / Truck</p>
@@ -613,6 +650,26 @@ const Index = () => {
               )}
             </TabsList>
             <TabsContent value="tickets">
+              <div className="mb-4 flex flex-wrap gap-2">
+                {([
+                  { key: "all", label: "All", count: tickets.length },
+                  { key: "manual", label: "Manual", count: manualTicketCount },
+                  { key: "loadrite", label: "Loadrite", count: loadriteTicketCount },
+                ] as const).map((item) => (
+                  <Button
+                    key={item.key}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSourceView(item.key)}
+                    className={`gap-2 ${sourceView === item.key ? "bg-cyan-400 text-slate-950 hover:bg-cyan-300" : ""}`}
+                  >
+                    {item.label}
+                    <Badge className={`border-none ${sourceView === item.key ? "bg-slate-950/10 text-slate-900" : "bg-white/10 text-slate-200"} hover:bg-inherit`}>
+                      {item.count}
+                    </Badge>
+                  </Button>
+                ))}
+              </div>
               <TicketList tickets={visibleTickets} onSelect={handleSelectTicket} onDelete={handleDeleteTicket} onPreview={handlePreview} onPrint={handlePrintTicket} onEmail={handleEmailTicket} readOnly={!isAdminOrManager} canDelete={isAdmin} />
             </TabsContent>
             {isAdminOrManager && (

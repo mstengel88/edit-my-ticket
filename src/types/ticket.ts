@@ -1,5 +1,6 @@
 export interface TicketData {
   id: string;
+  source?: "manual" | "loadrite";
   jobNumber: string;
   jobName: string;
   dateTime: string;
@@ -45,6 +46,7 @@ export const formatTicketDateTime = (value: Date = new Date()) =>
 
 export const createEmptyTicket = (jobNumber?: string): TicketData => ({
   id: crypto.randomUUID(),
+  source: "manual",
   jobNumber: jobNumber ?? "MT-000001",
   jobName: "",
   dateTime: formatTicketDateTime(),
@@ -72,6 +74,7 @@ export const createEmptyTicket = (jobNumber?: string): TicketData => ({
 export const sampleTickets: TicketData[] = [
   {
     id: "1",
+    source: "loadrite",
     jobNumber: "2531",
     jobName: "Job",
     dateTime: "2/19/2026 03:22 PM",
@@ -97,6 +100,7 @@ export const sampleTickets: TicketData[] = [
   },
   {
     id: "2",
+    source: "manual",
     jobNumber: "2530",
     jobName: "Delivery",
     dateTime: "2/19/2026 01:45 PM",
