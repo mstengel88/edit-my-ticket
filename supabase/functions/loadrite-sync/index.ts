@@ -71,7 +71,7 @@ function groupRecordsIntoTickets(records: LoadriteLoadingRecord[]): LoadGroup[] 
         totalWeight: parseFloat(rec.Weight ?? "0"),
         time: rec.Time ?? "",
         bucketWeights: [...currentBuckets],
-        note: currentNote,
+        note: rec.UserData3 ?? currentNote,
       });
       currentBuckets = [];
       currentProduct = "";
