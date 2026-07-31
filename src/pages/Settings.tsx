@@ -12,10 +12,56 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Save, Loader2 } from "lucide-react";
+import { Save, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AppLayout } from "@/components/AppLayout";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+
+type ActivationStatus = "waiting_for_code" | "ready_to_activate" | "activated" | "needs_attention";
+
+interface LoadriteActivationSettings {
+  gatewayUrl: string;
+  username: string;
+  activationCode: string;
+  activationCodeMasked: string;
+  dealerName: string;
+  deviceSerial: string;
+  siteName: string;
+  status: ActivationStatus;
+  notes: string;
+}
+
+const DEFAULT_ACTIVATION_SETTINGS: LoadriteActivationSettings = {
+  gatewayUrl: "http://192.168.36.140",
+  username: "sa",
+  activationCode: "",
+  activationCodeMasked: "",
+  dealerName: "",
+  deviceSerial: "",
+  siteName: "Green Hills Supply",
+  status: "waiting_for_code",
+  notes: "",
+};
+
+const maskActivationCode = (code: string) => {
+  const trimmed = code.trim();
+  if (!trimmed) return "";
+  if (trimmed.length <= 4) return "••••";
+  return `${"•".repeat(Math.max(trimmed.length - 4, 4))}${trimmed.slice(-4)}`;
+};
+
+const normalizeActivationSettings = (value: unknown): LoadriteActivationSettings => {
+  if (!value || typeof value !== "object") return DEFAULT_ACTIVATION_SETTINGS;
+  const raw = value as Partial<LoadriteActivationSettings>;
+  return {
+    ...DEFAULT_ACTIVATION_SETTINGS,
+    ...raw,
+    activationCode: "",
+    status: raw.status ?? DEFAULT_ACTIVATION_SETTINGS.status,
+  };
+};
 
 function ReportFieldItem({ field, onToggle }: { field: ReportField; onToggle: (id: string) => void }) {
   return (
@@ -27,6 +73,7 @@ function ReportFieldItem({ field, onToggle }: { field: ReportField; onToggle: (i
 }
 
 const Settings = () => {
+  const { user } = useAuth();
   const {
     fields, canvasElements, reportFields, copiesPerPage,
     canvasWidth: savedWidth, canvasHeight: savedHeight,
@@ -52,6 +99,10 @@ const Settings = () => {
   const [localPrintLayouts, setLocalPrintLayouts] = useState<PrintLayouts>(savedPrintLayouts);
 
   const [dirty, setDirty] = useState(false);
+  const [activationSettings, setActivationSettings] = useState<LoadriteActivationSettings>(DEFAULT_ACTIVATION_SETTINGS);
+  const [activationLoading, setActivationLoading] = useState(true);
+  const [activationSaving, setActivationSaving] = useState(false);
+  const [activationDirty, setActivationDirty] = useState(false);
 
   useEffect(() => {
     setLocalCanvas(canvasElements);
@@ -65,6 +116,38 @@ const Settings = () => {
     setLocalReportEmailConfig(savedReportEmailConfig);
     setLocalPrintLayouts(savedPrintLayouts);
   }, [canvasElements, copiesPerPage, reportFields, savedWidth, savedHeight, emailElements, savedEmailW, savedEmailH, savedReportEmailConfig, savedPrintLayouts]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadActivationSettings = async () => {
+      setActivationLoading(true);
+      const { data, error } = await supabase
+        .from("system_settings")
+        .select("value")
+        .eq("key", "loadrite_activation")
+        .maybeSingle();
+
+      if (!isMounted) return;
+
+      if (error) {
+        console.error("Failed to load Loadrite activation settings:", error);
+        toast.error("Could not load Loadrite activation settings.");
+        setActivationLoading(false);
+        return;
+      }
+
+      setActivationSettings(normalizeActivationSettings(data?.value));
+      setActivationDirty(false);
+      setActivationLoading(false);
+    };
+
+    void loadActivationSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleCanvasChange = (elements: CanvasElement[]) => { setLocalCanvas(elements); setDirty(true); };
   const handleReportToggle = (id: string) => {
@@ -105,6 +188,53 @@ const Settings = () => {
     setDirty(true);
   };
 
+  const handleActivationChange = <K extends keyof LoadriteActivationSettings>(
+    key: K,
+    value: LoadriteActivationSettings[K],
+  ) => {
+    setActivationSettings((current) => ({ ...current, [key]: value }));
+    setActivationDirty(true);
+  };
+
+  const handleSaveActivationSettings = async () => {
+    setActivationSaving(true);
+    const enteredCode = activationSettings.activationCode.trim();
+    const valueToSave = {
+      gatewayUrl: activationSettings.gatewayUrl.trim(),
+      username: activationSettings.username.trim(),
+      activationCodeMasked: enteredCode
+        ? maskActivationCode(enteredCode)
+        : activationSettings.activationCodeMasked,
+      dealerName: activationSettings.dealerName.trim(),
+      deviceSerial: activationSettings.deviceSerial.trim(),
+      siteName: activationSettings.siteName.trim(),
+      status: enteredCode && activationSettings.status === "waiting_for_code"
+        ? "ready_to_activate"
+        : activationSettings.status,
+      notes: activationSettings.notes.trim(),
+    };
+
+    const { error } = await supabase
+      .from("system_settings")
+      .upsert({
+        key: "loadrite_activation",
+        value: valueToSave,
+        updated_by: user?.id ?? null,
+      });
+
+    setActivationSaving(false);
+
+    if (error) {
+      console.error("Failed to save Loadrite activation settings:", error);
+      toast.error("Could not save Loadrite activation setup.");
+      return;
+    }
+
+    setActivationSettings({ ...DEFAULT_ACTIVATION_SETTINGS, ...valueToSave, activationCode: "" });
+    setActivationDirty(false);
+    toast.success("Loadrite activation setup saved.");
+  };
+
   const sampleTicket: TicketData = sampleTickets[0];
 
   if (loading) {
@@ -135,6 +265,7 @@ const Settings = () => {
             <TabsTrigger value="ticket-email">Ticket Email</TabsTrigger>
             <TabsTrigger value="report-email">Report Email</TabsTrigger>
             <TabsTrigger value="reports">Reports</TabsTrigger>
+            <TabsTrigger value="loadrite">Loadrite Activation</TabsTrigger>
           </TabsList>
 
           <TabsContent value="designer">
@@ -210,6 +341,141 @@ const Settings = () => {
                   <ReportFieldItem key={field.id} field={field} onToggle={handleReportToggle} />
                 ))}
               </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="loadrite">
+            <div className="max-w-3xl rounded-2xl border border-slate-700/80 bg-slate-950/70 p-5 shadow-xl">
+              <div className="flex flex-col gap-3 border-b border-slate-700/80 pb-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-cyan-300">
+                    <ShieldCheck className="h-4 w-4" />
+                    Loadrite dealer setup
+                  </div>
+                  <h2 className="mt-2 text-2xl font-semibold text-white">Activation form ready for the dealer code</h2>
+                  <p className="mt-1 text-sm text-slate-400">
+                    Fill this out now, then paste the activation code when the dealer calls back. Saving the code stores only a masked reference in app settings.
+                  </p>
+                </div>
+                <div className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-cyan-200">
+                  {activationSettings.status.replace(/_/g, " ")}
+                </div>
+              </div>
+
+              {activationLoading ? (
+                <div className="flex items-center gap-2 py-8 text-sm text-slate-400">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading activation setup...
+                </div>
+              ) : (
+                <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="loadrite-gateway">Gateway URL</Label>
+                    <Input
+                      id="loadrite-gateway"
+                      value={activationSettings.gatewayUrl}
+                      onChange={(event) => handleActivationChange("gatewayUrl", event.target.value)}
+                      placeholder="http://192.168.36.140"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="loadrite-username">Gateway Username</Label>
+                    <Input
+                      id="loadrite-username"
+                      value={activationSettings.username}
+                      onChange={(event) => handleActivationChange("username", event.target.value)}
+                      placeholder="sa"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="loadrite-code">Activation Code</Label>
+                    <Input
+                      id="loadrite-code"
+                      value={activationSettings.activationCode}
+                      onChange={(event) => handleActivationChange("activationCode", event.target.value)}
+                      placeholder={activationSettings.activationCodeMasked || "Paste dealer code when available"}
+                      autoComplete="off"
+                    />
+                    {activationSettings.activationCodeMasked && (
+                      <p className="text-xs text-slate-500">Saved code reference: {activationSettings.activationCodeMasked}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="loadrite-status">Activation Status</Label>
+                    <Select
+                      value={activationSettings.status}
+                      onValueChange={(value) => handleActivationChange("status", value as ActivationStatus)}
+                    >
+                      <SelectTrigger id="loadrite-status" className="bg-card">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover z-50">
+                        <SelectItem value="waiting_for_code">Waiting for Code</SelectItem>
+                        <SelectItem value="ready_to_activate">Ready to Activate</SelectItem>
+                        <SelectItem value="activated">Activated</SelectItem>
+                        <SelectItem value="needs_attention">Needs Attention</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="loadrite-dealer">Dealer / Contact</Label>
+                    <Input
+                      id="loadrite-dealer"
+                      value={activationSettings.dealerName}
+                      onChange={(event) => handleActivationChange("dealerName", event.target.value)}
+                      placeholder="Dealer name or contact"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="loadrite-serial">Device Serial</Label>
+                    <Input
+                      id="loadrite-serial"
+                      value={activationSettings.deviceSerial}
+                      onChange={(event) => handleActivationChange("deviceSerial", event.target.value)}
+                      placeholder="LCI / LG500 serial"
+                    />
+                  </div>
+
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="loadrite-site">Site Name</Label>
+                    <Input
+                      id="loadrite-site"
+                      value={activationSettings.siteName}
+                      onChange={(event) => handleActivationChange("siteName", event.target.value)}
+                      placeholder="Green Hills Supply"
+                    />
+                  </div>
+
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="loadrite-notes">Setup Notes</Label>
+                    <Input
+                      id="loadrite-notes"
+                      value={activationSettings.notes}
+                      onChange={(event) => handleActivationChange("notes", event.target.value)}
+                      placeholder="Anything the dealer gives us about activation, modules, or dispatch"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-3 border-t border-slate-700/80 pt-4 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-xs text-slate-500">
+                      This prepares Ticket Creator for activation; the actual gateway/service can read this setup once the dealer code is available.
+                    </p>
+                    <Button
+                      onClick={() => void handleSaveActivationSettings()}
+                      disabled={!activationDirty || activationSaving}
+                      className="gap-1.5"
+                    >
+                      {activationSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                      Save Activation Setup
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </TabsContent>
 
