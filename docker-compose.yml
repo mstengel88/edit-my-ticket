@@ -14,3 +14,20 @@ services:
     restart: unless-stopped
     ports:
       - "${TICKET_CREATOR_PORT:-3000}:80"
+    depends_on:
+      - lci-dispatch-api
+
+  lci-dispatch-api:
+    container_name: lci-dispatch-api
+    build:
+      context: .
+      dockerfile: Dockerfile.lci-api
+    restart: unless-stopped
+    environment:
+      PORT: 8787
+      LCI_GATEWAY_URL: ${LCI_GATEWAY_URL:-http://192.168.36.140}
+      LCI_USERNAME: ${LCI_USERNAME}
+      LCI_PASSWORD: ${LCI_PASSWORD}
+      SUPABASE_URL: ${SUPABASE_URL:-${VITE_SUPABASE_URL}}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-${VITE_SUPABASE_PUBLISHABLE_KEY:-${VITE_SUPABASE_ANON_KEY:-}}}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-${VITE_SUPABASE_ANON_KEY:-}}

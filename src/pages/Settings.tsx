@@ -18,6 +18,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AppLayout } from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { getAccessToken } from "@/lib/getAccessToken";
 
 type ActivationStatus = "waiting_for_code" | "ready_to_activate" | "activated" | "needs_attention";
 
@@ -61,6 +62,26 @@ const normalizeActivationSettings = (value: unknown): LoadriteActivationSettings
     activationCode: "",
     status: raw.status ?? DEFAULT_ACTIVATION_SETTINGS.status,
   };
+};
+
+interface GatewayDispatchForm {
+  truck: string;
+  product: string;
+  quantity: string;
+  poNumber: string;
+  zone: string;
+  location: string;
+  priority: string;
+}
+
+const DEFAULT_GATEWAY_DISPATCH_FORM: GatewayDispatchForm = {
+  truck: "",
+  product: "",
+  quantity: "",
+  poNumber: "",
+  zone: "Ticket Creator",
+  location: "",
+  priority: "0",
 };
 
 function ReportFieldItem({ field, onToggle }: { field: ReportField; onToggle: (id: string) => void }) {
@@ -107,6 +128,9 @@ const Settings = ({ defaultTab = "designer" }: SettingsProps) => {
   const [activationLoading, setActivationLoading] = useState(true);
   const [activationSaving, setActivationSaving] = useState(false);
   const [activationDirty, setActivationDirty] = useState(false);
+  const [gatewayDispatchForm, setGatewayDispatchForm] = useState<GatewayDispatchForm>(DEFAULT_GATEWAY_DISPATCH_FORM);
+  const [gatewaySending, setGatewaySending] = useState(false);
+  const [gatewayResult, setGatewayResult] = useState("");
 
   useEffect(() => {
     setLocalCanvas(canvasElements);
@@ -237,6 +261,77 @@ const Settings = ({ defaultTab = "designer" }: SettingsProps) => {
     setActivationSettings({ ...DEFAULT_ACTIVATION_SETTINGS, ...valueToSave, activationCode: "" });
     setActivationDirty(false);
     toast.success("Loadrite activation setup saved.");
+  };
+
+  const handleGatewayDispatchChange = <K extends keyof GatewayDispatchForm>(
+    key: K,
+    value: GatewayDispatchForm[K],
+  ) => {
+    setGatewayDispatchForm((current) => ({ ...current, [key]: value }));
+    setGatewayResult("");
+  };
+
+  const handleSendToGateway = async () => {
+    const quantity = Number.parseFloat(gatewayDispatchForm.quantity);
+
+    if (!gatewayDispatchForm.truck.trim()) {
+      toast.error("Truck is required.");
+      return;
+    }
+
+    if (!gatewayDispatchForm.product.trim()) {
+      toast.error("Product is required.");
+      return;
+    }
+
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      toast.error("Quantity must be a positive number.");
+      return;
+    }
+
+    setGatewaySending(true);
+    setGatewayResult("");
+
+    try {
+      const token = await getAccessToken();
+      const response = await fetch("/api/lci-dispatch", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          truck: gatewayDispatchForm.truck.trim(),
+          product: gatewayDispatchForm.product.trim(),
+          quantity,
+          poNumber: gatewayDispatchForm.poNumber.trim(),
+          zone: gatewayDispatchForm.zone.trim() || "Ticket Creator",
+          location: gatewayDispatchForm.location.trim(),
+          priority: Number.parseInt(gatewayDispatchForm.priority || "0", 10) || 0,
+        }),
+      });
+
+      const text = await response.text();
+      let data: any = null;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = null;
+      }
+
+      if (!response.ok || data?.ok === false) {
+        throw new Error(data?.error || text || "Gateway dispatch failed.");
+      }
+
+      setGatewayResult(JSON.stringify(data.payload ?? data.result ?? data, null, 2));
+      toast.success("Sent to Loadrite gateway.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Gateway dispatch failed.";
+      setGatewayResult(message);
+      toast.error(message);
+    } finally {
+      setGatewaySending(false);
+    }
   };
 
   const sampleTicket: TicketData = sampleTickets[0];
@@ -477,6 +572,105 @@ const Settings = ({ defaultTab = "designer" }: SettingsProps) => {
                       {activationSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                       Save Activation Setup
                     </Button>
+                  </div>
+
+                  <div className="mt-4 rounded-2xl border border-cyan-300/20 bg-cyan-300/5 p-4 sm:col-span-2">
+                    <div className="flex flex-col gap-2 border-b border-cyan-300/15 pb-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <h3 className="text-lg font-semibold text-white">Send to Gateway</h3>
+                        <p className="mt-1 text-sm text-slate-400">
+                          Create a truck/order entry on the local LCI gateway. The gateway password stays on the Pi in `.env`.
+                        </p>
+                      </div>
+                      <Button
+                        onClick={() => void handleSendToGateway()}
+                        disabled={gatewaySending}
+                        className="gap-1.5"
+                      >
+                        {gatewaySending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                        Send to Gateway
+                      </Button>
+                    </div>
+
+                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label htmlFor="gateway-truck">Truck</Label>
+                        <Input
+                          id="gateway-truck"
+                          value={gatewayDispatchForm.truck}
+                          onChange={(event) => handleGatewayDispatchChange("truck", event.target.value)}
+                          placeholder="GREENHILLS-316"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="gateway-product">Product</Label>
+                        <Input
+                          id="gateway-product"
+                          value={gatewayDispatchForm.product}
+                          onChange={(event) => handleGatewayDispatchChange("product", event.target.value)}
+                          placeholder="#3 Landscape Stone"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="gateway-quantity">Quantity</Label>
+                        <Input
+                          id="gateway-quantity"
+                          inputMode="decimal"
+                          value={gatewayDispatchForm.quantity}
+                          onChange={(event) => handleGatewayDispatchChange("quantity", event.target.value)}
+                          placeholder="4"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="gateway-po">PO / Job Number</Label>
+                        <Input
+                          id="gateway-po"
+                          value={gatewayDispatchForm.poNumber}
+                          onChange={(event) => handleGatewayDispatchChange("poNumber", event.target.value)}
+                          placeholder="201-10378"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="gateway-zone">Zone</Label>
+                        <Input
+                          id="gateway-zone"
+                          value={gatewayDispatchForm.zone}
+                          onChange={(event) => handleGatewayDispatchChange("zone", event.target.value)}
+                          placeholder="Ticket Creator"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="gateway-location">Location</Label>
+                        <Input
+                          id="gateway-location"
+                          value={gatewayDispatchForm.location}
+                          onChange={(event) => handleGatewayDispatchChange("location", event.target.value)}
+                          placeholder="Optional"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="gateway-priority">Priority</Label>
+                        <Input
+                          id="gateway-priority"
+                          inputMode="numeric"
+                          value={gatewayDispatchForm.priority}
+                          onChange={(event) => handleGatewayDispatchChange("priority", event.target.value)}
+                          placeholder="0"
+                        />
+                      </div>
+                    </div>
+
+                    {gatewayResult && (
+                      <pre className="mt-4 max-h-52 overflow-auto rounded-xl border border-slate-700 bg-slate-950/80 p-3 text-xs text-slate-300">
+                        {gatewayResult}
+                      </pre>
+                    )}
                   </div>
                 </div>
               )}

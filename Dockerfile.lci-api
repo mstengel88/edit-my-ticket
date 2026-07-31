@@ -1,0 +1,10 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY scripts/loadrite-lci-api.mjs ./scripts/loadrite-lci-api.mjs
+
+ENV PORT=8787
+EXPOSE 8787
+
+CMD ["node", "scripts/loadrite-lci-api.mjs"]
