@@ -1,0 +1,9 @@
+services:
+  loadrite-lci-relay:
+    container_name: loadrite-lci-relay
+    build:
+      context: .
+      dockerfile: Dockerfile.lci-relay
+    restart: unless-stopped
+    env_file:
+      - .env
