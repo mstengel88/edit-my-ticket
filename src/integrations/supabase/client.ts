@@ -17,8 +17,8 @@ export const SUPABASE_URL = requireRuntimeConfig(
   import.meta.env.VITE_SUPABASE_URL,
 );
 export const SUPABASE_PUBLISHABLE_KEY = requireRuntimeConfig(
-  "VITE_SUPABASE_PUBLISHABLE_KEY",
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+  "VITE_SUPABASE_PUBLISHABLE_KEY or VITE_SUPABASE_ANON_KEY",
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? import.meta.env.VITE_SUPABASE_ANON_KEY,
 );
 
 // Import the supabase client like this:
