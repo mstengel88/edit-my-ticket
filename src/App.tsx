@@ -258,6 +258,7 @@ const App = () => {
                 <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
                 <Route path="/billable" element={<ProtectedRoute><Index /></ProtectedRoute>} />
                 <Route path="/settings" element={<TemplateAdminRoute><Settings /></TemplateAdminRoute>} />
+                <Route path="/loadrite-setup" element={<TemplateAdminRoute><Settings defaultTab="loadrite" /></TemplateAdminRoute>} />
                 <Route path="/audit-log" element={<AdminRoute><AuditLog /></AdminRoute>} />
                 <Route path="/admin" element={<DeveloperRoute><Admin /></DeveloperRoute>} />
                 <Route path="/customers" element={<AdminRoute><Customers /></AdminRoute>} />

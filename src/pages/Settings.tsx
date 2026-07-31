@@ -72,7 +72,11 @@ function ReportFieldItem({ field, onToggle }: { field: ReportField; onToggle: (i
   );
 }
 
-const Settings = () => {
+interface SettingsProps {
+  defaultTab?: string;
+}
+
+const Settings = ({ defaultTab = "designer" }: SettingsProps) => {
   const { user } = useAuth();
   const {
     fields, canvasElements, reportFields, copiesPerPage,
@@ -257,7 +261,7 @@ const Settings = () => {
   return (
     <AppLayout title="Settings" headerExtra={headerExtra}>
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6">
-        <Tabs defaultValue="designer">
+        <Tabs defaultValue={defaultTab}>
           <TabsList className="mb-4 h-auto flex-wrap justify-start">
             <TabsTrigger value="designer">Ticket Designer</TabsTrigger>
             <TabsTrigger value="preview">Live Preview</TabsTrigger>

@@ -75,6 +75,7 @@ const managerNavItems = [
 
 const adminItems = [
   { label: "Settings", icon: Settings, href: "/settings" },
+  { label: "Loadrite Setup", icon: Truck, href: "/loadrite-setup" },
   { label: "User Roles", icon: Users, href: "/user-roles" },
   { label: "Audit Log", icon: ClipboardList, href: "/audit-log" },
 ];
