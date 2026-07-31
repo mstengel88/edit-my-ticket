@@ -1,0 +1,16 @@
+services:
+  ticket-creator:
+    container_name: ticket-creator
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY:-}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:-}
+        VITE_APPLE_CLIENT_ID: ${VITE_APPLE_CLIENT_ID:-}
+        VITE_APPLE_REDIRECT_URI: ${VITE_APPLE_REDIRECT_URI:-}
+        VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY:-}
+    restart: unless-stopped
+    ports:
+      - "${TICKET_CREATOR_PORT:-3000}:80"
