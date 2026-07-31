@@ -154,10 +154,87 @@ async function dispatchTruck(token, payload) {
   return text ? JSON.parse(text) : {};
 }
 
+async function fetchGatewayJson(token, path) {
+  const response = await fetch(gatewayUrl(path), {
+    headers: {
+      Cookie: `Token=${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`${path} returned ${response.status}`);
+  }
+
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
+}
+
+function collectLookupValues(value, keys) {
+  const results = new Set();
+  const keySet = new Set(keys.map((key) => key.toLowerCase()));
+
+  const visit = (node) => {
+    if (!node || typeof node !== "object") return;
+
+    if (Array.isArray(node)) {
+      node.forEach(visit);
+      return;
+    }
+
+    for (const [key, child] of Object.entries(node)) {
+      if (typeof child === "string" && keySet.has(key.toLowerCase()) && child.trim()) {
+        results.add(child.trim());
+      } else {
+        visit(child);
+      }
+    }
+  };
+
+  visit(value);
+  return [...results].sort((a, b) => a.localeCompare(b));
+}
+
+async function loadGatewayLookups() {
+  const token = await login();
+  const lookupSources = {
+    trucks: ["/api/trucks"],
+    products: ["/api/products", "/api/product", "/api/materials"],
+  };
+  const payloads = { trucks: [], products: [] };
+  const warnings = [];
+
+  for (const [kind, paths] of Object.entries(lookupSources)) {
+    for (const path of paths) {
+      try {
+        const payload = await fetchGatewayJson(token, path);
+        const values = kind === "trucks"
+          ? collectLookupValues(payload, ["Rego", "Truck", "TruckID", "Name"])
+          : collectLookupValues(payload, ["Product", "Name", "Description", "Material"]);
+
+        if (values.length > 0) {
+          payloads[kind] = values;
+          break;
+        }
+      } catch (error) {
+        warnings.push(`${path}: ${error?.message || "failed"}`);
+      }
+    }
+  }
+
+  return { ...payloads, warnings };
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     if (req.method === "GET" && req.url === "/health") {
       jsonResponse(res, 200, { ok: true });
+      return;
+    }
+
+    if (req.method === "GET" && req.url === "/api/lci-lookups") {
+      await validateSupabaseUser(req);
+      const lookups = await loadGatewayLookups();
+      jsonResponse(res, 200, { ok: true, ...lookups });
       return;
     }
 

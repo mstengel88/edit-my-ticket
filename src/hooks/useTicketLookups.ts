@@ -3,6 +3,7 @@ import { getProducts, LoadriteProduct } from "@/services/loadrite";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { buildTruckRecord, isStandardTruckName, normalizeTruckName } from "@/lib/truckName";
+import { getAccessToken } from "@/lib/getAccessToken";
 
 interface LookupData {
   products: string[];
@@ -21,6 +22,11 @@ interface CachedLookups {
   customerEmails: Record<string, string>;
   trucks: string[];
   timestamp: number;
+}
+
+interface GatewayLookups {
+  products: string[];
+  trucks: string[];
 }
 
 function uniqueSorted(values: string[]) {
@@ -46,6 +52,37 @@ function writeCache(data: Omit<CachedLookups, "timestamp">) {
     localStorage.setItem(CACHE_KEY, JSON.stringify({ ...data, timestamp: Date.now() }));
   } catch {
     // localStorage full or unavailable
+  }
+}
+
+async function getGatewayLookups(): Promise<GatewayLookups> {
+  try {
+    const token = await getAccessToken();
+    const response = await fetch("/api/lci-lookups", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const text = await response.text();
+    let data: any = null;
+
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = null;
+    }
+
+    if (!response.ok || data?.ok === false) {
+      throw new Error(data?.error || text || "Gateway lookup request failed.");
+    }
+
+    return {
+      products: Array.isArray(data?.products) ? uniqueSorted(data.products) : [],
+      trucks: Array.isArray(data?.trucks) ? uniqueSorted(data.trucks) : [],
+    };
+  } catch (error) {
+    console.warn("Failed to sync Loadrite gateway lookups:", error);
+    return { products: [], trucks: [] };
   }
 }
 
@@ -111,6 +148,8 @@ export function useTicketLookups(): LookupData {
     async function syncInBackground() {
       // Sync products from Loadrite API (non-blocking)
       let apiProductNames: string[] = [];
+      let gatewayProductNames: string[] = [];
+      let gatewayTruckNames: string[] = [];
       try {
         const apiProducts = await getProducts();
          const names = apiProducts
@@ -128,6 +167,30 @@ export function useTicketLookups(): LookupData {
         }
       } catch (err) {
         console.error("Failed to sync products from API:", err);
+      }
+
+      try {
+        const gatewayLookups = await getGatewayLookups();
+        gatewayProductNames = gatewayLookups.products;
+        gatewayTruckNames = uniqueSorted(
+          gatewayLookups.trucks
+            .map((name) => normalizeTruckName(name))
+            .filter((name) => name && name !== "-" && name !== "NOT SPECIFIED" && isStandardTruckName(name)),
+        );
+
+        if (gatewayProductNames.length > 0) {
+          setProducts((current) => uniqueSorted([...current, ...gatewayProductNames]));
+          const rows = gatewayProductNames.map((name) => ({ name, user_id: userId, source: "loadrite" }));
+          await supabase.from("products").upsert(rows, { onConflict: "name" });
+        }
+
+        if (gatewayTruckNames.length > 0) {
+          setTrucks((current) => uniqueSorted([...current, ...gatewayTruckNames]));
+          const rows = gatewayTruckNames.map((name) => ({ ...buildTruckRecord(name), user_id: userId }));
+          await supabase.from("trucks").upsert(rows, { onConflict: "normalized_name" });
+        }
+      } catch (err) {
+        console.error("Failed to sync products/trucks from gateway:", err);
       }
 
       // Seed customers/trucks from tickets if tables are empty
@@ -177,7 +240,7 @@ export function useTicketLookups(): LookupData {
 
       // Refresh from DB after sync to pick up any new data
       if (!cancelled) {
-        await loadFromDb(apiProductNames);
+        await loadFromDb([...apiProductNames, ...gatewayProductNames]);
       }
     }
 

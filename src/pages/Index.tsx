@@ -5,8 +5,9 @@ import { TicketSidebar } from "@/components/TicketSidebar";
 import { TicketEditor } from "@/components/TicketEditor";
 import { TicketPreview } from "@/components/TicketPreview";
 import { Reports } from "@/components/Reports";
+import { LoadriteGatewayDispatchForm } from "@/components/LoadriteGatewayDispatchForm";
 import { useLoadriteData } from "@/hooks/useLoadriteData";
-import { ArrowLeft, Plus, RefreshCw, Loader2, BarChart3, FileClock, Package2, Truck, Users } from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw, Loader2, BarChart3, FileClock, Package2, Users } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useIsMobile, useIsTablet } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -452,34 +453,7 @@ const Index = () => {
                       </div>
                     </section>
 
-                    <section className="rounded-[26px] border border-white/8 bg-[#111c2d] p-5 shadow-xl shadow-black/10">
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">Workflow Guidance</p>
-                      <h3 className="mt-2 text-xl font-semibold text-white">Desk rhythm</h3>
-                      <div className="mt-5 space-y-3">
-                        {[
-                          isBillableRoute ? "Open a billable ticket from the queue." : "Open a pending or draft ticket from the queue.",
-                          "Confirm customer, PO, truck, and product before saving.",
-                          "Print or email directly from the workbench once the load is confirmed.",
-                          isBillableRoute ? "Use this page to separate ready-to-bill work from the live load queue." : "Use Reports when you need a ticket query view across the full history.",
-                        ].map((step, index) => (
-                          <div key={step} className="flex gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3">
-                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-400/10 text-sm font-semibold text-cyan-200">
-                              {index + 1}
-                            </div>
-                            <p className="text-sm leading-6 text-slate-300">{step}</p>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-5 rounded-2xl border border-white/8 bg-[#0d1726] px-4 py-4">
-                        <div className="flex items-center gap-2">
-                          <Truck className="h-4 w-4 text-cyan-300" />
-                          <p className="text-sm font-semibold text-white">Truck activity is ready in the queue</p>
-                        </div>
-                        <p className="mt-2 text-sm text-slate-400">
-                          Keep the right rail open as your live operational queue, then use the center pane for focused ticket work.
-                        </p>
-                      </div>
-                    </section>
+                    <LoadriteGatewayDispatchForm ticket={selectedTicket} />
                   </div>
                 </div>
               )}
