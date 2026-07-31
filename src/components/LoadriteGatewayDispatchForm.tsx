@@ -199,25 +199,19 @@ export function LoadriteGatewayDispatchForm({ ticket, compact = false }: Loadrit
     "border-white/10 bg-[#0d1726] text-white placeholder:text-slate-500 focus-visible:ring-cyan-400/40";
 
   return (
-    <section className="rounded-[26px] border border-cyan-300/20 bg-[#111c2d] p-5 shadow-xl shadow-black/10">
-      <div className="flex flex-col gap-3 border-b border-cyan-300/15 pb-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
-            <Truck className="h-4 w-4" />
-            Gateway Dispatch
-          </p>
-          <h3 className="mt-2 text-xl font-semibold text-white">Send this load to the LCI gateway</h3>
-          <p className="mt-1 text-sm leading-6 text-slate-400">
-            Truck and product options pull from saved Ticket Creator lists and the local Loadrite gateway when available.
-          </p>
-        </div>
+    <section className="rounded-[26px] border border-cyan-300/20 bg-[#111c2d] p-4 shadow-xl shadow-black/10">
+      <div className="flex flex-col gap-3 border-b border-cyan-300/15 pb-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
+          <Truck className="h-4 w-4" />
+          Gateway Dispatch
+        </p>
         <Button onClick={() => void handleSend()} disabled={sending} className="gap-1.5 bg-cyan-400 text-slate-950 hover:bg-cyan-300">
           {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           Send to Gateway
         </Button>
       </div>
 
-      <div className={`mt-4 grid gap-4 ${compact ? "sm:grid-cols-2" : "md:grid-cols-2"}`}>
+      <div className={`mt-3 grid gap-4 ${compact ? "sm:grid-cols-2" : "md:grid-cols-2"}`}>
         <div className="space-y-2">
           <Label htmlFor="gateway-ticket-truck">Truck</Label>
           <ComboInput
