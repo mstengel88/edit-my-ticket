@@ -7,7 +7,7 @@ export async function getAccessToken(): Promise<string> {
     throw new Error("Not signed in");
   }
 
-  let { data, error } = await supabase.auth.getSession();
+  const { data, error } = await supabase.auth.getSession();
   if (error) {
     throw error;
   }
