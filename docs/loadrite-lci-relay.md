@@ -158,3 +158,54 @@ The best production shape for this is:
 - keep your app reading from Supabase instead of talking directly to the local gateway
 
 That way your cloud app stays simple, and only the onsite relay needs local network access to `192.168.36.140`.
+
+## Sending orders to the loader/scales
+
+The authenticated LCI web app exposes a truck/order endpoint:
+
+```http
+POST /api/trucks
+Cookie: Token=<login token>
+Content-Type: application/json
+```
+
+The gateway's own UI sends this shape:
+
+```json
+{
+  "Rego": "GREENHILLS-316",
+  "QuantityRequested": 4,
+  "Product": "#3 Landscape Stone",
+  "Location": "",
+  "Zone": "Ticket Creator",
+  "Priority": 0
+}
+```
+
+Confirmed behavior:
+
+- `QuantityRequested` is the target quantity sent to the order queue.
+- `Product` is sent as the material/product name.
+- `Rego` is the truck field.
+- `Zone`, `Location`, and `Priority` are supported by the gateway's truck screen.
+
+PO numbers are not exposed in the LCI truck-order form. The dispatch helper can include experimental PO aliases (`PONumber`, `POJobNumber`, `JobNumber`) so we can test whether the backend accepts a hidden property, but that has not been confirmed yet.
+
+Dry-run a dispatch payload:
+
+```sh
+LCI_GATEWAY_URL=http://192.168.36.140 \
+LCI_USERNAME=sa \
+LCI_PASSWORD=your-password \
+LCI_DISPATCH_TRUCK=GREENHILLS-316 \
+LCI_DISPATCH_PRODUCT="#3 Landscape Stone" \
+LCI_DISPATCH_QUANTITY=4 \
+LCI_DISPATCH_PO=201-10378 \
+npm run lci:dispatch
+```
+
+Actually create the LCI truck order:
+
+```sh
+npm run lci:dispatch -- --submit
+```

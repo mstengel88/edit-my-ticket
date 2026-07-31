@@ -153,12 +153,52 @@ const websocketUrl = `${websocketProtocol}//${gatewayUrl.host}/websocket/jobs`;
 const syncUserId = dryRun ? "dry-run-user" : requireEnv("LOADRITE_SYNC_USER_ID");
 const supabaseUrl = dryRun ? "" : requireEnv("SUPABASE_URL").replace(/\/$/, "");
 const supabaseServiceRoleKey = dryRun ? "" : requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+const INITIAL_SEARCH_FILTER = process.env.LCI_INITIAL_SEARCH_FILTER ?? "";
+const ONCE_WAIT_MS = Number.parseInt(process.env.LCI_ONCE_WAIT_MS ?? "10000", 10);
+const REFRESH_INTERVAL_MS = Number.parseInt(process.env.LCI_REFRESH_INTERVAL_MS ?? "60000", 10);
 
 let lastPayloadSignature = "";
+let processedNonEmptyPayload = false;
+
+async function loadWebSocketClient() {
+  if (typeof WebSocket === "function") {
+    return { WebSocketClient: WebSocket, mode: "global", eventStyle: "dom" };
+  }
+
+  try {
+    const wsModule = await import("ws");
+    const WebSocketClient = wsModule.WebSocket ?? wsModule.default;
+    if (typeof WebSocketClient === "function") {
+      return { WebSocketClient, mode: "ws-package", eventStyle: "node" };
+    }
+  } catch (error) {
+    console.error("[loadrite-lci-relay] Failed to load ws package fallback:", error);
+  }
+
+  throw new Error("This Node runtime does not expose a WebSocket client.");
+}
 
 function log(message, detail = "") {
   const suffix = detail ? ` ${detail}` : "";
   console.log(`[loadrite-lci-relay] ${message}${suffix}`);
+}
+
+function requestCompletedJobs(ws, eventStyle, filter = INITIAL_SEARCH_FILTER) {
+  const payload = JSON.stringify({
+    Name: "JobsPresenter.SearchByTicketID",
+    Value: filter,
+  });
+
+  if (eventStyle === "dom") {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(payload);
+    }
+    return;
+  }
+
+  if (typeof ws.readyState === "number" && ws.readyState === 1) {
+    ws.send(payload);
+  }
 }
 
 async function handleJobsPayload(payloadValue) {
@@ -168,13 +208,23 @@ async function handleJobsPayload(payloadValue) {
     .map((job) => jobToTicketRow(job, syncUserId))
     .filter((row) => row.id);
 
+  if (rows.length > 0) {
+    processedNonEmptyPayload = true;
+  }
+
   const signature = JSON.stringify(rows.map((row) => [row.id, row.job_name, row.total_amount, row.date_time]));
   if (signature === lastPayloadSignature) {
     log("No ticket changes detected.");
-    if (once) process.exit(0);
+    if (once && processedNonEmptyPayload) process.exit(0);
     return;
   }
   lastPayloadSignature = signature;
+
+  if (rows.length === 0) {
+    log("Gateway returned no completed jobs for the current filter.");
+    if (once && processedNonEmptyPayload) process.exit(0);
+    return;
+  }
 
   if (dryRun) {
     log("Dry run normalized tickets:");
@@ -203,21 +253,36 @@ async function handleJobsPayload(payloadValue) {
   if (once) process.exit(0);
 }
 
-function start() {
-  if (typeof WebSocket !== "function") {
-    throw new Error("This Node runtime does not expose a WebSocket client.");
-  }
+async function start() {
+  const { WebSocketClient, mode, eventStyle } = await loadWebSocketClient();
+  log("Connecting to gateway", `${websocketUrl} via ${mode}`);
+  const ws = new WebSocketClient(websocketUrl);
+  let onceTimeout;
+  let refreshInterval;
 
-  log("Connecting to gateway", websocketUrl);
-  const ws = new WebSocket(websocketUrl);
-
-  ws.addEventListener("open", () => {
+  const onOpen = () => {
     log("WebSocket connected.");
-  });
+    requestCompletedJobs(ws, eventStyle);
+    log("Requested completed jobs", `(filter: ${INITIAL_SEARCH_FILTER || "all"})`);
+    if (!once && REFRESH_INTERVAL_MS > 0) {
+      refreshInterval = setInterval(() => {
+        requestCompletedJobs(ws, eventStyle);
+        log("Refreshed completed jobs request", `(filter: ${INITIAL_SEARCH_FILTER || "all"})`);
+      }, REFRESH_INTERVAL_MS);
+    }
+    if (once) {
+      onceTimeout = setTimeout(() => {
+        console.error(`[loadrite-lci-relay] Timed out waiting ${ONCE_WAIT_MS}ms for completed jobs.`);
+        process.exit(processedNonEmptyPayload ? 0 : 1);
+      }, ONCE_WAIT_MS);
+    }
+  };
 
-  ws.addEventListener("message", async (event) => {
+  const onMessage = async (payload) => {
     try {
-      const message = JSON.parse(String(event.data));
+      const data = eventStyle === "dom" ? payload.data : payload;
+      const raw = typeof data === "string" ? data : data.toString();
+      const message = JSON.parse(raw);
       if (message?.Name !== "JobsPresenter.FilteredJobs" || typeof message?.Value !== "string") {
         return;
       }
@@ -226,16 +291,39 @@ function start() {
       console.error("[loadrite-lci-relay] Failed to process websocket message:", error);
       if (once) process.exit(1);
     }
-  });
+  };
 
-  ws.addEventListener("close", () => {
+  const onClose = () => {
+    if (onceTimeout) {
+      clearTimeout(onceTimeout);
+      onceTimeout = undefined;
+    }
+    if (refreshInterval) {
+      clearInterval(refreshInterval);
+      refreshInterval = undefined;
+    }
     log("WebSocket disconnected. Reconnecting in 5 seconds.");
-    setTimeout(start, 5000);
-  });
+    setTimeout(() => {
+      void start();
+    }, 5000);
+  };
 
-  ws.addEventListener("error", (error) => {
+  const onError = (error) => {
     console.error("[loadrite-lci-relay] WebSocket error:", error);
-  });
+  };
+
+  if (eventStyle === "dom") {
+    ws.addEventListener("open", onOpen);
+    ws.addEventListener("message", onMessage);
+    ws.addEventListener("close", onClose);
+    ws.addEventListener("error", onError);
+    return;
+  }
+
+  ws.on("open", onOpen);
+  ws.on("message", onMessage);
+  ws.on("close", onClose);
+  ws.on("error", onError);
 }
 
-start();
+void start();

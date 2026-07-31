@@ -255,7 +255,7 @@ const Index = () => {
   const handleRefresh = () => {
     fetchData();
     logAudit("sync", "ticket");
-    toast.info("Syncing from Loadrite...");
+    toast.info("Refreshing tickets from the onsite relay...");
   };
 
   const handleStatusChange = async (ticket: TicketData, status: TicketData["status"]) => {
