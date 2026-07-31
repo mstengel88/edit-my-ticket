@@ -22,6 +22,7 @@ import {
 
 const Admin = () => {
   const [authReady, setAuthReady] = useState(false);
+  const [authError, setAuthError] = useState("");
   const [agentKey, setAgentKey] = useState<string>("");
 
   const [restartLoading, setRestartLoading] = useState(false);
@@ -40,13 +41,17 @@ const Admin = () => {
     let mounted = true;
 
     const init = async () => {
-      try {
-        await supabase.auth.getSession();
-        await getAccessToken();
-        if (mounted) setAuthReady(true);
-      } catch {
-        if (mounted) setAuthReady(false);
+      const { data, error } = await supabase.auth.getSession();
+      if (!mounted) return;
+
+      if (error || !data.session) {
+        setAuthReady(false);
+        setAuthError(error?.message || "Admin session is not available. Please sign in again.");
+        return;
       }
+
+      setAuthError("");
+      setAuthReady(true);
     };
 
     init();
@@ -149,7 +154,9 @@ const Admin = () => {
     return (
       <AppLayout title="Admin">
         <div className="container mx-auto px-4 py-6 sm:px-6">
-          <p className="text-sm text-muted-foreground">Loading admin session…</p>
+          <p className="text-sm text-muted-foreground">
+            {authError || "Loading admin session…"}
+          </p>
         </div>
       </AppLayout>
     );
