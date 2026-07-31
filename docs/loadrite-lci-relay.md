@@ -21,6 +21,37 @@ The ticket websocket publishes completed job data in this shape:
 
 That means we do not need to sniff packets to get the ticket feed. We can subscribe directly to the gateway's websocket and relay normalized ticket rows into Supabase.
 
+## Additional gateway findings
+
+The local LCI also has a login flow:
+
+- page: `http://192.168.36.140/login`
+- login POST: `POST /login`
+- payload:
+
+```json
+{
+  "Username": "your-user",
+  "Password": "your-password",
+  "RememberMe": true
+}
+```
+
+The authenticated truck/order side of the app appears to use richer raw time values like:
+
+- `TimeRequested`
+- `TimeStarted`
+- `TimeLoaded`
+- `TimeChecked`
+
+Those are handled in JavaScript as .NET-style timestamps such as:
+
+```text
+/Date(1785507243000)/
+```
+
+So the gateway likely does have access to better timestamps than the public completed-jobs websocket exposes.
+
 ## Relay script
 
 Use:
@@ -98,6 +129,24 @@ The relay currently normalizes those like this:
 - date-only labels use noon on that date
 
 If you need exact second-level load timestamps, the next step would be finding a deeper API or model endpoint on the gateway that exposes the raw completion datetime rather than the display label.
+
+At the moment, the public websocket only exposes a display label such as:
+
+- `8:58 AM`
+- `30 Jul 26`
+
+That is good enough for ticket sync, but not ideal if exact machine timestamps are important.
+
+## Best next step for richer timestamps
+
+If you want exact completion times, the next step is to authenticate to the LCI and inspect the protected endpoints or model feeds that back the truck/order screen.
+
+That likely means:
+
+1. log in with a valid local LCI username/password
+2. inspect the authenticated `/api/trucks` and related endpoints
+3. determine whether those objects can be linked back to `Ticket ID`
+4. enrich the relay with the raw loaded/checked timestamp when available
 
 ## Recommendation
 
