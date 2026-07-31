@@ -1,6 +1,6 @@
 services:
   ticket-creator:
-    container_name: ticket-creator
+    container_name: ticket-creator-app
     build:
       context: .
       dockerfile: Dockerfile
@@ -18,7 +18,7 @@ services:
       - lci-dispatch-api
 
   lci-dispatch-api:
-    container_name: lci-dispatch-api
+    container_name: ticket-creator-lci-dispatch-api
     build:
       context: .
       dockerfile: Dockerfile.lci-api
