@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
+    "lci:relay": "node scripts/loadrite-lci-relay.mjs",
     "ios:init": "cap add ios",
     "build:ios": "vite build && cap sync ios",
     "cap:sync": "cap sync",
