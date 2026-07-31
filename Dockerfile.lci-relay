@@ -1,0 +1,7 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY scripts/loadrite-lci-relay.mjs ./scripts/loadrite-lci-relay.mjs
+
+CMD ["node", "scripts/loadrite-lci-relay.mjs"]

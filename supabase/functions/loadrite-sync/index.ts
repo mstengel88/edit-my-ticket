@@ -8,7 +8,6 @@ const corsHeaders = {
 };
 
 const LOADRITE_BASE = "https://apicloud.loadrite-myinsighthq.com/api/v2";
-const PROJECT_URL = "https://dlayrpnmfnbjlxgnkczv.supabase.co";
 const DEFAULT_SITE = Deno.env.get("LOADRITE_SYNC_SITE") ?? "Green Hills Landscape - Menomonee Falls";
 const DEFAULT_LOOKBACK_DAYS = Number.parseInt(Deno.env.get("LOADRITE_SYNC_LOOKBACK_DAYS") ?? "7", 10);
 
@@ -154,17 +153,17 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? PROJECT_URL;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("LOADRITE_SYNC_SERVICE_ROLE_KEY")
       ?? Deno.env.get("SERVICE_ROLE_KEY")
       ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const loadriteToken = Deno.env.get("LOADRITE_API_TOKEN");
     const syncUserId = Deno.env.get("LOADRITE_SYNC_USER_ID");
 
-    if (!serviceRoleKey || !loadriteToken || !syncUserId) {
+    if (!supabaseUrl || !serviceRoleKey || !loadriteToken || !syncUserId) {
       return new Response(
         JSON.stringify({
-          error: "Missing one or more required secrets: LOADRITE_SYNC_SERVICE_ROLE_KEY, LOADRITE_API_TOKEN, LOADRITE_SYNC_USER_ID",
+          error: "Missing one or more required settings: SUPABASE_URL, LOADRITE_SYNC_SERVICE_ROLE_KEY, LOADRITE_API_TOKEN, LOADRITE_SYNC_USER_ID",
         }),
         { status: 500, headers: corsHeaders },
       );

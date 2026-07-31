@@ -400,14 +400,16 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
     printFrame.style.position = "fixed";
     printFrame.style.right = "0";
     printFrame.style.bottom = "0";
-    printFrame.style.width = "0";
-    printFrame.style.height = "0";
+    printFrame.style.width = "1px";
+    printFrame.style.height = "1px";
     printFrame.style.border = "0";
     printFrame.style.opacity = "0";
     document.body.appendChild(printFrame);
 
     const frameWindow = printFrame.contentWindow;
-    if (!frameWindow) {
+    const frameDocument = printFrame.contentDocument;
+
+    if (!frameWindow || !frameDocument) {
       printFrame.remove();
       toast.error("Unable to start the report print preview.");
       return;
@@ -416,22 +418,27 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
     const cleanup = () => {
       window.setTimeout(() => {
         printFrame.remove();
-      }, 250);
+      }, 500);
     };
 
-    printFrame.addEventListener(
-      "load",
-      () => {
-        window.setTimeout(() => {
-          frameWindow.focus();
-          frameWindow.print();
-        }, 300);
-      },
-      { once: true },
-    );
+    const startPrint = () => {
+      window.setTimeout(() => {
+        frameWindow.focus();
+        frameWindow.print();
+      }, 350);
+    };
 
     frameWindow.addEventListener("afterprint", cleanup, { once: true });
-    printFrame.srcdoc = printHtml;
+
+    frameDocument.open();
+    frameDocument.write(printHtml);
+    frameDocument.close();
+
+    if (frameDocument.readyState === "complete") {
+      startPrint();
+    } else {
+      printFrame.addEventListener("load", startPrint, { once: true });
+    }
   };
 
   const handleEmail = () => {
