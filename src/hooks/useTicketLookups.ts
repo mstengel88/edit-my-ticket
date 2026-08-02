@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { buildTruckRecord, isStandardTruckName, normalizeTruckName } from "@/lib/truckName";
 import { getAccessToken } from "@/lib/getAccessToken";
+import { getSavedLoadriteGatewayUrl } from "@/lib/loadriteGatewaySettings";
 
 interface LookupData {
   products: string[];
@@ -58,7 +59,9 @@ function writeCache(data: Omit<CachedLookups, "timestamp">) {
 async function getGatewayLookups(): Promise<GatewayLookups> {
   try {
     const token = await getAccessToken();
-    const response = await fetch("/api/lci-lookups", {
+    const gatewayUrl = await getSavedLoadriteGatewayUrl();
+    const params = new URLSearchParams({ gatewayUrl });
+    const response = await fetch(`/api/lci-lookups?${params.toString()}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

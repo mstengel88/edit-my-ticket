@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { ComboInput } from "@/components/ComboInput";
 import { useTicketLookups } from "@/hooks/useTicketLookups";
 import { getAccessToken } from "@/lib/getAccessToken";
+import { getSavedLoadriteGatewayUrl } from "@/lib/loadriteGatewaySettings";
 import { TicketData } from "@/types/ticket";
 
 interface GatewayDispatchForm {
@@ -77,7 +78,9 @@ export function LoadriteGatewayDispatchForm({ ticket, compact = false }: Loadrit
       setLookupLoading(true);
       try {
         const token = await getAccessToken();
-        const response = await fetch("/api/lci-lookups", {
+        const gatewayUrl = await getSavedLoadriteGatewayUrl();
+        const params = new URLSearchParams({ gatewayUrl });
+        const response = await fetch(`/api/lci-lookups?${params.toString()}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -155,6 +158,7 @@ export function LoadriteGatewayDispatchForm({ ticket, compact = false }: Loadrit
 
     try {
       const token = await getAccessToken();
+      const gatewayUrl = await getSavedLoadriteGatewayUrl();
       const response = await fetch("/api/lci-dispatch", {
         method: "POST",
         headers: {
@@ -169,6 +173,7 @@ export function LoadriteGatewayDispatchForm({ ticket, compact = false }: Loadrit
           zone: form.zone.trim() || "Ticket Creator",
           location: form.location.trim(),
           priority: Number.parseInt(form.priority || "0", 10) || 0,
+          gatewayUrl,
         }),
       });
 

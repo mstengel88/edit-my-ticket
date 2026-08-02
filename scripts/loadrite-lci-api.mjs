@@ -1,6 +1,7 @@
 import http from "node:http";
 
 const PORT = Number.parseInt(process.env.PORT ?? "8787", 10);
+const DEFAULT_GATEWAY_URL = "http://192.168.36.140";
 
 function env(name, fallback = "") {
   return process.env[name]?.trim() ?? fallback;
@@ -32,8 +33,30 @@ async function readJson(req) {
   return raw ? JSON.parse(raw) : {};
 }
 
-function gatewayUrl(path = "") {
-  const base = new URL(env("LCI_GATEWAY_URL", "http://192.168.36.140"));
+function normalizeGatewayBaseUrl(value) {
+  const raw = String(value || env("LCI_GATEWAY_URL", DEFAULT_GATEWAY_URL)).trim();
+  const withProtocol = /^https?:\/\//i.test(raw) ? raw : `http://${raw}`;
+  const url = new URL(withProtocol);
+
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    const error = new Error("Gateway URL must start with http:// or https://.");
+    error.status = 400;
+    throw error;
+  }
+
+  url.pathname = url.pathname.replace(/\/+$/, "");
+  url.search = "";
+  url.hash = "";
+  return url;
+}
+
+function getRequestGatewayUrl(req) {
+  const requestUrl = new URL(req.url || "/", "http://localhost");
+  return requestUrl.searchParams.get("gatewayUrl");
+}
+
+function gatewayUrl(path = "", overrideGatewayUrl = "") {
+  const base = normalizeGatewayBaseUrl(overrideGatewayUrl);
   return new URL(path, base).toString();
 }
 
@@ -112,8 +135,8 @@ function buildTruckPayload(body) {
   return payload;
 }
 
-async function login() {
-  const response = await fetch(gatewayUrl("/login"), {
+async function login(overrideGatewayUrl = "") {
+  const response = await fetch(gatewayUrl("/login", overrideGatewayUrl), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -136,8 +159,8 @@ async function login() {
   return token;
 }
 
-async function dispatchTruck(token, payload) {
-  const response = await fetch(gatewayUrl("/api/trucks"), {
+async function dispatchTruck(token, payload, overrideGatewayUrl = "") {
+  const response = await fetch(gatewayUrl("/api/trucks", overrideGatewayUrl), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -154,8 +177,8 @@ async function dispatchTruck(token, payload) {
   return text ? JSON.parse(text) : {};
 }
 
-async function fetchGatewayJson(token, path) {
-  const response = await fetch(gatewayUrl(path), {
+async function fetchGatewayJson(token, path, overrideGatewayUrl = "") {
+  const response = await fetch(gatewayUrl(path, overrideGatewayUrl), {
     headers: {
       Cookie: `Token=${token}`,
     },
@@ -194,8 +217,8 @@ function collectLookupValues(value, keys) {
   return [...results].sort((a, b) => a.localeCompare(b));
 }
 
-async function loadGatewayLookups() {
-  const token = await login();
+async function loadGatewayLookups(overrideGatewayUrl = "") {
+  const token = await login(overrideGatewayUrl);
   const lookupSources = {
     trucks: ["/api/trucks"],
     products: ["/api/products", "/api/product", "/api/materials"],
@@ -206,7 +229,7 @@ async function loadGatewayLookups() {
   for (const [kind, paths] of Object.entries(lookupSources)) {
     for (const path of paths) {
       try {
-        const payload = await fetchGatewayJson(token, path);
+        const payload = await fetchGatewayJson(token, path, overrideGatewayUrl);
         const values = kind === "trucks"
           ? collectLookupValues(payload, ["Rego", "Truck", "TruckID", "Name"])
           : collectLookupValues(payload, ["Product", "Name", "Description", "Material"]);
@@ -231,14 +254,16 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === "GET" && req.url === "/api/lci-lookups") {
+    const requestUrl = new URL(req.url || "/", "http://localhost");
+
+    if (req.method === "GET" && requestUrl.pathname === "/api/lci-lookups") {
       await validateSupabaseUser(req);
-      const lookups = await loadGatewayLookups();
+      const lookups = await loadGatewayLookups(getRequestGatewayUrl(req));
       jsonResponse(res, 200, { ok: true, ...lookups });
       return;
     }
 
-    if (req.method !== "POST" || req.url !== "/api/lci-dispatch") {
+    if (req.method !== "POST" || requestUrl.pathname !== "/api/lci-dispatch") {
       jsonResponse(res, 404, { error: "Not found" });
       return;
     }
@@ -246,8 +271,8 @@ const server = http.createServer(async (req, res) => {
     await validateSupabaseUser(req);
     const body = await readJson(req);
     const payload = buildTruckPayload(body);
-    const token = await login();
-    const result = await dispatchTruck(token, payload);
+    const token = await login(body.gatewayUrl);
+    const result = await dispatchTruck(token, payload, body.gatewayUrl);
     jsonResponse(res, 200, { ok: true, payload, result });
   } catch (error) {
     const status = Number.isInteger(error?.status) ? error.status : 500;
