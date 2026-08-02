@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Save, Loader2 } from "lucide-react";
+import { Save, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AppLayout } from "@/components/AppLayout";
@@ -20,6 +20,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 type ActivationStatus = "waiting_for_code" | "ready_to_activate" | "activated" | "needs_attention";
+
+const ACTIVATION_STATUSES: ActivationStatus[] = [
+  "waiting_for_code",
+  "ready_to_activate",
+  "activated",
+  "needs_attention",
+];
 
 interface LoadriteActivationSettings {
   gatewayUrl: string;
@@ -55,11 +62,20 @@ const maskActivationCode = (code: string) => {
 const normalizeActivationSettings = (value: unknown): LoadriteActivationSettings => {
   if (!value || typeof value !== "object") return DEFAULT_ACTIVATION_SETTINGS;
   const raw = value as Partial<LoadriteActivationSettings>;
+  const status = typeof raw.status === "string" && ACTIVATION_STATUSES.includes(raw.status as ActivationStatus)
+    ? raw.status as ActivationStatus
+    : DEFAULT_ACTIVATION_SETTINGS.status;
+
   return {
-    ...DEFAULT_ACTIVATION_SETTINGS,
-    ...raw,
+    gatewayUrl: typeof raw.gatewayUrl === "string" ? raw.gatewayUrl : DEFAULT_ACTIVATION_SETTINGS.gatewayUrl,
+    username: typeof raw.username === "string" ? raw.username : DEFAULT_ACTIVATION_SETTINGS.username,
     activationCode: "",
-    status: raw.status ?? DEFAULT_ACTIVATION_SETTINGS.status,
+    activationCodeMasked: typeof raw.activationCodeMasked === "string" ? raw.activationCodeMasked : "",
+    dealerName: typeof raw.dealerName === "string" ? raw.dealerName : "",
+    deviceSerial: typeof raw.deviceSerial === "string" ? raw.deviceSerial : "",
+    siteName: typeof raw.siteName === "string" ? raw.siteName : DEFAULT_ACTIVATION_SETTINGS.siteName,
+    status,
+    notes: typeof raw.notes === "string" ? raw.notes : "",
   };
 };
 
