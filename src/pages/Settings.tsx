@@ -41,7 +41,7 @@ interface LoadriteActivationSettings {
 }
 
 const DEFAULT_ACTIVATION_SETTINGS: LoadriteActivationSettings = {
-  gatewayUrl: "http://192.168.36.140",
+  gatewayUrl: "http://192.168.41.140",
   username: "sa",
   activationCode: "",
   activationCodeMasked: "",
@@ -395,7 +395,7 @@ const Settings = ({ defaultTab = "designer" }: SettingsProps) => {
                       id="loadrite-gateway"
                       value={activationSettings.gatewayUrl}
                       onChange={(event) => handleActivationChange("gatewayUrl", event.target.value)}
-                      placeholder="http://192.168.36.140"
+                      placeholder="http://192.168.41.140"
                     />
                   </div>
 

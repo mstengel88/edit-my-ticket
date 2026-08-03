@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
-const DEFAULT_GATEWAY_URL = "http://192.168.36.140";
+const DEFAULT_GATEWAY_URL = "http://192.168.41.140";
 
 interface LoadriteActivationSettings {
   gatewayUrl?: unknown;

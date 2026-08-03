@@ -1,6 +1,7 @@
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has("--dry-run");
 const once = args.has("--once");
+const DEFAULT_GATEWAY_URL = "http://192.168.41.140";
 
 function requireEnv(name) {
   const value = process.env[name]?.trim();
@@ -117,6 +118,54 @@ function normalizeTruck(value) {
   return truck;
 }
 
+function normalizeGatewayUrl(value) {
+  const raw = String(value || process.env.LCI_GATEWAY_URL?.trim() || DEFAULT_GATEWAY_URL).trim();
+  const withProtocol = /^https?:\/\//i.test(raw) ? raw : `http://${raw}`;
+  const url = new URL(withProtocol);
+
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new Error("LCI gateway URL must start with http:// or https://.");
+  }
+
+  url.pathname = url.pathname.replace(/\/+$/, "");
+  url.search = "";
+  url.hash = "";
+  return url;
+}
+
+async function getSavedGatewayUrl() {
+  if (dryRun) return null;
+
+  const response = await fetch(`${supabaseUrl}/rest/v1/system_settings?key=eq.loadrite_activation&select=value&limit=1`, {
+    headers: {
+      apikey: supabaseServiceRoleKey,
+      Authorization: `Bearer ${supabaseServiceRoleKey}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Could not load Loadrite gateway setting (${response.status}): ${await response.text()}`);
+  }
+
+  const rows = await response.json();
+  const value = Array.isArray(rows) ? rows[0]?.value : null;
+  return typeof value?.gatewayUrl === "string" && value.gatewayUrl.trim() ? value.gatewayUrl.trim() : null;
+}
+
+async function resolveGatewayConfig() {
+  let savedGatewayUrl = null;
+  try {
+    savedGatewayUrl = await getSavedGatewayUrl();
+  } catch (error) {
+    log("Could not read saved gateway setting; using Docker/default gateway.", error?.message || "");
+  }
+
+  const gatewayUrl = normalizeGatewayUrl(savedGatewayUrl);
+  const websocketProtocol = gatewayUrl.protocol === "https:" ? "wss:" : "ws:";
+  const websocketUrl = `${websocketProtocol}//${gatewayUrl.host}/websocket/jobs`;
+  return { gatewayUrl, websocketUrl };
+}
+
 function jobToTicketRow(job, userId) {
   const meta = toMetadataMap(job["Meta Data"]);
   const { amount, unit } = parseWeight(job["Total Weight"]);
@@ -146,10 +195,6 @@ function jobToTicketRow(job, userId) {
   };
 }
 
-const gatewayUrl = new URL(process.env.LCI_GATEWAY_URL?.trim() || "http://192.168.36.140");
-const websocketProtocol = gatewayUrl.protocol === "https:" ? "wss:" : "ws:";
-const websocketUrl = `${websocketProtocol}//${gatewayUrl.host}/websocket/jobs`;
-
 const syncUserId = dryRun ? "dry-run-user" : requireEnv("LOADRITE_SYNC_USER_ID");
 const supabaseUrl = dryRun ? "" : requireEnv("SUPABASE_URL").replace(/\/$/, "");
 const supabaseServiceRoleKey = dryRun ? "" : requireEnv("SUPABASE_SERVICE_ROLE_KEY");
@@ -157,6 +202,7 @@ const INITIAL_SEARCH_FILTER = process.env.LCI_INITIAL_SEARCH_FILTER ?? "";
 const ONCE_WAIT_MS = Number.parseInt(process.env.LCI_ONCE_WAIT_MS ?? "10000", 10);
 const REFRESH_INTERVAL_MS = Number.parseInt(process.env.LCI_REFRESH_INTERVAL_MS ?? "60000", 10);
 
+let currentWebsocketUrl = "";
 let lastPayloadSignature = "";
 let processedNonEmptyPayload = false;
 
@@ -249,12 +295,14 @@ async function handleJobsPayload(payloadValue) {
     throw new Error(`Supabase upsert failed (${response.status}): ${errorText}`);
   }
 
-  log(`Upserted ${rows.length} tickets from ${websocketUrl}`);
+  log(`Upserted ${rows.length} tickets from ${currentWebsocketUrl}`);
   if (once) process.exit(0);
 }
 
 async function start() {
   const { WebSocketClient, mode, eventStyle } = await loadWebSocketClient();
+  const { websocketUrl } = await resolveGatewayConfig();
+  currentWebsocketUrl = websocketUrl;
   log("Connecting to gateway", `${websocketUrl} via ${mode}`);
   const ws = new WebSocketClient(websocketUrl);
   let onceTimeout;
@@ -266,7 +314,16 @@ async function start() {
     log("Requested completed jobs", `(filter: ${INITIAL_SEARCH_FILTER || "all"})`);
     if (!once && REFRESH_INTERVAL_MS > 0) {
       refreshInterval = setInterval(() => {
-        requestCompletedJobs(ws, eventStyle);
+        void (async () => {
+          const nextConfig = await resolveGatewayConfig();
+          if (nextConfig.websocketUrl !== websocketUrl) {
+            log("Gateway setting changed. Reconnecting to", nextConfig.websocketUrl);
+            ws.close();
+            return;
+          }
+
+          requestCompletedJobs(ws, eventStyle);
+        })();
         log("Refreshed completed jobs request", `(filter: ${INITIAL_SEARCH_FILTER || "all"})`);
       }, REFRESH_INTERVAL_MS);
     }
