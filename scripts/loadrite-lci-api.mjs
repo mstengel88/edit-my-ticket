@@ -1,7 +1,7 @@
 import http from "node:http";
 
 const PORT = Number.parseInt(process.env.PORT ?? "8787", 10);
-const DEFAULT_GATEWAY_URL = "http://192.168.41.140";
+const DEFAULT_GATEWAY_URL = "http://192.168.47.140";
 
 function env(name, fallback = "") {
   return process.env[name]?.trim() ?? fallback;

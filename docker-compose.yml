@@ -22,10 +22,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.lci-api
+    network_mode: host
     restart: unless-stopped
     environment:
       PORT: 8787
-      LCI_GATEWAY_URL: ${LCI_GATEWAY_URL:-http://192.168.41.140}
+      LCI_GATEWAY_URL: ${LCI_GATEWAY_URL:-http://192.168.47.140}
       LCI_USERNAME: ${LCI_USERNAME}
       LCI_PASSWORD: ${LCI_PASSWORD}
       SUPABASE_URL: ${SUPABASE_URL:-${VITE_SUPABASE_URL}}

@@ -46,7 +46,7 @@ insert into public.system_settings (key, value)
 values (
   'loadrite_activation',
   '{
-    "gatewayUrl": "http://192.168.41.140",
+    "gatewayUrl": "http://192.168.47.140",
     "username": "sa",
     "activationCodeMasked": "",
     "dealerName": "",

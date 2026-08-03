@@ -2,11 +2,11 @@
 
 ## What we found
 
-The onsite gateway at `192.168.41.140` exposes a local Loadrite LCI web app over HTTP.
+The onsite gateway at `192.168.47.140` exposes a local Loadrite LCI web app over HTTP.
 
-- Home: `http://192.168.41.140/`
-- Ticket screen script: `http://192.168.41.140/js/loadout.js`
-- Ticket websocket: `ws://192.168.41.140/websocket/jobs`
+- Home: `http://192.168.47.140/`
+- Ticket screen script: `http://192.168.47.140/js/loadout.js`
+- Ticket websocket: `ws://192.168.47.140/websocket/jobs`
 
 The ticket websocket publishes completed job data in this shape:
 
@@ -25,7 +25,7 @@ That means we do not need to sniff packets to get the ticket feed. We can subscr
 
 The local LCI also has a login flow:
 
-- page: `http://192.168.41.140/login`
+- page: `http://192.168.47.140/login`
 - login POST: `POST /login`
 - payload:
 
@@ -65,7 +65,7 @@ That connects to the onsite gateway, receives the current ticket feed, normalize
 To run it live against Supabase:
 
 ```sh
-LCI_GATEWAY_URL=http://192.168.41.140 \
+LCI_GATEWAY_URL=http://192.168.47.140 \
 SUPABASE_URL=https://YOUR_PROJECT.supabase.co \
 SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY \
 LOADRITE_SYNC_USER_ID=YOUR_AUTH_USER_UUID \
@@ -86,7 +86,7 @@ Run it as a long-lived service:
 docker run -d \
   --name loadrite-lci-relay \
   --restart unless-stopped \
-  -e LCI_GATEWAY_URL=http://192.168.41.140 \
+  -e LCI_GATEWAY_URL=http://192.168.47.140 \
   -e SUPABASE_URL=https://YOUR_PROJECT.supabase.co \
   -e SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY \
   -e LOADRITE_SYNC_USER_ID=YOUR_AUTH_USER_UUID \
@@ -159,7 +159,7 @@ The best production shape for this is:
 - let it push outward to Supabase over the internet
 - keep your app reading from Supabase instead of talking directly to the local gateway
 
-That way your cloud app stays simple, and only the onsite relay needs local network access to `192.168.41.140`. If the gateway IP changes, update Loadrite Setup in Ticket Creator and the relay will reconnect on its next refresh.
+That way your cloud app stays simple, and only the onsite relay needs local network access to `192.168.47.140`. If the gateway IP changes, update Loadrite Setup in Ticket Creator and the relay will reconnect on its next refresh.
 
 ## Sending orders to the loader/scales
 
@@ -196,7 +196,7 @@ PO numbers are not exposed in the LCI truck-order form. The dispatch helper can 
 Dry-run a dispatch payload:
 
 ```sh
-LCI_GATEWAY_URL=http://192.168.41.140 \
+LCI_GATEWAY_URL=http://192.168.47.140 \
 LCI_USERNAME=sa \
 LCI_PASSWORD=your-password \
 LCI_DISPATCH_TRUCK=GREENHILLS-316 \

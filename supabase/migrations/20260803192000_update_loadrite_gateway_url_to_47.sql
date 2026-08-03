@@ -1,6 +1,6 @@
 update public.system_settings
 set value = jsonb_set(
-    value,
+    coalesce(value, '{}'::jsonb),
     '{gatewayUrl}',
     to_jsonb('http://192.168.47.140'::text),
     true

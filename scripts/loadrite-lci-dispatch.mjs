@@ -12,7 +12,7 @@ function requireEnv(name) {
 }
 
 function gatewayUrl(path = "") {
-  const base = new URL(env("LCI_GATEWAY_URL", "http://192.168.41.140"));
+  const base = new URL(env("LCI_GATEWAY_URL", "http://192.168.47.140"));
   return new URL(path, base).toString();
 }
 

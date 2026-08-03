@@ -1,7 +1,7 @@
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has("--dry-run");
 const once = args.has("--once");
-const DEFAULT_GATEWAY_URL = "http://192.168.41.140";
+const DEFAULT_GATEWAY_URL = "http://192.168.47.140";
 
 function requireEnv(name) {
   const value = process.env[name]?.trim();
