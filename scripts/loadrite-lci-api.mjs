@@ -387,7 +387,8 @@ async function login(overrideGatewayUrl = "") {
 }
 
 async function dispatchTruck(token, payload, overrideGatewayUrl = "") {
-  const response = await fetch(gatewayUrl("/api/trucks", overrideGatewayUrl), {
+  const path = "/api/trucks";
+  const response = await fetch(gatewayUrl(path, overrideGatewayUrl), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -398,7 +399,7 @@ async function dispatchTruck(token, payload, overrideGatewayUrl = "") {
 
   const text = await response.text();
   if (!response.ok) {
-    throw new Error(`LCI truck dispatch failed (${response.status}): ${text}`);
+    throw new Error(`LCI truck dispatch POST ${path} failed (${response.status}): ${text}`);
   }
 
   return text ? JSON.parse(text) : {};
@@ -482,10 +483,14 @@ const server = http.createServer(async (req, res) => {
     }
 
     const requestUrl = new URL(req.url || "/", "http://localhost");
+    console.log(`[loadrite-lci-api] ${req.method} ${requestUrl.pathname}`);
 
     if (req.method === "GET" && requestUrl.pathname === "/api/lci-lookups") {
       await validateSupabaseUser(req);
       const lookups = await loadGatewayLookups(getRequestGatewayUrl(req));
+      console.log(
+        `[loadrite-lci-api] Loaded lookups: ${lookups.trucks.length} trucks, ${lookups.products.length} products`,
+      );
       jsonResponse(res, 200, { ok: true, ...lookups });
       return;
     }
@@ -507,8 +512,10 @@ const server = http.createServer(async (req, res) => {
     await validateSupabaseUser(req);
     const body = await readJson(req);
     const payload = buildTruckPayload(body);
+    console.log(`[loadrite-lci-api] Dispatching truck to ${normalizeGatewayBaseUrl(body.gatewayUrl).origin}`, payload);
     const token = await login(body.gatewayUrl);
     const result = await dispatchTruck(token, payload, body.gatewayUrl);
+    console.log("[loadrite-lci-api] Dispatch accepted by LCI gateway");
     jsonResponse(res, 200, { ok: true, payload, result });
   } catch (error) {
     const status = Number.isInteger(error?.status) ? error.status : 500;

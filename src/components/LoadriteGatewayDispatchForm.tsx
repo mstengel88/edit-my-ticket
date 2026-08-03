@@ -135,6 +135,14 @@ export function LoadriteGatewayDispatchForm({ ticket, compact = false }: Loadrit
     setResult("");
   };
 
+  const getReadableError = (text: string, data: any) => {
+    if (data?.error) return String(data.error);
+    if (text.includes("<title>405 Not Allowed</title>") || text.includes("<h1>405 Not Allowed</h1>")) {
+      return "Gateway endpoint rejected this action with 405 Not Allowed.";
+    }
+    return text || "Gateway dispatch failed.";
+  };
+
   const handleSend = async () => {
     const quantity = Number.parseFloat(form.quantity);
 
@@ -186,7 +194,7 @@ export function LoadriteGatewayDispatchForm({ ticket, compact = false }: Loadrit
       }
 
       if (!response.ok || data?.ok === false) {
-        throw new Error(data?.error || text || "Gateway dispatch failed.");
+        throw new Error(getReadableError(text, data));
       }
 
       setResult(JSON.stringify(data.payload ?? data.result ?? data, null, 2));
