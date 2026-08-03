@@ -1,4 +1,5 @@
 import http from "node:http";
+import WebSocket from "ws";
 
 const PORT = Number.parseInt(process.env.PORT ?? "8787", 10);
 const DEFAULT_GATEWAY_URL = "http://192.168.47.140";
@@ -229,10 +230,6 @@ function requestCompletedJobs(ws, filter = "") {
 }
 
 async function fetchCompletedJobs(overrideGatewayUrl = "") {
-  if (typeof WebSocket !== "function") {
-    throw new Error("This Node runtime does not expose a WebSocket client.");
-  }
-
   const gateway = normalizeGatewayBaseUrl(overrideGatewayUrl);
   const websocketProtocol = gateway.protocol === "https:" ? "wss:" : "ws:";
   const websocketUrl = `${websocketProtocol}//${gateway.host}/websocket/jobs`;
@@ -256,13 +253,13 @@ async function fetchCompletedJobs(overrideGatewayUrl = "") {
       callback(value);
     };
 
-    ws.addEventListener("open", () => {
+    ws.on("open", () => {
       requestCompletedJobs(ws, env("LCI_INITIAL_SEARCH_FILTER", ""));
     });
 
-    ws.addEventListener("message", (event) => {
+    ws.on("message", (data) => {
       try {
-        const raw = typeof event.data === "string" ? event.data : event.data.toString();
+        const raw = typeof data === "string" ? data : data.toString();
         const message = JSON.parse(raw);
         if (message?.Name !== "JobsPresenter.FilteredJobs" || typeof message?.Value !== "string") return;
         const parsed = JSON.parse(message.Value);
@@ -273,8 +270,8 @@ async function fetchCompletedJobs(overrideGatewayUrl = "") {
       }
     });
 
-    ws.addEventListener("error", () => {
-      finish(reject, new Error(`Could not connect to LCI websocket at ${websocketUrl}.`));
+    ws.on("error", (error) => {
+      finish(reject, new Error(`Could not connect to LCI websocket at ${websocketUrl}: ${error?.message || "unknown error"}`));
     });
   });
 }
