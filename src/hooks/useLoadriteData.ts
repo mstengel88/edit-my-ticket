@@ -1,6 +1,8 @@
 import { useState, useCallback } from "react";
 import { TicketData } from "@/types/ticket";
 import { supabase } from "@/integrations/supabase/client";
+import { getAccessToken } from "@/lib/getAccessToken";
+import { getSavedLoadriteGatewayUrl } from "@/lib/loadriteGatewaySettings";
 
 function dbRowToTicket(row: any): TicketData {
   return {
@@ -57,6 +59,28 @@ export function useLoadriteData() {
     setError(null);
 
     try {
+      const token = await getAccessToken();
+      const gatewayUrl = await getSavedLoadriteGatewayUrl();
+      const response = await fetch("/api/lci-sync", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ gatewayUrl }),
+      });
+      const text = await response.text();
+      let data: any = null;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = null;
+      }
+
+      if (!response.ok || data?.ok === false) {
+        throw new Error(data?.error || text || "Failed to sync onsite Loadrite tickets");
+      }
+
       await loadFromDb();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to refresh tickets";

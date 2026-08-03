@@ -88,7 +88,234 @@ async function validateSupabaseUser(req) {
     throw error;
   }
 
-  return response.json();
+  const payload = await response.json();
+  return payload?.user ?? payload;
+}
+
+function formatTicketDate(date) {
+  return date.toLocaleString("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
+function toMetadataMap(entries) {
+  return Object.fromEntries(
+    (Array.isArray(entries) ? entries : [])
+      .filter((entry) => entry && typeof entry === "object")
+      .map((entry) => [String(entry.Label ?? "").trim(), String(entry.Value ?? "").trim()]),
+  );
+}
+
+function parseWeight(weightText) {
+  const value = String(weightText ?? "").trim();
+  const match = value.match(/(-?\d+(?:\.\d+)?)\s*([A-Za-z]+)/);
+  if (!match) return { amount: "0.00", unit: "Ton" };
+
+  const amount = Number.parseFloat(match[1]);
+  const unitToken = match[2].toLowerCase();
+  let unit = "Ton";
+  if (unitToken.startsWith("y")) unit = "Yardage";
+  if (unitToken.startsWith("g")) unit = "Gallons";
+
+  return {
+    amount: Number.isFinite(amount) ? amount.toFixed(2) : "0.00",
+    unit,
+  };
+}
+
+function parseTimeOnly(label, now = new Date()) {
+  const match = label.match(/^(\d{1,2}):(\d{2})\s*([AP]M)$/i);
+  if (!match) return null;
+
+  let hours = Number.parseInt(match[1], 10);
+  const minutes = Number.parseInt(match[2], 10);
+  const meridiem = match[3].toUpperCase();
+
+  if (meridiem === "PM" && hours !== 12) hours += 12;
+  if (meridiem === "AM" && hours === 12) hours = 0;
+
+  const parsed = new Date(now);
+  parsed.setHours(hours, minutes, 0, 0);
+  return parsed;
+}
+
+function parseDayMonthYear(label) {
+  const match = label.match(/^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{2})$/);
+  if (!match) return null;
+
+  const months = {
+    jan: 0,
+    feb: 1,
+    mar: 2,
+    apr: 3,
+    may: 4,
+    jun: 5,
+    jul: 6,
+    aug: 7,
+    sep: 8,
+    oct: 9,
+    nov: 10,
+    dec: 11,
+  };
+
+  const day = Number.parseInt(match[1], 10);
+  const month = months[match[2].toLowerCase()];
+  const year = 2000 + Number.parseInt(match[3], 10);
+  if (month === undefined) return null;
+
+  return new Date(year, month, day, 12, 0, 0, 0);
+}
+
+function normalizeCompletionLabel(label) {
+  const raw = String(label ?? "").trim();
+  if (!raw) return formatTicketDate(new Date());
+
+  const timeOnly = parseTimeOnly(raw);
+  if (timeOnly) return formatTicketDate(timeOnly);
+
+  const dayMonthYear = parseDayMonthYear(raw);
+  if (dayMonthYear) return formatTicketDate(dayMonthYear);
+
+  const native = new Date(raw);
+  if (!Number.isNaN(native.getTime())) return formatTicketDate(native);
+
+  return formatTicketDate(new Date());
+}
+
+function normalizeTruck(value) {
+  const truck = String(value ?? "").trim();
+  if (!truck || truck === "NOT SPECIFIED") return "-";
+  return truck;
+}
+
+function jobToTicketRow(job, userId) {
+  const meta = toMetadataMap(job["Meta Data"]);
+  const { amount, unit } = parseWeight(job["Total Weight"]);
+  const completionLabel = String(job["Completion Time"] ?? "").trim();
+  const poNumber =
+    meta["PO-Job Number"] ??
+    meta["PO / Job Number"] ??
+    meta["PO Number"] ??
+    meta["PO"] ??
+    "";
+
+  return {
+    id: String(job["Ticket ID"] ?? "").trim(),
+    source: "loadrite",
+    user_id: userId,
+    job_number: String(job["Ticket ID"] ?? "").trim(),
+    job_name: poNumber,
+    date_time: normalizeCompletionLabel(completionLabel),
+    total_amount: amount,
+    total_unit: unit,
+    customer: meta.Customer ?? "",
+    product: meta.Product ?? "",
+    truck: normalizeTruck(meta.Truck),
+    note: completionLabel ? `LCI completion label: ${completionLabel}` : "",
+    bucket: "Imported from onsite Loadrite LCI",
+    status: "pending",
+  };
+}
+
+function requestCompletedJobs(ws, filter = "") {
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ Name: "JobsPresenter.SearchByTicketID", Value: filter }));
+  }
+}
+
+async function fetchCompletedJobs(overrideGatewayUrl = "") {
+  if (typeof WebSocket !== "function") {
+    throw new Error("This Node runtime does not expose a WebSocket client.");
+  }
+
+  const gateway = normalizeGatewayBaseUrl(overrideGatewayUrl);
+  const websocketProtocol = gateway.protocol === "https:" ? "wss:" : "ws:";
+  const websocketUrl = `${websocketProtocol}//${gateway.host}/websocket/jobs`;
+  const waitMs = Number.parseInt(env("LCI_ONCE_WAIT_MS", "10000"), 10);
+
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(websocketUrl);
+    let settled = false;
+    const timeout = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      try { ws.close(); } catch {}
+      reject(new Error(`Timed out waiting ${waitMs}ms for completed jobs.`));
+    }, waitMs);
+
+    const finish = (callback, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      try { ws.close(); } catch {}
+      callback(value);
+    };
+
+    ws.addEventListener("open", () => {
+      requestCompletedJobs(ws, env("LCI_INITIAL_SEARCH_FILTER", ""));
+    });
+
+    ws.addEventListener("message", (event) => {
+      try {
+        const raw = typeof event.data === "string" ? event.data : event.data.toString();
+        const message = JSON.parse(raw);
+        if (message?.Name !== "JobsPresenter.FilteredJobs" || typeof message?.Value !== "string") return;
+        const parsed = JSON.parse(message.Value);
+        const jobs = Array.isArray(parsed?.Jobs) ? parsed.Jobs : [];
+        finish(resolve, { jobs, websocketUrl });
+      } catch (error) {
+        finish(reject, error);
+      }
+    });
+
+    ws.addEventListener("error", () => {
+      finish(reject, new Error(`Could not connect to LCI websocket at ${websocketUrl}.`));
+    });
+  });
+}
+
+async function syncCompletedTickets(userId, overrideGatewayUrl = "") {
+  const supabaseUrl = requireEnv("SUPABASE_URL").replace(/\/$/, "");
+  const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+  const syncUserId = env("LOADRITE_SYNC_USER_ID") || userId;
+  if (!syncUserId) {
+    const error = new Error("LOADRITE_SYNC_USER_ID is required when the authenticated user cannot be determined.");
+    error.status = 500;
+    throw error;
+  }
+
+  const { jobs, websocketUrl } = await fetchCompletedJobs(overrideGatewayUrl);
+  const rows = jobs.map((job) => jobToTicketRow(job, syncUserId)).filter((row) => row.id);
+
+  if (rows.length === 0) {
+    return { imported: 0, tickets: [], websocketUrl };
+  }
+
+  const response = await fetch(`${supabaseUrl}/rest/v1/tickets?on_conflict=id`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
+      Prefer: "resolution=merge-duplicates,return=minimal",
+    },
+    body: JSON.stringify(rows),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Supabase upsert failed (${response.status}): ${await response.text()}`);
+  }
+
+  return {
+    imported: rows.length,
+    tickets: rows.map((row) => row.id),
+    websocketUrl,
+  };
 }
 
 function buildTruckPayload(body) {
@@ -260,6 +487,15 @@ const server = http.createServer(async (req, res) => {
       await validateSupabaseUser(req);
       const lookups = await loadGatewayLookups(getRequestGatewayUrl(req));
       jsonResponse(res, 200, { ok: true, ...lookups });
+      return;
+    }
+
+    if (req.method === "POST" && requestUrl.pathname === "/api/lci-sync") {
+      const user = await validateSupabaseUser(req);
+      const body = await readJson(req);
+      const result = await syncCompletedTickets(user?.id, body.gatewayUrl);
+      console.log(`[loadrite-lci-api] Synced ${result.imported} tickets from ${result.websocketUrl}`);
+      jsonResponse(res, 200, { ok: true, ...result });
       return;
     }
 
