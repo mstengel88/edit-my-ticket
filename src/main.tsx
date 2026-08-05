@@ -13,6 +13,46 @@ document.documentElement.classList.toggle("ghos-embedded", ghosEmbedded);
 if (ghosEmbedded && window.parent !== window) {
   let resizeFrame = 0;
   let lastHeight = 0;
+  let lastTouchY: number | null = null;
+
+  const canScrollInsideFrame = (target: EventTarget | null, deltaY: number) => {
+    let element = target instanceof Element ? target : null;
+
+    while (
+      element &&
+      element !== document.body &&
+      element !== document.documentElement
+    ) {
+      const style = window.getComputedStyle(element);
+      const scrollable =
+        (style.overflowY === "auto" || style.overflowY === "scroll") &&
+        element.scrollHeight > element.clientHeight + 1;
+
+      if (scrollable) {
+        const canScrollUp = deltaY < 0 && element.scrollTop > 0;
+        const canScrollDown =
+          deltaY > 0 &&
+          element.scrollTop + element.clientHeight < element.scrollHeight - 1;
+
+        if (canScrollUp || canScrollDown) return true;
+      }
+
+      element = element.parentElement;
+    }
+
+    return false;
+  };
+
+  const forwardScrollToGhos = (deltaY: number, deltaX = 0) => {
+    window.parent.postMessage(
+      {
+        type: "ghos:ticket-creator:scroll",
+        deltaY,
+        deltaX,
+      },
+      "*",
+    );
+  };
 
   const publishEmbeddedSize = () => {
     window.cancelAnimationFrame(resizeFrame);
@@ -37,6 +77,52 @@ if (ghosEmbedded && window.parent !== window) {
 
   window.addEventListener("load", publishEmbeddedSize);
   window.addEventListener("resize", publishEmbeddedSize);
+  window.addEventListener(
+    "wheel",
+    (event) => {
+      if (canScrollInsideFrame(event.target, event.deltaY)) return;
+
+      event.preventDefault();
+      forwardScrollToGhos(event.deltaY, event.deltaX);
+    },
+    { passive: false },
+  );
+  window.addEventListener(
+    "touchstart",
+    (event) => {
+      lastTouchY = event.touches[0]?.clientY ?? null;
+    },
+    { passive: true },
+  );
+  window.addEventListener(
+    "touchmove",
+    (event) => {
+      const currentTouchY = event.touches[0]?.clientY;
+      if (lastTouchY === null || currentTouchY === undefined) return;
+
+      const deltaY = lastTouchY - currentTouchY;
+      lastTouchY = currentTouchY;
+      if (canScrollInsideFrame(event.target, deltaY)) return;
+
+      event.preventDefault();
+      forwardScrollToGhos(deltaY);
+    },
+    { passive: false },
+  );
+  window.addEventListener(
+    "touchend",
+    () => {
+      lastTouchY = null;
+    },
+    { passive: true },
+  );
+  window.addEventListener(
+    "touchcancel",
+    () => {
+      lastTouchY = null;
+    },
+    { passive: true },
+  );
   new ResizeObserver(publishEmbeddedSize).observe(document.documentElement);
   new MutationObserver(publishEmbeddedSize).observe(document.body, {
     childList: true,
