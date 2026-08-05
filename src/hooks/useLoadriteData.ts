@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import { TicketData } from "@/types/ticket";
 import { supabase } from "@/integrations/supabase/client";
 import { getAccessToken } from "@/lib/getAccessToken";
@@ -118,36 +118,6 @@ export function useLoadriteData(enabled = true) {
       warning: relayWarning,
     };
   }, [loadFromDb]);
-
-  useEffect(() => {
-    if (!enabled) return;
-
-    const refresh = () => {
-      if (document.visibilityState === "visible") {
-        void loadFromDb();
-      }
-    };
-
-    const channel = supabase
-      .channel("ticket-desk-live")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "tickets" },
-        () => void loadFromDb(),
-      )
-      .subscribe();
-
-    const poll = window.setInterval(refresh, 15_000);
-    window.addEventListener("focus", refresh);
-    document.addEventListener("visibilitychange", refresh);
-
-    return () => {
-      window.clearInterval(poll);
-      window.removeEventListener("focus", refresh);
-      document.removeEventListener("visibilitychange", refresh);
-      void supabase.removeChannel(channel);
-    };
-  }, [enabled, loadFromDb]);
 
   return { tickets, loading, error, fetchData, loadFromDb };
 }
