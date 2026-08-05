@@ -191,11 +191,10 @@ export interface ReportField {
 }
 
 export const DEFAULT_REPORT_FIELDS: ReportField[] = [
-  { id: "jobNumber", label: "Job #", visible: true },
+  { id: "jobNumber", label: "Ticket Number", visible: true },
   { id: "jobName", label: "PO #", visible: true },
   { id: "dateTime", label: "Date/Time", visible: true },
   { id: "customer", label: "Customer", visible: true },
-  { id: "customerEmail", label: "Customer Email", visible: true },
   { id: "customerAddress", label: "Customer Address", visible: true },
   { id: "product", label: "Product", visible: true },
   { id: "truck", label: "Truck", visible: true },
@@ -205,3 +204,20 @@ export const DEFAULT_REPORT_FIELDS: ReportField[] = [
   { id: "note", label: "Note", visible: true },
   { id: "status", label: "Status", visible: true },
 ];
+
+export const normalizeReportFields = (fields?: ReportField[]): ReportField[] => {
+  const supported = (Array.isArray(fields) ? fields : [])
+    .filter((field) => field.id !== "customerEmail");
+  const savedIds = new Set(supported.map((field) => field.id));
+  const merged = [
+    ...supported,
+    ...DEFAULT_REPORT_FIELDS.filter((field) => !savedIds.has(field.id)),
+  ];
+  const ticketNumber = merged.find((field) => field.id === "jobNumber")
+    ?? DEFAULT_REPORT_FIELDS[0];
+
+  return [
+    { ...ticketNumber, label: "Ticket Number", visible: true },
+    ...merged.filter((field) => field.id !== "jobNumber"),
+  ];
+};

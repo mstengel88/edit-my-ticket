@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { TicketData } from "@/types/ticket";
 import { supabase } from "@/integrations/supabase/client";
 import { getAccessToken } from "@/lib/getAccessToken";
@@ -33,30 +33,50 @@ function dbRowToTicket(row: any): TicketData {
   };
 }
 
-export function useLoadriteData() {
+export interface TicketSyncResult {
+  relaySynced: boolean;
+  databaseRefreshed: boolean;
+  warning?: string;
+}
+
+export function useLoadriteData(enabled = true) {
   const [tickets, setTickets] = useState<TicketData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const loadInFlight = useRef<Promise<boolean> | null>(null);
 
   const loadFromDb = useCallback(async () => {
-    const { data, error: dbErr } = await supabase
-      .from("tickets")
-      .select("*")
-      .order("created_at", { ascending: false });
+    if (loadInFlight.current) return loadInFlight.current;
 
-    if (dbErr) {
-      console.error("DB load error:", dbErr);
-      return;
-    }
+    loadInFlight.current = (async () => {
+      const { data, error: dbErr } = await supabase
+        .from("tickets")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-    if (data) {
-      setTickets(data.map(dbRowToTicket));
+      if (dbErr) {
+        const message = dbErr.message || "Tickets could not be loaded from the shared database.";
+        console.error("DB load error:", dbErr);
+        setError(message);
+        return false;
+      }
+
+      setTickets((data ?? []).map(dbRowToTicket));
+      setError(null);
+      return true;
+    })();
+
+    try {
+      return await loadInFlight.current;
+    } finally {
+      loadInFlight.current = null;
     }
   }, []);
 
-  const fetchData = useCallback(async (startDate?: string, endDate?: string) => {
+  const fetchData = useCallback(async (startDate?: string, endDate?: string): Promise<TicketSyncResult> => {
     setLoading(true);
     setError(null);
+    let relayWarning: string | undefined;
 
     try {
       const token = await getAccessToken();
@@ -80,15 +100,23 @@ export function useLoadriteData() {
       if (!response.ok || data?.ok === false) {
         throw new Error(data?.error || text || "Failed to sync onsite Loadrite tickets");
       }
-
-      await loadFromDb();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to refresh tickets";
-      setError(message);
+      relayWarning = err instanceof Error ? err.message : "The onsite Loadrite relay could not be reached.";
       console.error("Ticket refresh error:", err, { startDate, endDate });
-    } finally {
-      setLoading(false);
     }
+
+    const databaseRefreshed = await loadFromDb();
+    setLoading(false);
+
+    if (!databaseRefreshed && relayWarning) {
+      setError(`Ticket sync failed: ${relayWarning}`);
+    }
+
+    return {
+      relaySynced: !relayWarning,
+      databaseRefreshed,
+      warning: relayWarning,
+    };
   }, [loadFromDb]);
 
   return { tickets, loading, error, fetchData, loadFromDb };

@@ -1,0 +1,39 @@
+services:
+  ticket-creator:
+    container_name: ghos-ticket-creator
+    build:
+      args:
+        VITE_PWA_ENABLED: "false"
+        VITE_GHOS_EMBEDDED: "true"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+      - /var/cache/nginx:size=16m,mode=0755
+      - /var/run:size=1m,mode=0755
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - NET_BIND_SERVICE
+      - SETGID
+      - SETUID
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    networks:
+      - ghos-internal
+
+  lci-dispatch-api:
+    container_name: ghos-ticket-creator-lci-api
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  ghos-internal:
+    external: true

@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTicketLookups } from "@/hooks/useTicketLookups";
 import { useTicketTemplate } from "@/hooks/useTicketTemplate";
 import { TicketData, createEmptyTicket, formatTicketDateTime } from "@/types/ticket";
+import { createUuid } from "@/lib/createUuid";
 import { ComboInput } from "@/components/ComboInput";
 import { AddressAutocompleteInput } from "@/components/AddressAutocompleteInput";
 import { Input } from "@/components/ui/input";
@@ -475,7 +476,7 @@ const Orders = () => {
     const [jobNumber] = await getNextMtJobNumbers(1);
     const baseTicket = createEmptyTicket();
     const nextSequence = selectedOrder.tickets.length + 1;
-    const ticketId = crypto.randomUUID();
+    const ticketId = createUuid();
     const ticketNote = pullForm.note.trim() || selectedOrder.notes || "";
 
     const ticketInsert = {

@@ -85,6 +85,7 @@ const developerItems = [
 ];
 
 export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutProps) {
+  const isGhosEmbedded = import.meta.env.VITE_GHOS_EMBEDDED === "true";
   const { signOut, session } = useAuth();
   const { isAdminOrManager, isAdmin, role } = useUserRole();
   const { theme, setTheme } = useTheme();
@@ -100,6 +101,63 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
   const desktopShellInset = !useCompactLayout && !isPortrait
     ? "max(12px, var(--safe-area-left), var(--safe-area-right))"
     : undefined;
+
+  useEffect(() => {
+    if (!isGhosEmbedded || window.parent === window) return;
+
+    const canScrollInDirection = (element: Element, deltaY: number) => {
+      const style = window.getComputedStyle(element);
+      if (!/(auto|scroll|overlay)/.test(style.overflowY)) return false;
+
+      const scrollable = element as HTMLElement;
+      const remaining = scrollable.scrollHeight - scrollable.clientHeight;
+      if (remaining <= 1) return false;
+
+      return deltaY < 0
+        ? scrollable.scrollTop > 1
+        : scrollable.scrollTop < remaining - 1;
+    };
+
+    const pageCanScroll = (target: EventTarget | null, deltaY: number) => {
+      let element = target instanceof Element ? target : null;
+
+      while (element) {
+        if (canScrollInDirection(element, deltaY)) return true;
+        element = element.parentElement;
+      }
+
+      const page = document.scrollingElement;
+      if (!page) return false;
+
+      const remaining = page.scrollHeight - page.clientHeight;
+      return deltaY < 0
+        ? page.scrollTop > 1
+        : page.scrollTop < remaining - 1;
+    };
+
+    const forwardBoundaryScroll = (event: WheelEvent) => {
+      if (event.ctrlKey || Math.abs(event.deltaY) < 0.5) return;
+      if (pageCanScroll(event.target, event.deltaY)) return;
+
+      window.parent.postMessage(
+        {
+          type: "ghos:ticketing-boundary-scroll",
+          deltaY: event.deltaY,
+        },
+        "*",
+      );
+      event.preventDefault();
+    };
+
+    window.addEventListener("wheel", forwardBoundaryScroll, {
+      capture: true,
+      passive: false,
+    });
+
+    return () => {
+      window.removeEventListener("wheel", forwardBoundaryScroll, true);
+    };
+  }, [isGhosEmbedded]);
 
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -187,6 +245,23 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
       setDeleteDialogOpen(false);
     }
   };
+
+  if (isGhosEmbedded) {
+    return (
+      <div className="ghos-embedded-shell">
+        {headerExtra && (
+          <div className="ghos-embedded-actionbar no-print">
+            <div className="ghos-embedded-actions">
+              {headerExtra}
+            </div>
+          </div>
+        )}
+        <main className="ghos-embedded-content">
+          {children}
+        </main>
+      </div>
+    );
+  }
 
   const navItems = [
     ...baseNavItems,

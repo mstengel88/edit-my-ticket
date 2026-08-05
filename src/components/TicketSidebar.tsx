@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Trash2, Search, Plus, Printer, Mail, CheckCircle2 } from "lucide-react";
+import { Trash2, Search, Plus, Printer, Mail, CheckCircle2, Loader2 } from "lucide-react";
 
 type StatusFilter = "all" | "draft" | "pending" | "billable" | "sent" | "completed";
 
@@ -19,6 +19,7 @@ interface TicketSidebarProps {
   onStatusChange?: (ticket: TicketData, status: TicketData["status"]) => void;
   readOnly?: boolean;
   canDelete?: boolean;
+  creatingTicket?: boolean;
 }
 
 const statusDot: Record<TicketData["status"], string> = {
@@ -35,7 +36,7 @@ const compactUnitLabel: Record<string, string> = {
   Gallons: "Gal",
 };
 
-export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, onPrint, onEmail, onStatusChange, readOnly, canDelete = false }: TicketSidebarProps) {
+export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, onPrint, onEmail, onStatusChange, readOnly, canDelete = false, creatingTicket = false }: TicketSidebarProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -126,9 +127,19 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
             />
           </div>
           {!readOnly && (
-            <Button onClick={onNew} size="sm" className="h-9 w-full gap-1.5 bg-cyan-400 text-xs text-slate-950 hover:bg-cyan-300">
-              <Plus className="h-3.5 w-3.5" />
-              New Ticket
+            <Button
+              type="button"
+              onClick={onNew}
+              disabled={creatingTicket}
+              size="sm"
+              className="h-9 w-full gap-1.5 bg-cyan-400 text-xs text-slate-950 hover:bg-cyan-300"
+            >
+              {creatingTicket ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Plus className="h-3.5 w-3.5" />
+              )}
+              {creatingTicket ? "Creating…" : "New Ticket"}
             </Button>
           )}
         </div>
@@ -139,7 +150,15 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
             {filtered.map((ticket) => (
               <div
                 key={ticket.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => onSelect(ticket)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onSelect(ticket);
+                  }
+                }}
                 className={`group relative rounded-2xl border px-3 py-3 cursor-pointer transition-colors text-xs ${
                   ticket.id === selectedId
                     ? "border-cyan-300/20 bg-cyan-400/8"
@@ -177,6 +196,7 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
                     <div className="mr-1 flex shrink-0 items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                      {ticket.status !== "completed" && onStatusChange && (
                        <Button
+                         type="button"
                          variant="ghost"
                          size="icon"
                          className="h-5 w-5 text-success hover:text-success"
@@ -187,6 +207,7 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
                        </Button>
                      )}
                      <Button
+                       type="button"
                        variant="ghost"
                        size="icon"
                        className="h-5 w-5 text-slate-300 hover:bg-white/5 hover:text-white"
@@ -196,6 +217,7 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
                        <Printer className="h-3 w-3" />
                      </Button>
                      <Button
+                       type="button"
                        variant="ghost"
                        size="icon"
                        className="h-5 w-5 text-slate-300 hover:bg-white/5 hover:text-white"
@@ -206,6 +228,7 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
                      </Button>
                      {!readOnly && canDelete && (
                        <Button
+                         type="button"
                          variant="ghost"
                          size="icon"
                          className="h-5 w-5 text-rose-300 hover:bg-rose-400/10"

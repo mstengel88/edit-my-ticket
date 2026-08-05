@@ -1,0 +1,20 @@
+services:
+  ticket-creator-cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: ghos-ticket-creator-cloudflared
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TICKET_CREATOR_TUNNEL_TOKEN:?Set TICKET_CREATOR_TUNNEL_TOKEN in the protected GHOS environment file}
+    depends_on:
+      ticket-creator:
+        condition: service_healthy
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    profiles:
+      - tunnel
+    networks:
+      - ghos-internal

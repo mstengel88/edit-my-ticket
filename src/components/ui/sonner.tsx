@@ -3,12 +3,14 @@ import { Toaster as Sonner, toast } from "sonner";
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
-const Toaster = ({ ...props }: ToasterProps) => {
+const Toaster = ({ position, ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme();
+  const embedded = import.meta.env.VITE_GHOS_EMBEDDED === "true";
 
   return (
     <Sonner
       theme={theme as ToasterProps["theme"]}
+      position={position ?? (embedded ? "top-center" : "bottom-right")}
       className="toaster group"
       toastOptions={{
         classNames: {

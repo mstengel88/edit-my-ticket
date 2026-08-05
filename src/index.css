@@ -194,6 +194,102 @@
   }
 }
 
+html.ghos-embedded {
+  --background: 140 31% 6%;
+  --foreground: 105 14% 92%;
+  --card: 137 27% 9%;
+  --card-foreground: 105 14% 92%;
+  --popover: 137 27% 9%;
+  --popover-foreground: 105 14% 92%;
+  --primary: 75 69% 46%;
+  --primary-foreground: 132 24% 9%;
+  --secondary: 137 18% 14%;
+  --secondary-foreground: 105 14% 92%;
+  --muted: 137 18% 14%;
+  --muted-foreground: 120 7% 60%;
+  --accent: 75 54% 18%;
+  --accent-foreground: 75 69% 58%;
+  --border: 137 16% 21%;
+  --input: 137 16% 21%;
+  --ring: 75 69% 46%;
+  overscroll-behavior-y: auto;
+}
+
+.ghos-embedded body {
+  background: #0b1510;
+  overscroll-behavior-y: auto;
+}
+
+.ghos-embedded-shell {
+  min-height: 100%;
+  background:
+    radial-gradient(circle at top right, rgba(155, 198, 35, 0.07), transparent 32rem),
+    #0b1510;
+  color: #edf2ed;
+}
+
+.ghos-embedded-actionbar {
+  min-height: 58px;
+  padding: 10px 20px;
+  border-bottom: 1px solid rgba(164, 182, 164, 0.12);
+  background: #0f1e15;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.ghos-embedded-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ghos-embedded-content {
+  min-height: 0;
+  background: #0b1510;
+}
+
+.ghos-embedded-shell [class*="bg-[#"] {
+  background-color: #102016 !important;
+  background-image: none !important;
+}
+
+.ghos-embedded-shell [class*="text-cyan-"] {
+  color: #9bc623 !important;
+}
+
+.ghos-embedded-shell [class*="bg-cyan-"] {
+  background-color: #9bc623 !important;
+  color: #142116 !important;
+}
+
+.ghos-embedded-shell [class*="border-cyan-"] {
+  border-color: rgba(155, 198, 35, 0.32) !important;
+}
+
+.ghos-embedded-shell .console-panel {
+  border-color: rgba(164, 182, 164, 0.16);
+  background: #102016;
+}
+
+.ghos-embedded-shell .console-panel-soft,
+.ghos-embedded-shell .console-kpi {
+  border-color: rgba(164, 182, 164, 0.14);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+@media (max-width: 700px) {
+  .ghos-embedded-actionbar {
+    padding-inline: 14px;
+  }
+
+  .ghos-embedded-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
 .pac-container {
   z-index: 100000 !important;
   margin-top: 6px !important;
