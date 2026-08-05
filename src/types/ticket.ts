@@ -1,3 +1,5 @@
+import { createUuid } from "@/lib/createUuid";
+
 export interface TicketData {
   id: string;
   source?: "manual" | "loadrite";
@@ -45,7 +47,7 @@ export const formatTicketDateTime = (value: Date = new Date()) =>
   });
 
 export const createEmptyTicket = (jobNumber?: string): TicketData => ({
-  id: crypto.randomUUID(),
+  id: createUuid(),
   source: "manual",
   jobNumber: jobNumber ?? "MT-000001",
   jobName: "",
