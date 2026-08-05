@@ -85,6 +85,7 @@ const developerItems = [
 ];
 
 export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutProps) {
+  const isGhosEmbedded = import.meta.env.VITE_GHOS_EMBEDDED === "true";
   const { signOut, session } = useAuth();
   const { isAdminOrManager, isAdmin, role } = useUserRole();
   const { theme, setTheme } = useTheme();
@@ -187,6 +188,30 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
       setDeleteDialogOpen(false);
     }
   };
+
+  if (isGhosEmbedded) {
+    return (
+      <div className="ghos-embedded-shell">
+        {(title || headerExtra) && (
+          <header className="ghos-embedded-context no-print">
+            <div className="min-w-0">
+              <p className="ghos-embedded-eyebrow">GREEN HILLS TICKETING</p>
+              {title && <h1>{title}</h1>}
+              {subtitle && <p className="ghos-embedded-subtitle">{subtitle}</p>}
+            </div>
+            {headerExtra && (
+              <div className="ghos-embedded-actions">
+                {headerExtra}
+              </div>
+            )}
+          </header>
+        )}
+        <main className="ghos-embedded-content">
+          {children}
+        </main>
+      </div>
+    );
+  }
 
   const navItems = [
     ...baseNavItems,

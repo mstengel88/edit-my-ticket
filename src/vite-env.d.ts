@@ -7,6 +7,8 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL?: string;
   readonly VITE_SUPABASE_ANON_KEY?: string;
   readonly VITE_SUPABASE_PUBLISHABLE_KEY?: string;
+  readonly VITE_PWA_ENABLED?: string;
+  readonly VITE_GHOS_EMBEDDED?: string;
 }
 
 interface ImportMeta {

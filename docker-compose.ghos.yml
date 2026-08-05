@@ -1,0 +1,16 @@
+services:
+  ticket-creator:
+    container_name: ghos-ticket-creator
+    build:
+      args:
+        VITE_PWA_ENABLED: "false"
+        VITE_GHOS_EMBEDDED: "true"
+    networks:
+      - ghos-internal
+
+  lci-dispatch-api:
+    container_name: ghos-ticket-creator-lci-api
+
+networks:
+  ghos-internal:
+    external: true

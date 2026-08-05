@@ -5,6 +5,11 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
+const pwaEnabled = import.meta.env.VITE_PWA_ENABLED !== "false";
+const ghosEmbedded = import.meta.env.VITE_GHOS_EMBEDDED === "true";
+
+document.documentElement.classList.toggle("ghos-embedded", ghosEmbedded);
+
 async function configureNativeShell() {
   if (!Capacitor.isNativePlatform()) return;
 
@@ -33,7 +38,7 @@ async function configureNativeShell() {
 
 void configureNativeShell();
 
-if (!Capacitor.isNativePlatform() && "serviceWorker" in navigator) {
+if (!Capacitor.isNativePlatform() && pwaEnabled && "serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     const announceUpdate = (registration: ServiceWorkerRegistration) => {
       window.dispatchEvent(new CustomEvent("pwa:update-ready", { detail: registration }));
@@ -57,6 +62,26 @@ if (!Capacitor.isNativePlatform() && "serviceWorker" in navigator) {
     }).catch((error) => {
       console.error("Service worker registration failed", error);
     });
+  });
+}
+
+if (!Capacitor.isNativePlatform() && !pwaEnabled && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    void navigator.serviceWorker.getRegistrations()
+      .then((registrations) => Promise.all(
+        registrations.map((registration) => registration.unregister()),
+      ))
+      .catch((error) => {
+        console.warn("Unable to remove prior service worker registrations", error);
+      });
+
+    if ("caches" in window) {
+      void caches.keys()
+        .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+        .catch((error) => {
+          console.warn("Unable to clear prior PWA caches", error);
+        });
+    }
   });
 }
 

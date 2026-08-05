@@ -11,6 +11,8 @@ services:
         VITE_APPLE_CLIENT_ID: ${VITE_APPLE_CLIENT_ID:-}
         VITE_APPLE_REDIRECT_URI: ${VITE_APPLE_REDIRECT_URI:-}
         VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY:-}
+        VITE_PWA_ENABLED: ${VITE_PWA_ENABLED:-true}
+        VITE_GHOS_EMBEDDED: ${VITE_GHOS_EMBEDDED:-false}
     restart: unless-stopped
     ports:
       - "${TICKET_CREATOR_PORT:-3000}:80"

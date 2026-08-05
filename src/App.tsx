@@ -14,6 +14,7 @@ import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
+const pwaEnabled = import.meta.env.VITE_PWA_ENABLED !== "false";
 const Home = lazy(() => import("./pages/Home"));
 const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -173,6 +174,8 @@ const App = () => {
   const [showUpdateBanner, setShowUpdateBanner] = useState(false);
 
   useEffect(() => {
+    if (!pwaEnabled) return;
+
     const handleBeforeInstallPrompt = (event: Event) => {
       event.preventDefault();
       setInstallPromptEvent(event as BeforeInstallPromptEvent);
@@ -230,7 +233,7 @@ const App = () => {
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          {showInstallBanner && !showUpdateBanner && (
+          {pwaEnabled && showInstallBanner && !showUpdateBanner && (
             <PwaBanner
               mode="install"
               onInstall={() => void handleInstall()}
@@ -238,7 +241,7 @@ const App = () => {
               onDismiss={() => setShowInstallBanner(false)}
             />
           )}
-          {showUpdateBanner && (
+          {pwaEnabled && showUpdateBanner && (
             <PwaBanner
               mode="update"
               onInstall={() => {}}
