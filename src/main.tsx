@@ -10,6 +10,13 @@ const ghosEmbedded = import.meta.env.VITE_GHOS_EMBEDDED === "true";
 
 document.documentElement.classList.toggle("ghos-embedded", ghosEmbedded);
 
+if (!pwaEnabled) {
+  document.querySelector('link[rel="manifest"]')?.remove();
+  document.querySelectorAll(
+    'meta[name="apple-mobile-web-app-capable"], meta[name="mobile-web-app-capable"], meta[name="apple-mobile-web-app-status-bar-style"], meta[name="apple-mobile-web-app-title"]',
+  ).forEach((element) => element.remove());
+}
+
 async function configureNativeShell() {
   if (!Capacitor.isNativePlatform()) return;
 
