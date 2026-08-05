@@ -275,7 +275,11 @@ const Index = () => {
     }
 
     if (result.databaseRefreshed) {
-      toast.warning("The shared ticket queue was refreshed. The onsite Loadrite sync is not configured on this server yet.");
+      toast.warning(
+        result.warning
+          ? `The shared ticket queue was refreshed, but the onsite Loadrite sync failed: ${result.warning}`
+          : "The shared ticket queue was refreshed, but the onsite Loadrite sync did not complete.",
+      );
       return;
     }
 
