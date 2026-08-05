@@ -212,10 +212,12 @@ html.ghos-embedded {
   --border: 137 16% 21%;
   --input: 137 16% 21%;
   --ring: 75 69% 46%;
+  overscroll-behavior-y: auto;
 }
 
 .ghos-embedded body {
   background: #0b1510;
+  overscroll-behavior-y: auto;
 }
 
 .ghos-embedded-shell {
