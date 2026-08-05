@@ -192,19 +192,12 @@ export function AppLayout({ children, headerExtra, title, subtitle }: AppLayoutP
   if (isGhosEmbedded) {
     return (
       <div className="ghos-embedded-shell">
-        {(title || headerExtra) && (
-          <header className="ghos-embedded-context no-print">
-            <div className="min-w-0">
-              <p className="ghos-embedded-eyebrow">GREEN HILLS TICKETING</p>
-              {title && <h1>{title}</h1>}
-              {subtitle && <p className="ghos-embedded-subtitle">{subtitle}</p>}
+        {headerExtra && (
+          <div className="ghos-embedded-actionbar no-print">
+            <div className="ghos-embedded-actions">
+              {headerExtra}
             </div>
-            {headerExtra && (
-              <div className="ghos-embedded-actions">
-                {headerExtra}
-              </div>
-            )}
-          </header>
+          </div>
         )}
         <main className="ghos-embedded-content">
           {children}

@@ -10,6 +10,41 @@ const ghosEmbedded = import.meta.env.VITE_GHOS_EMBEDDED === "true";
 
 document.documentElement.classList.toggle("ghos-embedded", ghosEmbedded);
 
+if (ghosEmbedded && window.parent !== window) {
+  let resizeFrame = 0;
+  let lastHeight = 0;
+
+  const publishEmbeddedSize = () => {
+    window.cancelAnimationFrame(resizeFrame);
+    resizeFrame = window.requestAnimationFrame(() => {
+      const height = Math.max(
+        document.documentElement.scrollHeight,
+        document.body.scrollHeight,
+      );
+
+      if (Math.abs(height - lastHeight) < 2) return;
+      lastHeight = height;
+      window.parent.postMessage(
+        {
+          type: "ghos:ticket-creator:resize",
+          height,
+          path: window.location.pathname,
+        },
+        "*",
+      );
+    });
+  };
+
+  window.addEventListener("load", publishEmbeddedSize);
+  window.addEventListener("resize", publishEmbeddedSize);
+  new ResizeObserver(publishEmbeddedSize).observe(document.documentElement);
+  new MutationObserver(publishEmbeddedSize).observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+  });
+}
+
 if (!pwaEnabled) {
   document.querySelector('link[rel="manifest"]')?.remove();
   document.querySelectorAll(

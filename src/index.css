@@ -219,48 +219,21 @@ html.ghos-embedded {
 }
 
 .ghos-embedded-shell {
-  min-height: 100dvh;
+  min-height: 100%;
   background:
     radial-gradient(circle at top right, rgba(155, 198, 35, 0.07), transparent 32rem),
     #0b1510;
   color: #edf2ed;
 }
 
-.ghos-embedded-context {
-  min-height: 78px;
-  padding: 14px 22px;
-  border-bottom: 1px solid rgba(164, 182, 164, 0.16);
-  background: rgba(15, 30, 21, 0.94);
+.ghos-embedded-actionbar {
+  min-height: 58px;
+  padding: 10px 20px;
+  border-bottom: 1px solid rgba(164, 182, 164, 0.12);
+  background: #0f1e15;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  backdrop-filter: blur(16px);
-}
-
-.ghos-embedded-context h1 {
-  margin: 2px 0 0;
-  color: #f4f7f4;
-  font-size: 1.15rem;
-  font-weight: 800;
-  letter-spacing: -0.025em;
-}
-
-.ghos-embedded-eyebrow {
-  margin: 0;
-  color: #9bc623;
-  font-size: 0.62rem;
-  font-weight: 850;
-  letter-spacing: 0.16em;
-}
-
-.ghos-embedded-subtitle {
-  margin: 2px 0 0;
-  color: #93a094;
-  font-size: 0.72rem;
+  justify-content: flex-end;
 }
 
 .ghos-embedded-actions {
@@ -271,7 +244,7 @@ html.ghos-embedded {
 }
 
 .ghos-embedded-content {
-  min-height: calc(100dvh - 78px);
+  min-height: 0;
   background: #0b1510;
 }
 
@@ -305,9 +278,8 @@ html.ghos-embedded {
 }
 
 @media (max-width: 700px) {
-  .ghos-embedded-context {
-    align-items: flex-start;
-    flex-direction: column;
+  .ghos-embedded-actionbar {
+    padding-inline: 14px;
   }
 
   .ghos-embedded-actions {
