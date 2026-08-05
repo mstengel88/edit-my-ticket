@@ -1,5 +1,6 @@
 import http from "node:http";
 import WebSocket from "ws";
+import { preserveExistingTicketStatuses } from "./loadrite-sync-policy.mjs";
 
 const PORT = Number.parseInt(process.env.PORT ?? "8787", 10);
 const DEFAULT_GATEWAY_URL = "http://192.168.47.140";
@@ -287,11 +288,30 @@ async function syncCompletedTickets(userId, overrideGatewayUrl = "") {
   }
 
   const { jobs, websocketUrl } = await fetchCompletedJobs(overrideGatewayUrl);
-  const rows = jobs.map((job) => jobToTicketRow(job, syncUserId)).filter((row) => row.id);
+  const incomingRows = jobs.map((job) => jobToTicketRow(job, syncUserId)).filter((row) => row.id);
 
-  if (rows.length === 0) {
+  if (incomingRows.length === 0) {
     return { imported: 0, tickets: [], websocketUrl };
   }
+
+  const existingResponse = await fetch(
+    `${supabaseUrl}/rest/v1/tickets?select=id,status&source=eq.loadrite`,
+    {
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+    },
+  );
+
+  if (!existingResponse.ok) {
+    throw new Error(
+      `Supabase ticket status lookup failed (${existingResponse.status}): ${await existingResponse.text()}`,
+    );
+  }
+
+  const existingRows = await existingResponse.json();
+  const rows = preserveExistingTicketStatuses(incomingRows, existingRows);
 
   const response = await fetch(`${supabaseUrl}/rest/v1/tickets?on_conflict=id`, {
     method: "POST",
