@@ -27,8 +27,8 @@ type View = "list" | "editor" | "preview";
 type TicketSourceView = "all" | "manual" | "loadrite";
 
 const Index = () => {
-  const { tickets, loading, error, fetchData, loadFromDb } = useLoadriteData();
   const { signOut, session } = useAuth();
+  const { tickets, loading, error, fetchData, loadFromDb } = useLoadriteData(!!session);
   const { isAdminOrManager, isAdmin } = useUserRole();
   const location = useLocation();
   const navigate = useNavigate();
@@ -129,6 +129,7 @@ const Index = () => {
       setView("editor");
       setActiveTab("tickets");
       await loadFromDb();
+      toast.success(`Ticket ${newTicket.jobNumber} created.`);
     } catch (error) {
       console.error("Create ticket failed", error);
       const message = error instanceof Error ? error.message : "Unknown database error";
@@ -264,10 +265,21 @@ const Index = () => {
     else { setView("list"); setSelectedTicket(null); }
   };
 
-  const handleRefresh = () => {
-    fetchData();
-    logAudit("sync", "ticket");
-    toast.info("Refreshing tickets from the onsite relay...");
+  const handleRefresh = async () => {
+    const result = await fetchData();
+
+    if (result.relaySynced && result.databaseRefreshed) {
+      toast.success("Loadrite sync completed and the ticket queue is up to date.");
+      await logAudit("sync", "ticket");
+      return;
+    }
+
+    if (result.databaseRefreshed) {
+      toast.warning("The shared ticket queue was refreshed. The onsite Loadrite sync is not configured on this server yet.");
+      return;
+    }
+
+    toast.error(result.warning || "The ticket queue could not be refreshed.");
   };
 
   const handleStatusChange = async (ticket: TicketData, status: TicketData["status"]) => {
@@ -349,13 +361,14 @@ const Index = () => {
           </Button>
         )}
         {isAdminOrManager && (
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="gap-1.5 border-white/10 bg-white/5 text-white hover:bg-white/10">
+          <Button type="button" variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="gap-1.5 border-white/10 bg-white/5 text-white hover:bg-white/10">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Sync
           </Button>
         )}
         {isAdminOrManager && (
           <Button
+            type="button"
             size="sm"
             onClick={handleNewTicket}
             disabled={creatingTicket}
@@ -617,11 +630,12 @@ const Index = () => {
       )}
       {isAdminOrManager && view === "list" && activeTab === "tickets" && (
         <>
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="gap-1.5">
+          <Button type="button" variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="gap-1.5">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Sync
           </Button>
           <Button
+            type="button"
             onClick={handleNewTicket}
             disabled={creatingTicket}
             size="sm"
