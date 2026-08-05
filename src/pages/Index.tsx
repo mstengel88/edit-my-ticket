@@ -47,6 +47,7 @@ const Index = () => {
   const [view, setView] = useState<View>("list");
   const [activeTab, setActiveTab] = useState<string>("tickets");
   const [pendingPrint, setPendingPrint] = useState(false);
+  const [creatingTicket, setCreatingTicket] = useState(false);
 
   useEffect(() => { if (session) loadFromDb(); }, [loadFromDb, session]);
   useEffect(() => { if (error) toast.error(error); }, [error]);
@@ -79,23 +80,21 @@ const Index = () => {
   };
 
   const handleNewTicket = async () => {
-    // Find the next TM- number
-    let nextNumber = 1;
-    if (session?.user) {
-      const { data: rows } = await supabase
-        .from("tickets")
-        .select("job_number")
-        .like("job_number", "MT-%")
-        .order("job_number", { ascending: false })
-        .limit(1);
-      if (rows && rows.length > 0) {
-        const match = rows[0].job_number.match(/^MT-(\d+)$/);
-        if (match) nextNumber = parseInt(match[1], 10) + 1;
-      }
+    if (creatingTicket) return;
+    if (!session?.user) {
+      toast.error("Your ticketing session has expired. Sign in again and retry.");
+      return;
     }
-    const jobNumber = `MT-${String(nextNumber).padStart(6, "0")}`;
-    const newTicket = createEmptyTicket(jobNumber);
-    if (session?.user) {
+
+    setCreatingTicket(true);
+
+    try {
+      const nextNumber = tickets.reduce((highest, ticket) => {
+        const match = ticket.jobNumber.match(/^MT-(\d+)$/);
+        return match ? Math.max(highest, Number.parseInt(match[1], 10)) : highest;
+      }, 0) + 1;
+      const jobNumber = `MT-${String(nextNumber).padStart(6, "0")}`;
+      const newTicket = createEmptyTicket(jobNumber);
       const row = {
         id: newTicket.id,
         user_id: session.user.id,
@@ -119,12 +118,24 @@ const Index = () => {
         signature: newTicket.signature,
         status: newTicket.status,
       };
-      await supabase.from("tickets").insert(row);
-      logAudit("create", "ticket", newTicket.id, { jobNumber: newTicket.jobNumber });
+
+      const { error: insertError } = await supabase.from("tickets").insert(row);
+      if (insertError) throw insertError;
+
+      await logAudit("create", "ticket", newTicket.id, {
+        jobNumber: newTicket.jobNumber,
+      });
+      setSelectedTicket(newTicket);
+      setView("editor");
+      setActiveTab("tickets");
+      await loadFromDb();
+    } catch (error) {
+      console.error("Create ticket failed", error);
+      const message = error instanceof Error ? error.message : "Unknown database error";
+      toast.error(`Ticket could not be created: ${message}`);
+    } finally {
+      setCreatingTicket(false);
     }
-    setSelectedTicket(newTicket);
-    setView("editor");
-    await loadFromDb();
   };
 
   const persistTicket = async (ticketToSave: TicketData, successMessage = "Ticket saved!") => {
@@ -344,9 +355,18 @@ const Index = () => {
           </Button>
         )}
         {isAdminOrManager && (
-          <Button size="sm" onClick={handleNewTicket} className="gap-1.5 bg-cyan-400 text-slate-950 hover:bg-cyan-300">
-            <Plus className="h-4 w-4" />
-            New Ticket
+          <Button
+            size="sm"
+            onClick={handleNewTicket}
+            disabled={creatingTicket}
+            className="gap-1.5 bg-cyan-400 text-slate-950 hover:bg-cyan-300"
+          >
+            {creatingTicket ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
+            {creatingTicket ? "Creating…" : "New Ticket"}
           </Button>
         )}
       </>
@@ -575,6 +595,7 @@ const Index = () => {
             onStatusChange={isAdminOrManager ? handleStatusChange : undefined}
             readOnly={!isAdminOrManager}
             canDelete={isAdmin}
+            creatingTicket={creatingTicket}
           />
         </div>
       </AppLayout>
@@ -600,9 +621,18 @@ const Index = () => {
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Sync
           </Button>
-          <Button onClick={handleNewTicket} size="sm" className="gap-1.5">
-            <Plus className="h-4 w-4" />
-            New Ticket
+          <Button
+            onClick={handleNewTicket}
+            disabled={creatingTicket}
+            size="sm"
+            className="gap-1.5"
+          >
+            {creatingTicket ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
+            {creatingTicket ? "Creating…" : "New Ticket"}
           </Button>
         </>
       )}
