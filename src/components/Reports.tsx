@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { TicketData } from "@/types/ticket";
-import { ReportField, DEFAULT_REPORT_FIELDS, ReportEmailConfig } from "@/types/template";
+import { ReportField, DEFAULT_REPORT_FIELDS, ReportEmailConfig, normalizeReportFields } from "@/types/template";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -36,7 +36,7 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
   const [customTo, setCustomTo] = useState<Date | undefined>();
   const [customerFilter, setCustomerFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const rFields = reportFields || DEFAULT_REPORT_FIELDS;
+  const rFields = normalizeReportFields(reportFields || DEFAULT_REPORT_FIELDS);
   const rVisible = (id: string) => rFields.find((f) => f.id === id)?.visible ?? true;
 
   const now = new Date();
@@ -818,11 +818,10 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
           <Table>
             <TableHeader>
               <TableRow>
-                {rVisible("jobNumber") && <TableHead>Job #</TableHead>}
+                {rVisible("jobNumber") && <TableHead>Ticket Number</TableHead>}
                 {rVisible("jobName") && <TableHead>Job Name</TableHead>}
                 {rVisible("dateTime") && <TableHead>Date/Time</TableHead>}
                 {rVisible("customer") && <TableHead>Customer</TableHead>}
-                {rVisible("customerEmail") && <TableHead>Customer Email</TableHead>}
                 {rVisible("customerAddress") && <TableHead>Customer Address</TableHead>}
                 {rVisible("product") && <TableHead>Product</TableHead>}
                 {rVisible("truck") && <TableHead>Truck</TableHead>}
@@ -842,7 +841,6 @@ export function Reports({ tickets, reportFields, reportEmailConfig }: ReportsPro
                     {rVisible("jobName") && <TableCell className="text-slate-300">{t.jobName}</TableCell>}
                     {rVisible("dateTime") && <TableCell className="whitespace-nowrap text-slate-300">{t.dateTime}</TableCell>}
                     {rVisible("customer") && <TableCell className="text-slate-300">{t.customer}</TableCell>}
-                    {rVisible("customerEmail") && <TableCell className="text-slate-400">{t.customerEmail}</TableCell>}
                     {rVisible("customerAddress") && <TableCell className="text-slate-400">{t.customerAddress}</TableCell>}
                     {rVisible("product") && <TableCell className="text-slate-300">{t.product}</TableCell>}
                     {rVisible("truck") && <TableCell className="text-slate-300">{t.truck}</TableCell>}

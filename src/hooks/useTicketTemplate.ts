@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   CanvasElement, DEFAULT_CANVAS_ELEMENTS, CANVAS_WIDTH, CANVAS_HEIGHT,
   TemplateField, DEFAULT_TEMPLATE_FIELDS,
-  ReportField, DEFAULT_REPORT_FIELDS,
+  ReportField, DEFAULT_REPORT_FIELDS, normalizeReportFields,
   DEFAULT_TICKET_EMAIL_ELEMENTS, EMAIL_CANVAS_WIDTH, EMAIL_CANVAS_HEIGHT,
   ReportEmailConfig, DEFAULT_REPORT_EMAIL_CONFIG,
   PrintLayouts, DEFAULT_PRINT_LAYOUTS,
@@ -16,7 +16,7 @@ export function useTicketTemplate() {
   const { session } = useAuth();
   const [fields, setFields] = useState<TemplateField[]>(DEFAULT_TEMPLATE_FIELDS);
   const [canvasElements, setCanvasElements] = useState<CanvasElement[]>(DEFAULT_CANVAS_ELEMENTS);
-  const [reportFields, setReportFields] = useState<ReportField[]>(DEFAULT_REPORT_FIELDS);
+  const [reportFields, setReportFields] = useState<ReportField[]>(normalizeReportFields(DEFAULT_REPORT_FIELDS));
   const [copiesPerPage, setCopiesPerPage] = useState(2);
   const [canvasWidth, setCanvasWidth] = useState(CANVAS_WIDTH);
   const [canvasHeight, setCanvasHeight] = useState(CANVAS_HEIGHT);
@@ -40,7 +40,7 @@ export function useTicketTemplate() {
       if (layout.copiesPerPage) setCopiesPerPage(layout.copiesPerPage);
       if (layout.canvasWidth) setCanvasWidth(layout.canvasWidth);
       if (layout.canvasHeight) setCanvasHeight(layout.canvasHeight);
-      if (Array.isArray(layout.reportFields)) setReportFields(layout.reportFields);
+      if (Array.isArray(layout.reportFields)) setReportFields(normalizeReportFields(layout.reportFields));
       if (Array.isArray(layout.emailElements)) setEmailElements(layout.emailElements);
       if (layout.emailCanvasWidth) setEmailCanvasWidth(layout.emailCanvasWidth);
       if (layout.emailCanvasHeight) setEmailCanvasHeight(layout.emailCanvasHeight);
@@ -77,8 +77,7 @@ export function useTicketTemplate() {
         if (layout.canvasWidth) setCanvasWidth(layout.canvasWidth);
         if (layout.canvasHeight) setCanvasHeight(layout.canvasHeight);
         if (Array.isArray(layout.reportFields) && layout.reportFields.length > 0) {
-          const savedKeys = new Set(layout.reportFields.map((f: any) => f.id));
-          setReportFields([...layout.reportFields, ...DEFAULT_REPORT_FIELDS.filter((f) => !savedKeys.has(f.id))]);
+          setReportFields(normalizeReportFields(layout.reportFields));
         }
         if (Array.isArray(layout.emailElements) && layout.emailElements.length > 0) {
           setEmailElements(layout.emailElements);

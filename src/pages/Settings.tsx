@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTicketTemplate } from "@/hooks/useTicketTemplate";
-import { CanvasElement, ReportField, ReportEmailConfig, PrintLayouts, DEFAULT_PRINT_LAYOUTS } from "@/types/template";
+import { CanvasElement, ReportField, ReportEmailConfig, PrintLayouts, DEFAULT_PRINT_LAYOUTS, normalizeReportFields } from "@/types/template";
 import { TicketData, sampleTickets } from "@/types/ticket";
 import { TicketPreview } from "@/components/TicketPreview";
 import { CanvasEditor } from "@/components/template-editor/CanvasEditor";
@@ -182,7 +182,7 @@ const Settings = ({ defaultTab = "designer" }: SettingsProps) => {
     restoreVersion(layout);
     if (Array.isArray(layout.canvasElements)) setLocalCanvas(layout.canvasElements);
     if (layout.copiesPerPage) setLocalCopies(layout.copiesPerPage);
-    if (Array.isArray(layout.reportFields)) setLocalReportFields(layout.reportFields);
+    if (Array.isArray(layout.reportFields)) setLocalReportFields(normalizeReportFields(layout.reportFields));
     if (layout.canvasWidth) setLocalWidth(layout.canvasWidth);
     if (layout.canvasHeight) setLocalHeight(layout.canvasHeight);
     if (Array.isArray(layout.emailElements)) setLocalEmailElements(layout.emailElements);
