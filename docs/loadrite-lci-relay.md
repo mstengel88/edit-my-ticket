@@ -128,7 +128,7 @@ Examples:
 The relay currently normalizes those like this:
 
 - same-day time labels use today's date plus the given time
-- date-only labels use noon on that date
+- date-only labels are skipped because the gateway does not expose an exact time
 
 If you need exact second-level load timestamps, the next step would be finding a deeper API or model endpoint on the gateway that exposes the raw completion datetime rather than the display label.
 
@@ -138,6 +138,24 @@ At the moment, the public websocket only exposes a display label such as:
 - `30 Jul 26`
 
 That is good enough for ticket sync, but not ideal if exact machine timestamps are important.
+
+## Repairing Imported Noon Timestamps
+
+If an older sync imported Loadrite rows from date-only gateway labels, those rows may have `12:00 PM` as their time. The cloud repair script uses Insight HQ loading records and requires `LOADRITE_API_TOKEN`:
+
+```bash
+npm run lci:repair-times -- --from 2026-08-01 --to 2026-08-07
+npm run lci:repair-times -- --from 2026-08-01 --to 2026-08-07 --apply
+```
+
+If the loading API has no rows but the onsite gateway still shows exact time labels, use the gateway repair script from the onsite Pi instead. It does not need `LOADRITE_API_TOKEN`; it reads `LCI_GATEWAY_URL`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` or `LOADRITE_SYNC_SERVICE_ROLE_KEY` from `.env`.
+
+```bash
+npm run lci:repair-gateway-times -- --gateway http://192.168.47.140
+npm run lci:repair-gateway-times -- --gateway http://192.168.47.140 --apply
+```
+
+The gateway repair only uses rows it still labels like `10:22 AM`. Older rows labeled only like `06 Aug 26` do not include an exact time in the completed-jobs websocket, so the repair skips them instead of inventing a time.
 
 ## Best next step for richer timestamps
 
