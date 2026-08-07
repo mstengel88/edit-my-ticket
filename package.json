@@ -9,6 +9,7 @@
     "build:dev": "vite build --mode development",
     "lci:dispatch": "node scripts/loadrite-lci-dispatch.mjs",
     "lci:relay": "node scripts/loadrite-lci-relay.mjs",
+    "lci:repair-times": "node scripts/loadrite-repair-ticket-times.mjs",
     "ios:init": "cap add ios",
     "build:ios": "vite build && cap sync ios",
     "cap:sync": "cap sync",
