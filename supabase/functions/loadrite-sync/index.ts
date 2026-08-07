@@ -102,6 +102,19 @@ function groupToTicketRow(group: LoadGroup, userId: string) {
   };
 }
 
+function parseTicketDate(value: unknown): Date | null {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function isNoonTimestamp(value: unknown): boolean {
+  const parsed = parseTicketDate(value);
+  return Boolean(parsed && parsed.getHours() === 12 && parsed.getMinutes() === 0);
+}
+
 function dateOnly(value: Date) {
   return value.toISOString().split("T")[0];
 }
@@ -147,6 +160,58 @@ async function fetchLoadingRecords(
   return [];
 }
 
+async function repairSupabaseTicketTimes(
+  adminClient: ReturnType<typeof createClient>,
+  groups: LoadGroup[],
+  updateAll: boolean,
+  apply: boolean,
+) {
+  const loadriteTimeByTicket = new Map(
+    groups
+      .filter((group) => group.ticketNumber && group.time)
+      .map((group) => [group.ticketNumber, formatDate(group.time)]),
+  );
+
+  const { data: tickets, error: lookupErr } = await adminClient
+    .from("tickets")
+    .select("id, job_number, date_time, status, source")
+    .eq("source", "loadrite")
+    .limit(10000);
+
+  if (lookupErr) throw lookupErr;
+
+  const repairs = (tickets ?? []).flatMap((ticket) => {
+    const repairedDateTime =
+      loadriteTimeByTicket.get(String(ticket.id ?? "").trim())
+      ?? loadriteTimeByTicket.get(String(ticket.job_number ?? "").trim());
+
+    if (!repairedDateTime) return [];
+    if (!updateAll && !isNoonTimestamp(ticket.date_time)) return [];
+    if (String(ticket.date_time ?? "").trim() === repairedDateTime) return [];
+
+    return [{
+      id: ticket.id,
+      jobNumber: ticket.job_number,
+      status: ticket.status,
+      currentDateTime: ticket.date_time,
+      repairedDateTime,
+    }];
+  });
+
+  if (apply) {
+    for (const repair of repairs) {
+      const { error: updateErr } = await adminClient
+        .from("tickets")
+        .update({ date_time: repair.repairedDateTime })
+        .eq("id", repair.id);
+
+      if (updateErr) throw updateErr;
+    }
+  }
+
+  return repairs;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -160,10 +225,10 @@ Deno.serve(async (req: Request) => {
     const loadriteToken = Deno.env.get("LOADRITE_API_TOKEN");
     const syncUserId = Deno.env.get("LOADRITE_SYNC_USER_ID");
 
-    if (!supabaseUrl || !serviceRoleKey || !loadriteToken || !syncUserId) {
+    if (!supabaseUrl || !serviceRoleKey || !loadriteToken) {
       return new Response(
         JSON.stringify({
-          error: "Missing one or more required settings: SUPABASE_URL, LOADRITE_SYNC_SERVICE_ROLE_KEY, LOADRITE_API_TOKEN, LOADRITE_SYNC_USER_ID",
+          error: "Missing one or more required settings: SUPABASE_URL, LOADRITE_SYNC_SERVICE_ROLE_KEY, LOADRITE_API_TOKEN",
         }),
         { status: 500, headers: corsHeaders },
       );
@@ -184,9 +249,45 @@ Deno.serve(async (req: Request) => {
 
     const records = await fetchLoadingRecords(loadriteToken, site, fromDate, toDate);
     const groups = groupRecordsIntoTickets(records);
-    const rows = groups.map((group) => groupToTicketRow(group, syncUserId));
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    const repairTimes = body.repairTimes === true || body.mode === "repair-times";
+
+    if (repairTimes) {
+      const repairs = await repairSupabaseTicketTimes(
+        adminClient,
+        groups,
+        body.allTimes === true,
+        body.apply === true,
+      );
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          mode: "repair-times",
+          applied: body.apply === true,
+          site,
+          fromDate,
+          toDate,
+          records: records.length,
+          groupedTickets: groups.length,
+          repairCandidates: repairs.length,
+          repairs,
+        }),
+        { status: 200, headers: corsHeaders },
+      );
+    }
+
+    if (!syncUserId) {
+      return new Response(
+        JSON.stringify({
+          error: "Missing required setting: LOADRITE_SYNC_USER_ID",
+        }),
+        { status: 500, headers: corsHeaders },
+      );
+    }
+
+    const rows = groups.map((group) => groupToTicketRow(group, syncUserId));
 
     if (rows.length > 0) {
       const { error: upsertErr } = await adminClient
