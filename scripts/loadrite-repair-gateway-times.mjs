@@ -213,6 +213,21 @@ function gatewayJobsToTimes(jobs, dateBase) {
   return ticketTimes;
 }
 
+function gatewayDateOnlyJobs(jobs) {
+  return jobs.flatMap((job) => {
+    const ticketId = normalizeTicketId(job?.["Ticket ID"]);
+    const completionLabel = String(job?.["Completion Time"] ?? "").trim();
+
+    if (!ticketId || parseTimeOnly(completionLabel, new Date())) return [];
+    if (!/^\d{1,2}\s+[A-Za-z]{3}\s+\d{2}$/.test(completionLabel)) return [];
+
+    return [{
+      id: ticketId,
+      completionLabel,
+    }];
+  });
+}
+
 async function fetchSupabaseTickets(supabaseUrl, serviceRoleKey) {
   const response = await fetch(
     `${supabaseUrl}/rest/v1/tickets?select=id,job_number,date_time,status,source&source=eq.loadrite&limit=10000`,
@@ -254,6 +269,28 @@ function buildRepairs(tickets, gatewayTimes, updateAll) {
   });
 }
 
+function buildUnrecoverableNoonMatches(tickets, dateOnlyGatewayJobs) {
+  const dateOnlyByTicket = new Map(dateOnlyGatewayJobs.map((job) => [job.id, job]));
+
+  return tickets.flatMap((ticket) => {
+    const candidates = [
+      normalizeTicketId(ticket.id),
+      normalizeTicketId(ticket.job_number),
+    ].filter(Boolean);
+
+    const match = candidates.map((candidate) => dateOnlyByTicket.get(candidate)).find(Boolean);
+    if (!match || !isNoonTimestamp(ticket.date_time)) return [];
+
+    return [{
+      id: ticket.id,
+      jobNumber: ticket.job_number,
+      status: ticket.status,
+      currentDateTime: ticket.date_time,
+      gatewayLabel: match.completionLabel,
+    }];
+  });
+}
+
 async function updateTicketTime(supabaseUrl, serviceRoleKey, id, dateTime) {
   const response = await fetch(`${supabaseUrl}/rest/v1/tickets?id=eq.${encodeURIComponent(id)}`, {
     method: "PATCH",
@@ -282,14 +319,28 @@ async function main() {
   console.log(`[loadrite-gateway-repair] Reading completed jobs from ${normalizeGatewayBaseUrl(options.gatewayUrl).origin}`);
   const jobs = await fetchGatewayJobs(options.gatewayUrl, options.waitMs);
   const gatewayTimes = gatewayJobsToTimes(jobs, repairDate);
+  const dateOnlyJobs = gatewayDateOnlyJobs(jobs);
   const dateNote = options.date ? options.date : "today";
-  console.log(`[loadrite-gateway-repair] Found ${jobs.length} gateway jobs, ${gatewayTimes.size} with exact time labels for ${dateNote}.`);
+  console.log(`[loadrite-gateway-repair] Found ${jobs.length} gateway jobs, ${gatewayTimes.size} with exact time labels for ${dateNote}, ${dateOnlyJobs.length} with date-only labels.`);
 
   const tickets = await fetchSupabaseTickets(supabaseUrl, serviceRoleKey);
   const repairs = buildRepairs(tickets, gatewayTimes, options.all);
+  const unrecoverable = buildUnrecoverableNoonMatches(tickets, dateOnlyJobs);
 
   if (repairs.length === 0) {
     console.log("[loadrite-gateway-repair] No matching Supabase ticket times need repair.");
+    if (unrecoverable.length > 0) {
+      console.log(`[loadrite-gateway-repair] ${unrecoverable.length} matching noon-stamped ticket(s) only have date-only labels from the gateway, so their exact time cannot be recovered from this feed.`);
+      console.table(unrecoverable.slice(0, 25).map((ticket) => ({
+        id: ticket.id,
+        status: ticket.status,
+        current: ticket.currentDateTime,
+        gateway: ticket.gatewayLabel,
+      })));
+      if (unrecoverable.length > 25) {
+        console.log(`[loadrite-gateway-repair] Showing first 25 of ${unrecoverable.length} unrecoverable gateway matches.`);
+      }
+    }
     return;
   }
 
