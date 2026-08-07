@@ -1,5 +1,6 @@
 import http from "node:http";
 import WebSocket from "ws";
+import { filterSyncableTicketRows, preserveExistingTicketStatuses } from "./loadrite-sync-policy.mjs";
 
 const PORT = Number.parseInt(process.env.PORT ?? "8787", 10);
 const DEFAULT_GATEWAY_URL = "http://192.168.47.140";
@@ -145,47 +146,27 @@ function parseTimeOnly(label, now = new Date()) {
   return parsed;
 }
 
-function parseDayMonthYear(label) {
-  const match = label.match(/^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{2})$/);
-  if (!match) return null;
+function isDayMonthYearOnly(label) {
+  return /^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{2})$/.test(label);
+}
 
-  const months = {
-    jan: 0,
-    feb: 1,
-    mar: 2,
-    apr: 3,
-    may: 4,
-    jun: 5,
-    jul: 6,
-    aug: 7,
-    sep: 8,
-    oct: 9,
-    nov: 10,
-    dec: 11,
-  };
-
-  const day = Number.parseInt(match[1], 10);
-  const month = months[match[2].toLowerCase()];
-  const year = 2000 + Number.parseInt(match[3], 10);
-  if (month === undefined) return null;
-
-  return new Date(year, month, day, 12, 0, 0, 0);
+function hasExplicitTime(label) {
+  return /\b\d{1,2}:\d{2}(?::\d{2})?\s*(?:[AP]M)?\b/i.test(label) || /T\d{2}:\d{2}/.test(label);
 }
 
 function normalizeCompletionLabel(label) {
   const raw = String(label ?? "").trim();
-  if (!raw) return formatTicketDate(new Date());
+  if (!raw) return null;
 
   const timeOnly = parseTimeOnly(raw);
   if (timeOnly) return formatTicketDate(timeOnly);
 
-  const dayMonthYear = parseDayMonthYear(raw);
-  if (dayMonthYear) return formatTicketDate(dayMonthYear);
+  if (isDayMonthYearOnly(raw) || !hasExplicitTime(raw)) return null;
 
   const native = new Date(raw);
   if (!Number.isNaN(native.getTime())) return formatTicketDate(native);
 
-  return formatTicketDate(new Date());
+  return null;
 }
 
 function normalizeTruck(value) {
@@ -198,6 +179,9 @@ function jobToTicketRow(job, userId) {
   const meta = toMetadataMap(job["Meta Data"]);
   const { amount, unit } = parseWeight(job["Total Weight"]);
   const completionLabel = String(job["Completion Time"] ?? "").trim();
+  const dateTime = normalizeCompletionLabel(completionLabel);
+  if (!dateTime) return null;
+
   const poNumber =
     meta["PO-Job Number"] ??
     meta["PO / Job Number"] ??
@@ -211,7 +195,7 @@ function jobToTicketRow(job, userId) {
     user_id: userId,
     job_number: String(job["Ticket ID"] ?? "").trim(),
     job_name: poNumber,
-    date_time: normalizeCompletionLabel(completionLabel),
+    date_time: dateTime,
     total_amount: amount,
     total_unit: unit,
     customer: meta.Customer ?? "",
@@ -287,10 +271,36 @@ async function syncCompletedTickets(userId, overrideGatewayUrl = "") {
   }
 
   const { jobs, websocketUrl } = await fetchCompletedJobs(overrideGatewayUrl);
-  const rows = jobs.map((job) => jobToTicketRow(job, syncUserId)).filter((row) => row.id);
+  const incomingRows = jobs.map((job) => jobToTicketRow(job, syncUserId)).filter((row) => row?.id);
+  const skippedAmbiguousTime = jobs.length - incomingRows.length;
+
+  if (incomingRows.length === 0) {
+    return { imported: 0, skippedAmbiguousTime, skippedFinalized: 0, tickets: [], websocketUrl };
+  }
+
+  const existingResponse = await fetch(
+    `${supabaseUrl}/rest/v1/tickets?select=id,status`,
+    {
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+    },
+  );
+
+  if (!existingResponse.ok) {
+    throw new Error(
+      `Supabase ticket status lookup failed (${existingResponse.status}): ${await existingResponse.text()}`,
+    );
+  }
+
+  const existingRows = await existingResponse.json();
+  const syncableRows = filterSyncableTicketRows(incomingRows, existingRows);
+  const rows = preserveExistingTicketStatuses(syncableRows, existingRows);
+  const skippedFinalized = incomingRows.length - rows.length;
 
   if (rows.length === 0) {
-    return { imported: 0, tickets: [], websocketUrl };
+    return { imported: 0, skippedAmbiguousTime, skippedFinalized, tickets: [], websocketUrl };
   }
 
   const response = await fetch(`${supabaseUrl}/rest/v1/tickets?on_conflict=id`, {
@@ -310,6 +320,8 @@ async function syncCompletedTickets(userId, overrideGatewayUrl = "") {
 
   return {
     imported: rows.length,
+    skippedAmbiguousTime,
+    skippedFinalized,
     tickets: rows.map((row) => row.id),
     websocketUrl,
   };

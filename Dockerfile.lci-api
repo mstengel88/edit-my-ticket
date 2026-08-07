@@ -6,6 +6,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --legacy-peer-deps
 
 COPY scripts/loadrite-lci-api.mjs ./scripts/loadrite-lci-api.mjs
+COPY scripts/loadrite-sync-policy.mjs ./scripts/loadrite-sync-policy.mjs
 
 ENV PORT=8787
 EXPOSE 8787
