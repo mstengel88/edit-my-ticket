@@ -1,0 +1,49 @@
+name: ticket-printer-operations-candidate
+
+services:
+  ticket-printer:
+    container_name: ghos-ticket-printer-operations-candidate
+    build:
+      context: .
+      dockerfile: Dockerfile.operations
+      args:
+        VITE_SUPABASE_URL: ${OPERATIONS_CANDIDATE_PUBLIC_URL}/supabase
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${OPERATIONS_ANON_KEY}
+        VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY}
+        VITE_APPLE_CLIENT_ID: ${VITE_APPLE_CLIENT_ID:-}
+        VITE_APPLE_REDIRECT_URI: ${VITE_APPLE_REDIRECT_URI:-}
+        VITE_PWA_ENABLED: "false"
+        VITE_GHOS_EMBEDDED: "false"
+    restart: unless-stopped
+    ports:
+      - ${OPERATIONS_CANDIDATE_BIND_IP:-100.75.152.30}:${OPERATIONS_CANDIDATE_PORT:-18084}:80
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+      - /var/cache/nginx:size=16m,mode=0755
+      - /var/run:size=1m,mode=0755
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - NET_BIND_SERVICE
+      - SETGID
+      - SETUID
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 15s
+      timeout: 5s
+      start_period: 10s
+      retries: 5
+    networks:
+      - ghos-internal
+
+networks:
+  ghos-internal:
+    external: true
+    name: ghos-internal
