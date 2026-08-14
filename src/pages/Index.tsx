@@ -98,6 +98,7 @@ const Index = () => {
   const { isAdminOrManager, isAdmin } = useUserRole();
   const location = useLocation();
   const navigate = useNavigate();
+  const isTicketEmbed = new URLSearchParams(location.search).get("embed") === "ticket";
   const { fields: templateFields, canvasElements, reportFields, copiesPerPage, canvasWidth, canvasHeight, emailElements, reportEmailConfig, printLayouts } = useTicketTemplate();
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
@@ -113,6 +114,7 @@ const Index = () => {
   const [view, setView] = useState<View>("list");
   const [activeTab, setActiveTab] = useState<string>("tickets");
   const [pendingPrint, setPendingPrint] = useState(false);
+  const [ticketLookupError, setTicketLookupError] = useState("");
   const handledDispatchPrefillRef = useRef("");
 
   useEffect(() => { if (session) loadFromDb(); }, [loadFromDb, session]);
@@ -186,7 +188,7 @@ const Index = () => {
 
   useEffect(() => {
     const prefill = dispatchTicketPrefillFromSearch(location.search);
-    if (!prefill || !session?.user) return;
+    if (!prefill) return;
 
     const prefillKey = `${prefill.dispatchOrderId || "po"}:${prefill.po}`;
     if (handledDispatchPrefillRef.current === prefillKey) return;
@@ -195,6 +197,7 @@ const Index = () => {
     let cancelled = false;
 
     const openDispatchTicketByPo = async () => {
+      setTicketLookupError("");
       let existingRow: any = null;
       if (prefill.dispatchOrderId) {
         const { data } = await supabase
@@ -221,12 +224,16 @@ const Index = () => {
       if (existingRow) {
         const existingTicket = dbRowToTicket(existingRow);
         setSelectedTicket(existingTicket);
-        setView("editor");
+        setView(isTicketEmbed ? "preview" : "editor");
         setActiveTab("tickets");
-        toast.success(`Opened loader ticket for PO #${prefill.po}`);
-        navigate(location.pathname, { replace: true });
+        if (!isTicketEmbed) {
+          toast.success(`Opened loader ticket for PO #${prefill.po}`);
+          navigate(location.pathname, { replace: true });
+        }
       } else {
-        toast.error(`No Loadrite ticket found yet for PO #${prefill.po}. Submit it from the scale first, then try again.`);
+        const message = `No Loadrite ticket found yet for PO #${prefill.po}. Submit it from the scale first, then try again.`;
+        setTicketLookupError(message);
+        if (!isTicketEmbed) toast.error(message);
       }
     };
 
@@ -235,7 +242,7 @@ const Index = () => {
     return () => {
       cancelled = true;
     };
-  }, [location.pathname, location.search, navigate, session?.user]);
+  }, [isTicketEmbed, location.pathname, location.search, navigate]);
 
   const persistTicket = async (ticketToSave: TicketData, successMessage = "Ticket saved!") => {
     const { error: err } = await supabase
@@ -429,6 +436,37 @@ const Index = () => {
       toast.error(err?.message || "Failed to send email");
     }
   };
+
+  if (isTicketEmbed) {
+    const prefill = dispatchTicketPrefillFromSearch(location.search);
+
+    return (
+      <main className="min-h-screen bg-slate-950 p-4 text-white">
+        {selectedTicket ? (
+          <div className="mx-auto max-w-[980px] rounded-[24px] border border-white/10 bg-white p-3 shadow-2xl">
+            <TicketPreview
+              ticket={selectedTicket}
+              canvasElements={canvasElements}
+              emailElements={emailElements}
+              senderEmail={reportEmailConfig?.senderEmail}
+              copiesPerPage={1}
+              canvasWidth={canvasWidth}
+              canvasHeight={canvasHeight}
+              printLayouts={printLayouts}
+            />
+          </div>
+        ) : (
+          <div className="mx-auto mt-10 max-w-xl rounded-[24px] border border-white/10 bg-[#111c2d] p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">Loader Ticket</p>
+            <h1 className="mt-3 text-2xl font-semibold">PO #{prefill?.po || "Unknown"}</h1>
+            <p className="mt-4 text-slate-300">
+              {ticketLookupError || "Looking for the Loadrite-created ticket..."}
+            </p>
+          </div>
+        )}
+      </main>
+    );
+  }
 
   // ─── Desktop split layout ───
   if (!isMobile && !isTablet) {
