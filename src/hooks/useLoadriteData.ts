@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getAccessToken } from "@/lib/getAccessToken";
 import { getSavedLoadriteGatewayUrl } from "@/lib/loadriteGatewaySettings";
 
-function dbRowToTicket(row: any): TicketData {
+export function dbRowToTicket(row: any): TicketData {
   return {
     id: row.id,
     source: (row.source as TicketData["source"]) ?? "manual",

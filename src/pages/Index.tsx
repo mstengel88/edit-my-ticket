@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { TicketData, createEmptyTicket, formatTicketDateTime } from "@/types/ticket";
 import { TicketList } from "@/components/TicketList";
 import { TicketSidebar } from "@/components/TicketSidebar";
@@ -6,7 +6,7 @@ import { TicketEditor } from "@/components/TicketEditor";
 import { TicketPreview } from "@/components/TicketPreview";
 import { Reports } from "@/components/Reports";
 import { LoadriteGatewayDispatchForm } from "@/components/LoadriteGatewayDispatchForm";
-import { useLoadriteData } from "@/hooks/useLoadriteData";
+import { useLoadriteData, dbRowToTicket } from "@/hooks/useLoadriteData";
 import { ArrowLeft, Plus, RefreshCw, Loader2, BarChart3, FileClock, Package2, Users } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useIsMobile, useIsTablet } from "@/hooks/use-mobile";
@@ -25,6 +25,72 @@ import { Badge } from "@/components/ui/badge";
 
 type View = "list" | "editor" | "preview";
 type TicketSourceView = "all" | "manual" | "loadrite";
+
+type DispatchTicketPrefill = {
+  po: string;
+  dispatchOrderId: string;
+  customer: string;
+  product: string;
+  truck: string;
+  totalAmount: string;
+  totalUnit: string;
+  customerAddress: string;
+  customerEmail: string;
+  note: string;
+};
+
+function ticketRowFromTicket(ticket: TicketData, userId: string) {
+  return {
+    id: ticket.id,
+    user_id: userId,
+    job_number: ticket.jobNumber,
+    job_name: ticket.jobName,
+    date_time: ticket.dateTime,
+    order_id: ticket.orderId,
+    order_sequence: ticket.orderSequence,
+    issued_at: ticket.issuedAt,
+    source: ticket.source ?? "manual",
+    company_name: ticket.companyName,
+    company_email: ticket.companyEmail,
+    company_website: ticket.companyWebsite,
+    company_phone: ticket.companyPhone,
+    total_amount: ticket.totalAmount,
+    total_unit: ticket.totalUnit,
+    customer: ticket.customer,
+    product: ticket.product,
+    truck: ticket.truck,
+    note: ticket.note,
+    bucket: ticket.bucket,
+    customer_name: ticket.customerName,
+    customer_email: ticket.customerEmail,
+    customer_address: ticket.customerAddress,
+    signature: ticket.signature,
+    status: ticket.status,
+  };
+}
+
+function dispatchTicketPrefillFromSearch(search: string): DispatchTicketPrefill | null {
+  const params = new URLSearchParams(search);
+  const po = (params.get("po") || params.get("poNumber") || params.get("order") || "").trim();
+  if (!po) return null;
+
+  const loadedQuantity = (params.get("loadedQuantity") || params.get("quantity") || "").trim();
+  return {
+    po,
+    dispatchOrderId: (params.get("dispatchOrderId") || "").trim(),
+    customer: (params.get("customer") || "").trim(),
+    product: (params.get("material") || "").trim(),
+    truck: (params.get("truck") || "").trim(),
+    totalAmount: loadedQuantity,
+    totalUnit: (params.get("unit") || "").trim(),
+    customerAddress: [params.get("address"), params.get("city")]
+      .map((part) => String(part || "").trim())
+      .filter(Boolean)
+      .join(", "),
+    customerEmail: (params.get("contact") || "").trim(),
+    note: (params.get("route") ? `Dispatch route: ${params.get("route")}` : "").trim(),
+  };
+}
 
 const Index = () => {
   const { tickets, loading, error, fetchData, loadFromDb } = useLoadriteData();
@@ -47,6 +113,7 @@ const Index = () => {
   const [view, setView] = useState<View>("list");
   const [activeTab, setActiveTab] = useState<string>("tickets");
   const [pendingPrint, setPendingPrint] = useState(false);
+  const handledDispatchPrefillRef = useRef("");
 
   useEffect(() => { if (session) loadFromDb(); }, [loadFromDb, session]);
   useEffect(() => { if (error) toast.error(error); }, [error]);
@@ -78,8 +145,7 @@ const Index = () => {
     setView("editor");
   };
 
-  const handleNewTicket = async () => {
-    // Find the next TM- number
+  const getNextMtJobNumber = async () => {
     let nextNumber = 1;
     if (session?.user) {
       const { data: rows } = await supabase
@@ -93,39 +159,83 @@ const Index = () => {
         if (match) nextNumber = parseInt(match[1], 10) + 1;
       }
     }
-    const jobNumber = `MT-${String(nextNumber).padStart(6, "0")}`;
-    const newTicket = createEmptyTicket(jobNumber);
+    return `MT-${String(nextNumber).padStart(6, "0")}`;
+  };
+
+  const createTicket = async (prefill?: Partial<TicketData>) => {
+    const jobNumber = await getNextMtJobNumber();
+    const newTicket = { ...createEmptyTicket(jobNumber), ...prefill };
     if (session?.user) {
-      const row = {
-        id: newTicket.id,
-        user_id: session.user.id,
-        job_number: newTicket.jobNumber,
-        job_name: newTicket.jobName,
-        date_time: newTicket.dateTime,
-        order_id: newTicket.orderId,
-        order_sequence: newTicket.orderSequence,
-        issued_at: newTicket.issuedAt,
-        source: newTicket.source ?? "manual",
-        total_amount: newTicket.totalAmount,
-        total_unit: newTicket.totalUnit,
-        customer: newTicket.customer,
-        product: newTicket.product,
-        truck: newTicket.truck,
-        note: newTicket.note,
-        bucket: newTicket.bucket,
-        customer_name: newTicket.customerName,
-        customer_email: newTicket.customerEmail,
-        customer_address: newTicket.customerAddress,
-        signature: newTicket.signature,
-        status: newTicket.status,
-      };
-      await supabase.from("tickets").insert(row);
-      logAudit("create", "ticket", newTicket.id, { jobNumber: newTicket.jobNumber });
+      const { error: insertError } = await supabase.from("tickets").insert(ticketRowFromTicket(newTicket, session.user.id));
+      if (insertError) {
+        toast.error("Failed to create ticket");
+        console.error(insertError);
+        return null;
+      }
+      logAudit("create", "ticket", newTicket.id, { jobNumber: newTicket.jobNumber, po: newTicket.jobName });
     }
     setSelectedTicket(newTicket);
     setView("editor");
     await loadFromDb();
+    return newTicket;
   };
+
+  const handleNewTicket = async () => {
+    await createTicket();
+  };
+
+  useEffect(() => {
+    const prefill = dispatchTicketPrefillFromSearch(location.search);
+    if (!prefill || !session?.user) return;
+
+    const prefillKey = `${prefill.dispatchOrderId || "po"}:${prefill.po}`;
+    if (handledDispatchPrefillRef.current === prefillKey) return;
+    handledDispatchPrefillRef.current = prefillKey;
+
+    let cancelled = false;
+
+    const openDispatchTicketByPo = async () => {
+      let existingRow: any = null;
+      if (prefill.dispatchOrderId) {
+        const { data } = await supabase
+          .from("tickets")
+          .select("*")
+          .eq("order_id", prefill.dispatchOrderId)
+          .maybeSingle();
+        existingRow = data;
+      }
+
+      if (!existingRow) {
+        const { data } = await supabase
+          .from("tickets")
+          .select("*")
+          .in("job_name", [prefill.po, `#${prefill.po}`])
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        existingRow = data;
+      }
+
+      if (cancelled) return;
+
+      if (existingRow) {
+        const existingTicket = dbRowToTicket(existingRow);
+        setSelectedTicket(existingTicket);
+        setView("editor");
+        setActiveTab("tickets");
+        toast.success(`Opened loader ticket for PO #${prefill.po}`);
+        navigate(location.pathname, { replace: true });
+      } else {
+        toast.error(`No Loadrite ticket found yet for PO #${prefill.po}. Submit it from the scale first, then try again.`);
+      }
+    };
+
+    void openDispatchTicketByPo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [location.pathname, location.search, navigate, session?.user]);
 
   const persistTicket = async (ticketToSave: TicketData, successMessage = "Ticket saved!") => {
     const { error: err } = await supabase
