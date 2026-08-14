@@ -24,6 +24,12 @@ function jsonResponse(res, status, payload) {
   res.end(body);
 }
 
+function badRequest(message) {
+  const error = new Error(message);
+  error.status = 400;
+  return error;
+}
+
 async function readJson(req) {
   let raw = "";
   for await (const chunk of req) {
@@ -33,6 +39,96 @@ async function readJson(req) {
     }
   }
   return raw ? JSON.parse(raw) : {};
+}
+
+function ticketPreviewSelect() {
+  return [
+    "id",
+    "source",
+    "user_id",
+    "job_number",
+    "job_name",
+    "date_time",
+    "order_id",
+    "order_sequence",
+    "issued_at",
+    "company_name",
+    "company_email",
+    "company_website",
+    "company_phone",
+    "total_amount",
+    "total_unit",
+    "customer",
+    "product",
+    "truck",
+    "note",
+    "bucket",
+    "customer_name",
+    "customer_email",
+    "customer_address",
+    "signature",
+    "status",
+    "created_at",
+  ].join(",");
+}
+
+function normalizeTicketLookupValue(value) {
+  return String(value ?? "").trim().replace(/^#+/, "");
+}
+
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+async function fetchTicketPreview(requestUrl) {
+  const supabaseUrl = requireEnv("SUPABASE_URL").replace(/\/$/, "");
+  const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+  const po = normalizeTicketLookupValue(
+    requestUrl.searchParams.get("po") ||
+    requestUrl.searchParams.get("poNumber") ||
+    requestUrl.searchParams.get("order"),
+  );
+  const dispatchOrderId = normalizeTicketLookupValue(requestUrl.searchParams.get("dispatchOrderId"));
+
+  if (!po && !dispatchOrderId) {
+    throw badRequest("A PO number or dispatch order ID is required.");
+  }
+
+  const headers = {
+    apikey: serviceRoleKey,
+    Authorization: `Bearer ${serviceRoleKey}`,
+  };
+
+  const exactTerms = [...new Set([po, po ? `#${po}` : "", dispatchOrderId].filter(Boolean))];
+  const orParts = [];
+  for (const term of exactTerms) {
+    const encoded = encodeURIComponent(term);
+    orParts.push(`job_name.eq.${encoded}`, `job_number.eq.${encoded}`);
+  }
+  if (isUuid(dispatchOrderId)) {
+    orParts.push(`order_id.eq.${encodeURIComponent(dispatchOrderId)}`);
+  }
+
+  const exactUrl = `${supabaseUrl}/rest/v1/tickets?select=${ticketPreviewSelect()}&or=(${orParts.join(",")})&order=created_at.desc&limit=1`;
+  const exactResponse = await fetch(exactUrl, { headers });
+  if (!exactResponse.ok) {
+    throw new Error(`Supabase ticket lookup failed (${exactResponse.status}): ${await exactResponse.text()}`);
+  }
+
+  const exactRows = await exactResponse.json();
+  if (Array.isArray(exactRows) && exactRows[0]) return exactRows[0];
+
+  if (!po) return null;
+
+  const fuzzy = encodeURIComponent(`*${po}*`);
+  const fuzzyUrl = `${supabaseUrl}/rest/v1/tickets?select=${ticketPreviewSelect()}&or=(job_name.ilike.${fuzzy},job_number.ilike.${fuzzy})&order=created_at.desc&limit=1`;
+  const fuzzyResponse = await fetch(fuzzyUrl, { headers });
+  if (!fuzzyResponse.ok) {
+    throw new Error(`Supabase fuzzy ticket lookup failed (${fuzzyResponse.status}): ${await fuzzyResponse.text()}`);
+  }
+
+  const fuzzyRows = await fuzzyResponse.json();
+  return Array.isArray(fuzzyRows) ? fuzzyRows[0] ?? null : null;
 }
 
 function normalizeGatewayBaseUrl(value) {
@@ -501,6 +597,12 @@ const server = http.createServer(async (req, res) => {
         `[loadrite-lci-api] Loaded lookups: ${lookups.trucks.length} trucks, ${lookups.products.length} products`,
       );
       jsonResponse(res, 200, { ok: true, ...lookups });
+      return;
+    }
+
+    if (req.method === "GET" && requestUrl.pathname === "/api/ticket-preview") {
+      const ticket = await fetchTicketPreview(requestUrl);
+      jsonResponse(res, 200, { ok: true, ticket });
       return;
     }
 

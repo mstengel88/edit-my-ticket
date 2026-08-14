@@ -92,6 +92,26 @@ function dispatchTicketPrefillFromSearch(search: string): DispatchTicketPrefill 
   };
 }
 
+function looksLikeUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+async function fetchEmbeddedTicketPreview(prefill: DispatchTicketPrefill) {
+  const params = new URLSearchParams();
+  params.set("po", prefill.po);
+  if (prefill.dispatchOrderId) params.set("dispatchOrderId", prefill.dispatchOrderId);
+
+  const response = await fetch(`/api/ticket-preview?${params.toString()}`, {
+    headers: { Accept: "application/json" },
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+
+  const payload = await response.json();
+  return payload?.ticket ?? null;
+}
+
 const Index = () => {
   const { tickets, loading, error, fetchData, loadFromDb } = useLoadriteData();
   const { signOut, session } = useAuth();
@@ -199,7 +219,16 @@ const Index = () => {
     const openDispatchTicketByPo = async () => {
       setTicketLookupError("");
       let existingRow: any = null;
-      if (prefill.dispatchOrderId) {
+
+      if (isTicketEmbed) {
+        try {
+          existingRow = await fetchEmbeddedTicketPreview(prefill);
+        } catch (error) {
+          console.error("Embedded ticket lookup failed:", error);
+        }
+      }
+
+      if (!existingRow && prefill.dispatchOrderId && looksLikeUuid(prefill.dispatchOrderId)) {
         const { data } = await supabase
           .from("tickets")
           .select("*")
