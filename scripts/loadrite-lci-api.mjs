@@ -76,6 +76,11 @@ function normalizeTicketLookupValue(value) {
   return String(value ?? "").trim().replace(/^#+/, "");
 }
 
+function baseOrderLookupValue(value) {
+  const normalized = normalizeTicketLookupValue(value);
+  return normalized.replace(/([0-9])([a-z])$/i, "$1");
+}
+
 function isUuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
@@ -99,7 +104,10 @@ async function fetchTicketPreview(requestUrl) {
     Authorization: `Bearer ${serviceRoleKey}`,
   };
 
-  const exactTerms = [...new Set([po, po ? `#${po}` : "", dispatchOrderId].filter(Boolean))];
+  const basePo = baseOrderLookupValue(po);
+  const exactTerms = [
+    ...new Set([po, po ? `#${po}` : "", basePo, basePo ? `#${basePo}` : "", dispatchOrderId].filter(Boolean)),
+  ];
   const orParts = [];
   for (const term of exactTerms) {
     const encoded = encodeURIComponent(term);
@@ -120,8 +128,12 @@ async function fetchTicketPreview(requestUrl) {
 
   if (!po) return null;
 
-  const fuzzy = encodeURIComponent(`*${po}*`);
-  const fuzzyUrl = `${supabaseUrl}/rest/v1/tickets?select=${ticketPreviewSelect()}&or=(job_name.ilike.${fuzzy},job_number.ilike.${fuzzy})&order=created_at.desc&limit=1`;
+  const fuzzyTerms = [...new Set([po, basePo].filter(Boolean))];
+  const fuzzyParts = fuzzyTerms.flatMap((term) => {
+    const fuzzy = encodeURIComponent(`*${term}*`);
+    return [`job_name.ilike.${fuzzy}`, `job_number.ilike.${fuzzy}`];
+  });
+  const fuzzyUrl = `${supabaseUrl}/rest/v1/tickets?select=${ticketPreviewSelect()}&or=(${fuzzyParts.join(",")})&order=created_at.desc&limit=1`;
   const fuzzyResponse = await fetch(fuzzyUrl, { headers });
   if (!fuzzyResponse.ok) {
     throw new Error(`Supabase fuzzy ticket lookup failed (${fuzzyResponse.status}): ${await fuzzyResponse.text()}`);
