@@ -1,3 +1,5 @@
+import { normalizeCompletionLabel } from "./loadrite-completion-time.mjs";
+
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has("--dry-run");
 const once = args.has("--once");
@@ -9,17 +11,6 @@ function requireEnv(name) {
     throw new Error(`${name} is required.`);
   }
   return value;
-}
-
-function formatTicketDate(date) {
-  return date.toLocaleString("en-US", {
-    month: "2-digit",
-    day: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
 }
 
 function toMetadataMap(entries) {
@@ -48,68 +39,6 @@ function parseWeight(weightText) {
     amount: Number.isFinite(amount) ? amount.toFixed(2) : "0.00",
     unit,
   };
-}
-
-function parseTimeOnly(label, now = new Date()) {
-  const match = label.match(/^(\d{1,2}):(\d{2})\s*([AP]M)$/i);
-  if (!match) return null;
-
-  let hours = Number.parseInt(match[1], 10);
-  const minutes = Number.parseInt(match[2], 10);
-  const meridiem = match[3].toUpperCase();
-
-  if (meridiem === "PM" && hours !== 12) hours += 12;
-  if (meridiem === "AM" && hours === 12) hours = 0;
-
-  const parsed = new Date(now);
-  parsed.setHours(hours, minutes, 0, 0);
-  return parsed;
-}
-
-function parseDayMonthYear(label) {
-  const match = label.match(/^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{2})$/);
-  if (!match) return null;
-
-  const months = {
-    jan: 0,
-    feb: 1,
-    mar: 2,
-    apr: 3,
-    may: 4,
-    jun: 5,
-    jul: 6,
-    aug: 7,
-    sep: 8,
-    oct: 9,
-    nov: 10,
-    dec: 11,
-  };
-
-  const day = Number.parseInt(match[1], 10);
-  const month = months[match[2].toLowerCase()];
-  const year = 2000 + Number.parseInt(match[3], 10);
-
-  if (month === undefined) return null;
-
-  return new Date(year, month, day, 12, 0, 0, 0);
-}
-
-function normalizeCompletionLabel(label) {
-  const raw = String(label ?? "").trim();
-  if (!raw) return formatTicketDate(new Date());
-
-  const timeOnly = parseTimeOnly(raw);
-  if (timeOnly) return formatTicketDate(timeOnly);
-
-  const dayMonthYear = parseDayMonthYear(raw);
-  if (dayMonthYear) return formatTicketDate(dayMonthYear);
-
-  const native = new Date(raw);
-  if (!Number.isNaN(native.getTime())) {
-    return formatTicketDate(native);
-  }
-
-  return formatTicketDate(new Date());
 }
 
 function normalizeTruck(value) {
@@ -170,6 +99,8 @@ function jobToTicketRow(job, userId) {
   const meta = toMetadataMap(job["Meta Data"]);
   const { amount, unit } = parseWeight(job["Total Weight"]);
   const completionLabel = String(job["Completion Time"] ?? "").trim();
+  const dateTime = normalizeCompletionLabel(completionLabel);
+  if (!dateTime) return null;
   const poNumber =
     meta["PO-Job Number"] ??
     meta["PO / Job Number"] ??
@@ -183,7 +114,7 @@ function jobToTicketRow(job, userId) {
     user_id: userId,
     job_number: String(job["Ticket ID"] ?? "").trim(),
     job_name: poNumber,
-    date_time: normalizeCompletionLabel(completionLabel),
+    date_time: dateTime,
     total_amount: amount,
     total_unit: unit,
     customer: meta.Customer ?? "",
@@ -252,9 +183,10 @@ async function handleJobsPayload(payloadValue) {
   const jobs = Array.isArray(parsed?.Jobs) ? parsed.Jobs : [];
   const rows = jobs
     .map((job) => jobToTicketRow(job, syncUserId))
-    .filter((row) => row.id);
+    .filter((row) => row?.id);
+  const skippedAmbiguousTime = jobs.length - rows.length;
 
-  if (rows.length > 0) {
+  if (jobs.length > 0) {
     processedNonEmptyPayload = true;
   }
 
@@ -267,7 +199,7 @@ async function handleJobsPayload(payloadValue) {
   lastPayloadSignature = signature;
 
   if (rows.length === 0) {
-    log("Gateway returned no completed jobs for the current filter.");
+    log(`Gateway returned no tickets with an exact completion time; skipped ${skippedAmbiguousTime} date-only ticket(s).`);
     if (once && processedNonEmptyPayload) process.exit(0);
     return;
   }
@@ -285,7 +217,7 @@ async function handleJobsPayload(payloadValue) {
       "Content-Type": "application/json",
       apikey: supabaseServiceRoleKey,
       Authorization: `Bearer ${supabaseServiceRoleKey}`,
-      Prefer: "resolution=merge-duplicates,return=minimal",
+      Prefer: "resolution=ignore-duplicates,return=representation",
     },
     body: JSON.stringify(rows),
   });
@@ -295,7 +227,13 @@ async function handleJobsPayload(payloadValue) {
     throw new Error(`Supabase upsert failed (${response.status}): ${errorText}`);
   }
 
-  log(`Upserted ${rows.length} tickets from ${currentWebsocketUrl}`);
+  const importedRows = await response.json();
+  const importedCount = Array.isArray(importedRows) ? importedRows.length : 0;
+  if (importedCount === 0) {
+    log("No new gateway tickets to import.");
+  } else {
+    log(`Imported ${importedCount} new tickets from ${currentWebsocketUrl}`);
+  }
   if (once) process.exit(0);
 }
 

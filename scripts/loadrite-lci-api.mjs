@@ -1,5 +1,6 @@
 import http from "node:http";
 import WebSocket from "ws";
+import { normalizeCompletionLabel } from "./loadrite-completion-time.mjs";
 import { filterSyncableTicketRows, preserveExistingTicketStatuses } from "./loadrite-sync-policy.mjs";
 
 const PORT = Number.parseInt(process.env.PORT ?? "8787", 10);
@@ -202,17 +203,6 @@ async function validateSupabaseUser(req) {
   return payload?.user ?? payload;
 }
 
-function formatTicketDate(date) {
-  return date.toLocaleString("en-US", {
-    month: "2-digit",
-    day: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  });
-}
-
 function toMetadataMap(entries) {
   return Object.fromEntries(
     (Array.isArray(entries) ? entries : [])
@@ -236,45 +226,6 @@ function parseWeight(weightText) {
     amount: Number.isFinite(amount) ? amount.toFixed(2) : "0.00",
     unit,
   };
-}
-
-function parseTimeOnly(label, now = new Date()) {
-  const match = label.match(/^(\d{1,2}):(\d{2})\s*([AP]M)$/i);
-  if (!match) return null;
-
-  let hours = Number.parseInt(match[1], 10);
-  const minutes = Number.parseInt(match[2], 10);
-  const meridiem = match[3].toUpperCase();
-
-  if (meridiem === "PM" && hours !== 12) hours += 12;
-  if (meridiem === "AM" && hours === 12) hours = 0;
-
-  const parsed = new Date(now);
-  parsed.setHours(hours, minutes, 0, 0);
-  return parsed;
-}
-
-function isDayMonthYearOnly(label) {
-  return /^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{2})$/.test(label);
-}
-
-function hasExplicitTime(label) {
-  return /\b\d{1,2}:\d{2}(?::\d{2})?\s*(?:[AP]M)?\b/i.test(label) || /T\d{2}:\d{2}/.test(label);
-}
-
-function normalizeCompletionLabel(label) {
-  const raw = String(label ?? "").trim();
-  if (!raw) return null;
-
-  const timeOnly = parseTimeOnly(raw);
-  if (timeOnly) return formatTicketDate(timeOnly);
-
-  if (isDayMonthYearOnly(raw) || !hasExplicitTime(raw)) return null;
-
-  const native = new Date(raw);
-  if (!Number.isNaN(native.getTime())) return formatTicketDate(native);
-
-  return null;
 }
 
 function normalizeTruck(value) {

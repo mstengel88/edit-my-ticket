@@ -69,8 +69,11 @@ export function TicketSidebar({ tickets, selectedId, onSelect, onDelete, onNew, 
   return (
     <>
       <aside
-        className="h-full w-[19rem] shrink-0 border-l border-white/8 bg-[#111c2d] xl:w-[21rem] 2xl:w-[23rem] flex flex-col overflow-hidden"
-        style={{ paddingRight: "max(0.75rem, var(--safe-area-right))" }}
+        className="sticky top-[57px] w-[19rem] shrink-0 self-start border-l border-white/8 bg-[#111c2d] xl:w-[21rem] 2xl:w-[23rem] flex flex-col overflow-hidden"
+        style={{
+          height: "calc(var(--ghos-host-viewport-height, 100dvh) - 57px)",
+          paddingRight: "max(0.75rem, var(--safe-area-right))",
+        }}
       >
         {/* Header */}
         <div className="space-y-3 border-b border-white/8 px-3 py-4">

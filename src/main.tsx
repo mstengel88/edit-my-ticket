@@ -33,7 +33,11 @@ async function configureNativeShell() {
 
 void configureNativeShell();
 
-if (!Capacitor.isNativePlatform() && "serviceWorker" in navigator) {
+const pwaEnabled = import.meta.env.VITE_PWA_ENABLED !== "false";
+const ghosEmbeddedBuild = import.meta.env.VITE_GHOS_EMBEDDED === "true";
+
+if (!Capacitor.isNativePlatform() && "serviceWorker" in navigator &&
+    pwaEnabled && !ghosEmbeddedBuild) {
   window.addEventListener("load", () => {
     const announceUpdate = (registration: ServiceWorkerRegistration) => {
       window.dispatchEvent(new CustomEvent("pwa:update-ready", { detail: registration }));
@@ -57,6 +61,23 @@ if (!Capacitor.isNativePlatform() && "serviceWorker" in navigator) {
     }).catch((error) => {
       console.error("Service worker registration failed", error);
     });
+  });
+} else if (!Capacitor.isNativePlatform() && "serviceWorker" in navigator) {
+  // The GHOS iframe must always load the matching deployed bundle. Remove
+  // registrations and app-shell caches left by older standalone builds.
+  window.addEventListener("load", () => {
+    void navigator.serviceWorker.getRegistrations()
+      .then((registrations) => Promise.all(
+        registrations.map((registration) => registration.unregister()),
+      ));
+
+    if ("caches" in window) {
+      void caches.keys().then((keys) => Promise.all(
+        keys
+          .filter((key) => key.startsWith("ticket-creator"))
+          .map((key) => caches.delete(key)),
+      ));
+    }
   });
 }
 

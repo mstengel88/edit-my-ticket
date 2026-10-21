@@ -21,6 +21,18 @@ The ticket websocket publishes completed job data in this shape:
 
 That means we do not need to sniff packets to get the ticket feed. We can subscribe directly to the gateway's websocket and relay normalized ticket rows into Supabase.
 
+## GHOS live manual sync
+
+The normal `docker-compose.operations-live.yml` deployment does not start the
+background relay. Ticket Creator imports tickets only when a user clicks Sync.
+The deploy script also removes an older always-running relay container so it
+cannot continue writing in the background.
+
+The relay remains available for deliberate troubleshooting with the
+`loadrite-auto-sync` Compose profile. It inserts only new ticket IDs and skips
+date-only completion labels, so it cannot rewrite an existing ticket or invent
+a `12:00 PM` completion time.
+
 ## Additional gateway findings
 
 The local LCI also has a login flow:

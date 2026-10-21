@@ -12,6 +12,11 @@ import { Download, Loader2, RefreshCw, X } from "lucide-react";
 import companyLogo from "@/assets/Greenhillssupply_logo.png";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
+import {
+  GhosOnlyNotice,
+  GhosSsoBridge,
+  isGhosEmbedded,
+} from "@/components/GhosSsoBridge";
 
 const queryClient = new QueryClient();
 const Home = lazy(() => import("./pages/Home"));
@@ -115,6 +120,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (isEmbeddedTicketPreview) return <>{children}</>;
+  if (isGhosEmbedded() && !session) return <AppSplash />;
   if (!session) return <Navigate to="/auth" replace />;
   return <>{children}</>;
 };
@@ -122,12 +128,15 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, loading: authLoading } = useAuth();
   const { isAdminOrManager, loading: roleLoading } = useUserRole();
+  const embeddedInGhos = isGhosEmbedded();
 
-  if (authLoading || roleLoading) {
+  if (authLoading || (!embeddedInGhos && roleLoading)) {
     return <AppSplash />;
   }
 
+  if (embeddedInGhos && !session) return <AppSplash />;
   if (!session) return <Navigate to="/auth" replace />;
+  if (embeddedInGhos) return <>{children}</>;
   if (!isAdminOrManager) return <Navigate to="/" replace />;
   return <>{children}</>;
 };
@@ -135,12 +144,15 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 const TemplateAdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, loading: authLoading } = useAuth();
   const { isAdmin, loading: roleLoading } = useUserRole();
+  const embeddedInGhos = isGhosEmbedded();
 
-  if (authLoading || roleLoading) {
+  if (authLoading || (!embeddedInGhos && roleLoading)) {
     return <AppSplash />;
   }
 
+  if (embeddedInGhos && !session) return <AppSplash />;
   if (!session) return <Navigate to="/auth" replace />;
+  if (embeddedInGhos) return <>{children}</>;
   if (!isAdmin) return <Navigate to="/" replace />;
   return <>{children}</>;
 };
@@ -153,6 +165,7 @@ const DeveloperRoute = ({ children }: { children: React.ReactNode }) => {
     return <AppSplash />;
   }
 
+  if (isGhosEmbedded() && !session) return <AppSplash />;
   if (!session) return <Navigate to="/auth" replace />;
   if (!isDeveloper) return <Navigate to="/" replace />;
   return <>{children}</>;
@@ -165,6 +178,9 @@ const AuthRoute = ({ children }: { children: React.ReactNode }) => {
     return <AppSplash />;
   }
 
+  if (isGhosEmbedded()) {
+    return <GhosOnlyNotice />;
+  }
   if (session) return <Navigate to="/" replace />;
   return <>{children}</>;
 };
@@ -174,6 +190,94 @@ const App = () => {
   const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [updateRegistration, setUpdateRegistration] = useState<ServiceWorkerRegistration | null>(null);
   const [showUpdateBanner, setShowUpdateBanner] = useState(false);
+
+  useEffect(() => {
+    if (window.parent === window) return;
+
+    let animationFrame = 0;
+    let lastHeight = 0;
+
+    const reportHeight = () => {
+      window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(() => {
+        const root = document.getElementById("root");
+        const height = Math.ceil(Math.max(
+          root?.scrollHeight ?? 0,
+          document.body.scrollHeight,
+          document.documentElement.scrollHeight,
+        ));
+
+        if (height <= 0 || Math.abs(height - lastHeight) < 2) return;
+        lastHeight = height;
+        window.parent.postMessage(
+          { type: "ghos:ticketing-content-height", height },
+          "*",
+        );
+      });
+    };
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.source !== window.parent || event.data?.type !== "ghos:ticketing-host-viewport") return;
+      const height = Number(event.data.height);
+      if (!Number.isFinite(height) || height < 320 || height > 10000) return;
+      document.documentElement.classList.add("ghos-embedded-frame");
+      document.documentElement.style.setProperty("--ghos-host-viewport-height", `${Math.round(height)}px`);
+      reportHeight();
+    };
+
+    const relayWheelToGhos = (event: WheelEvent) => {
+      let current = event.target instanceof Element ? event.target : null;
+      while (current && current !== document.body) {
+        const style = window.getComputedStyle(current);
+        if (/(auto|scroll|overlay)/.test(style.overflowY) &&
+            current.scrollHeight > current.clientHeight + 1) {
+          const canScroll = event.deltaY < 0
+            ? current.scrollTop > 0
+            : current.scrollTop + current.clientHeight < current.scrollHeight - 1;
+          if (canScroll) return;
+        }
+        current = current.parentElement;
+      }
+
+      window.parent.postMessage(
+        {
+          type: "ghos:ticketing-scroll",
+          deltaX: event.deltaX,
+          deltaY: event.deltaY,
+        },
+        "*",
+      );
+    };
+
+    const resizeObserver = new ResizeObserver(reportHeight);
+    resizeObserver.observe(document.documentElement);
+    if (document.body) resizeObserver.observe(document.body);
+
+    const mutationObserver = new MutationObserver(reportHeight);
+    mutationObserver.observe(document.getElementById("root") ?? document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+    });
+
+    window.addEventListener("load", reportHeight);
+    window.addEventListener("resize", reportHeight);
+    window.addEventListener("message", handleMessage);
+    window.addEventListener("wheel", relayWheelToGhos, { passive: true });
+    reportHeight();
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      resizeObserver.disconnect();
+      mutationObserver.disconnect();
+      window.removeEventListener("load", reportHeight);
+      window.removeEventListener("resize", reportHeight);
+      window.removeEventListener("message", handleMessage);
+      window.removeEventListener("wheel", relayWheelToGhos);
+      document.documentElement.classList.remove("ghos-embedded-frame");
+      document.documentElement.style.removeProperty("--ghos-host-viewport-height");
+    };
+  }, []);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (event: Event) => {
@@ -233,6 +337,7 @@ const App = () => {
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <GhosSsoBridge />
           {showInstallBanner && !showUpdateBanner && (
             <PwaBanner
               mode="install"

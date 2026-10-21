@@ -3,6 +3,7 @@
 .env.*
 !.env.example
 !.env.operations-candidate.example
+!.env.operations-live.example
 
 
 

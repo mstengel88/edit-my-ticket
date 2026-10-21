@@ -12,9 +12,16 @@ function requireRuntimeConfig(name: string, value: string | undefined): string {
   return normalized;
 }
 
-export const SUPABASE_URL = requireRuntimeConfig(
-  "VITE_SUPABASE_URL",
-  import.meta.env.VITE_SUPABASE_URL,
+function resolveRuntimeUrl(value: string): string {
+  if (value.startsWith("/")) {
+    return new URL(value, window.location.origin).toString().replace(/\/$/, "");
+  }
+
+  return value.replace(/\/$/, "");
+}
+
+export const SUPABASE_URL = resolveRuntimeUrl(
+  requireRuntimeConfig("VITE_SUPABASE_URL", import.meta.env.VITE_SUPABASE_URL),
 );
 export const SUPABASE_PUBLISHABLE_KEY = requireRuntimeConfig(
   "VITE_SUPABASE_PUBLISHABLE_KEY or VITE_SUPABASE_ANON_KEY",

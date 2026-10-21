@@ -111,6 +111,16 @@
   }
 }
 
+html.ghos-embedded-frame,
+html.ghos-embedded-frame body {
+  min-height: var(--ghos-host-viewport-height, 100dvh);
+  overflow-y: hidden;
+}
+
+html.ghos-embedded-frame #root {
+  min-height: var(--ghos-host-viewport-height, 100dvh);
+}
+
 @layer base {
   * {
     @apply border-border;

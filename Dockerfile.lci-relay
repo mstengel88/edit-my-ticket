@@ -7,5 +7,6 @@ RUN npm init -y \
   && npm install ws
 
 COPY scripts/loadrite-lci-relay.mjs ./scripts/loadrite-lci-relay.mjs
+COPY scripts/loadrite-completion-time.mjs ./scripts/loadrite-completion-time.mjs
 
 CMD ["node", "scripts/loadrite-lci-relay.mjs"]

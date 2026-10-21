@@ -22,6 +22,10 @@ import companyLogo from "@/assets/Greenhillssupply_logo.png";
 import { useLocation, useNavigate } from "react-router-dom";
 import { buildTruckRecord, isStandardTruckName, normalizeTruckName } from "@/lib/truckName";
 import { Badge } from "@/components/ui/badge";
+import {
+  ghosTicketPermissions,
+  useGhosPermission,
+} from "@/components/GhosSsoBridge";
 
 type View = "list" | "editor" | "preview";
 type TicketSourceView = "all" | "manual" | "loadrite";
@@ -116,6 +120,15 @@ const Index = () => {
   const { tickets, loading, error, fetchData, loadFromDb } = useLoadriteData();
   const { signOut, session } = useAuth();
   const { isAdminOrManager, isAdmin } = useUserRole();
+  const hasCreateEditPermission = useGhosPermission(ghosTicketPermissions.createEdit);
+  const canPrintTickets = useGhosPermission(ghosTicketPermissions.print);
+  const canEmailTickets = useGhosPermission(ghosTicketPermissions.email);
+  const hasVoidPermission = useGhosPermission(ghosTicketPermissions.void);
+  const canEditTickets = isAdmin ||
+    (isAdminOrManager && hasCreateEditPermission);
+  const canPrintTicketsWithAdmin = isAdmin || canPrintTickets;
+  const canEmailTicketsWithAdmin = isAdmin || canEmailTickets;
+  const canVoidTickets = isAdmin || hasVoidPermission;
   const location = useLocation();
   const navigate = useNavigate();
   const isTicketEmbed = new URLSearchParams(location.search).get("embed") === "ticket";
@@ -147,10 +160,10 @@ const Index = () => {
     if (!requestedTicket) return;
 
     setSelectedTicket({ ...requestedTicket });
-    setView(isAdminOrManager ? "editor" : "preview");
+    setView(canEditTickets ? "editor" : "preview");
     setActiveTab("tickets");
     navigate(location.pathname, { replace: true, state: null });
-  }, [isAdminOrManager, loading, location.pathname, location.state, navigate, visibleTickets]);
+  }, [canEditTickets, loading, location.pathname, location.state, navigate, visibleTickets]);
   useEffect(() => {
     if (!pendingPrint || view !== "preview" || !selectedTicket) return;
 
@@ -163,6 +176,10 @@ const Index = () => {
   }, [pendingPrint, view, selectedTicket]);
 
   const handleSelectTicket = (ticket: TicketData) => {
+    if (!canEditTickets) {
+      handlePreview(ticket);
+      return;
+    }
     setSelectedTicket({ ...ticket });
     setView("editor");
   };
@@ -203,6 +220,10 @@ const Index = () => {
   };
 
   const handleNewTicket = async () => {
+    if (!canEditTickets) {
+      toast.error("Your GHOS role cannot create tickets.");
+      return;
+    }
     await createTicket();
   };
 
@@ -350,6 +371,10 @@ const Index = () => {
   };
 
   const handleSaveTicket = async (updated: TicketData) => {
+    if (!canEditTickets) {
+      toast.error("Your GHOS role cannot edit tickets.");
+      return;
+    }
     const ticketToSave: TicketData = {
       ...updated,
       status: updated.status === "draft" ? "pending" : updated.status,
@@ -358,6 +383,10 @@ const Index = () => {
   };
 
   const handleIssueTicket = async (updated: TicketData) => {
+    if (!canEditTickets) {
+      toast.error("Your GHOS role cannot issue tickets.");
+      return;
+    }
     const ticketToSave: TicketData = {
       ...updated,
       issuedAt: updated.issuedAt ?? new Date().toISOString(),
@@ -368,8 +397,8 @@ const Index = () => {
   };
 
   const handleDeleteTicket = async (id: string) => {
-    if (!isAdmin) {
-      toast.error("Only admins and developers can delete tickets.");
+    if (!canVoidTickets) {
+      toast.error("Your GHOS role cannot void or delete tickets.");
       return;
     }
 
@@ -406,6 +435,10 @@ const Index = () => {
   };
 
   const handleStatusChange = async (ticket: TicketData, status: TicketData["status"]) => {
+    if (!canEditTickets) {
+      toast.error("Your GHOS role cannot change ticket status.");
+      return;
+    }
     const { error: err } = await supabase
       .from("tickets")
       .update({ status })
@@ -426,12 +459,20 @@ const Index = () => {
   const sourceViewLabel = sourceView === "all" ? "All tickets" : sourceView === "manual" ? "Manual tickets" : "Loadrite tickets";
 
   const handlePrintTicket = (ticket: TicketData) => {
+    if (!canPrintTicketsWithAdmin) {
+      toast.error("Your GHOS role cannot print tickets.");
+      return;
+    }
     setSelectedTicket(ticket);
     setView("preview");
     setPendingPrint(true);
   };
 
   const handleEmailTicket = async (ticket: TicketData) => {
+    if (!canEmailTicketsWithAdmin) {
+      toast.error("Your GHOS role cannot email tickets.");
+      return;
+    }
     if (!ticket.customerEmail) {
       toast.error("No customer email set.");
       return;
@@ -509,18 +550,18 @@ const Index = () => {
 
     const headerExtra = (
       <>
-        {isAdminOrManager && view !== "list" && (
+        {canEditTickets && view !== "list" && (
           <Button variant="ghost" size="icon" onClick={handleBack} className="text-slate-200 hover:bg-white/10 hover:text-white">
             <ArrowLeft className="h-5 w-5" />
           </Button>
         )}
-        {isAdminOrManager && (
+        {canEditTickets && (
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="gap-1.5 border-white/10 bg-white/5 text-white hover:bg-white/10">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Sync
           </Button>
         )}
-        {isAdminOrManager && (
+        {canEditTickets && (
           <Button size="sm" onClick={handleNewTicket} className="gap-1.5 bg-cyan-400 text-slate-950 hover:bg-cyan-300">
             <Plus className="h-4 w-4" />
             New Ticket
@@ -531,9 +572,9 @@ const Index = () => {
 
     return (
       <AppLayout title={pageTitle} subtitle={subtitle} headerExtra={headerExtra}>
-        <div className="flex h-[calc(100dvh-57px)] min-h-0">
+        <div className="flex min-h-[calc(100dvh-57px)]">
           {/* Main content area */}
-          <div className="min-w-0 flex-1 overflow-y-auto">
+          <div className="min-w-0 flex-1">
             <div className="mx-auto w-full max-w-6xl p-4 md:p-6 xl:p-8">
               {view === "list" && !selectedTicket && (
                 <div className="space-y-6 animate-fade-in">
@@ -605,7 +646,7 @@ const Index = () => {
                         {visibleTickets.slice(0, 6).map((ticket) => (
                           <button
                             key={ticket.id}
-                            onClick={() => (isAdminOrManager ? handleSelectTicket(ticket) : handlePreview(ticket))}
+                            onClick={() => (canEditTickets ? handleSelectTicket(ticket) : handlePreview(ticket))}
                             className="grid w-full gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-4 text-left transition-colors hover:bg-white/[0.06] md:grid-cols-[1.2fr_1fr_auto]"
                           >
                             <div className="min-w-0">
@@ -744,14 +785,14 @@ const Index = () => {
           <TicketSidebar
             tickets={visibleTickets}
             selectedId={selectedTicket?.id}
-            onSelect={isAdminOrManager ? handleSelectTicket : handlePreview}
+            onSelect={canEditTickets ? handleSelectTicket : handlePreview}
             onDelete={handleDeleteTicket}
             onNew={handleNewTicket}
             onPrint={handlePrintTicket}
             onEmail={handleEmailTicket}
-            onStatusChange={isAdminOrManager ? handleStatusChange : undefined}
-            readOnly={!isAdminOrManager}
-            canDelete={isAdmin}
+            onStatusChange={canEditTickets ? handleStatusChange : undefined}
+            readOnly={!canEditTickets}
+            canDelete={canVoidTickets}
           />
         </div>
       </AppLayout>
@@ -766,12 +807,12 @@ const Index = () => {
 
   const headerExtra = (
     <>
-      {isAdminOrManager && view !== "list" && activeTab === "tickets" && (
+      {canEditTickets && view !== "list" && activeTab === "tickets" && (
         <Button variant="ghost" size="icon" onClick={handleBack}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
       )}
-      {isAdminOrManager && view === "list" && activeTab === "tickets" && (
+      {canEditTickets && view === "list" && activeTab === "tickets" && (
         <>
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading} className="gap-1.5">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
@@ -793,7 +834,7 @@ const Index = () => {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className={`mb-4 ${isTablet ? "h-auto w-full justify-start rounded-xl p-1" : ""}`}>
               <TabsTrigger value="tickets">Tickets</TabsTrigger>
-              {isAdminOrManager && (
+              {canEditTickets && (
                 <TabsTrigger value="reports" className="gap-1.5">
                   <BarChart3 className="h-4 w-4" />
                   Reports
@@ -821,9 +862,9 @@ const Index = () => {
                   </Button>
                 ))}
               </div>
-              <TicketList tickets={visibleTickets} onSelect={handleSelectTicket} onDelete={handleDeleteTicket} onPreview={handlePreview} onPrint={handlePrintTicket} onEmail={handleEmailTicket} readOnly={!isAdminOrManager} canDelete={isAdmin} />
+              <TicketList tickets={visibleTickets} onSelect={handleSelectTicket} onDelete={handleDeleteTicket} onPreview={handlePreview} onPrint={handlePrintTicket} onEmail={handleEmailTicket} readOnly={!canEditTickets} canDelete={canVoidTickets} />
             </TabsContent>
-            {isAdminOrManager && (
+            {canEditTickets && (
               <TabsContent value="reports">
                 <Reports tickets={visibleTickets} reportFields={reportFields} reportEmailConfig={reportEmailConfig} />
               </TabsContent>
