@@ -33,8 +33,11 @@ export interface TicketData {
   status: "draft" | "pending" | "billable" | "sent" | "completed";
 }
 
+export const TICKET_TIME_ZONE = "America/Chicago";
+
 export const formatTicketDateTime = (value: Date = new Date()) =>
   value.toLocaleString("en-US", {
+    timeZone: TICKET_TIME_ZONE,
     month: "2-digit",
     day: "2-digit",
     year: "numeric",
@@ -59,12 +62,12 @@ export const createUuid = (provider: UuidCrypto = crypto) => {
   return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex.slice(8, 10).join("")}-${hex.slice(10).join("")}`;
 };
 
-export const createEmptyTicket = (jobNumber?: string): TicketData => ({
+export const createEmptyTicket = (jobNumber?: string, createdAt: Date = new Date()): TicketData => ({
   id: createUuid(),
   source: "manual",
   jobNumber: jobNumber ?? "MT-000001",
   jobName: "",
-  dateTime: formatTicketDateTime(),
+  dateTime: formatTicketDateTime(createdAt),
   orderId: null,
   orderSequence: null,
   issuedAt: null,
